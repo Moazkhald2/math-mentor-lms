@@ -14,6 +14,7 @@ import Results from './pages/Results'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import AuthCallback from './pages/AuthCallback'
+import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -40,6 +41,7 @@ function App() {
           <Route path="/exams" element={<AppLayout><Exams /></AppLayout>} />
           <Route path="/exam/:id" element={<Exam />} />
           <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
+          <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
           <Route path="/results/:attemptId" element={<AppLayout><Results /></AppLayout>} />
           <Route path="/forgot-password" element={<AppLayout><ForgotPassword /></AppLayout>} />
           <Route path="/reset-password" element={<ResetPassword />} />
