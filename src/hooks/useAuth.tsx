@@ -37,6 +37,19 @@ async function getProfileRole(userId: string) {
   return data as { role: string; session_token: string } | null
 }
 
+async function ensureProfile(user: User) {
+  const existing = await getProfileRole(user.id)
+  if (existing) return existing
+  const { error } = await supabase.from('profiles').insert({
+    id: user.id,
+    email: user.email,
+    full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+    role: 'student',
+  })
+  if (error) console.error('Failed to auto-create profile', error)
+  return null
+}
+
 async function updateSessionToken(userId: string, token: string) {
   await supabase.from('profiles').update({ session_token: token }).eq('id', userId)
 }
@@ -107,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUser = session?.user ?? null
       setUser(currentUser)
       if (currentUser) {
+        await ensureProfile(currentUser)
         updateLastActivity()
         const storedToken = localStorage.getItem(SESSION_KEY)
         if (!storedToken) {
@@ -124,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUser = session?.user ?? null
       setUser(currentUser)
       if (currentUser && event === 'SIGNED_IN') {
+        await ensureProfile(currentUser)
         resetAttempts()
         updateLastActivity()
         const newToken = crypto.randomUUID()

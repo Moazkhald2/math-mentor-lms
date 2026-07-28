@@ -12,7 +12,7 @@ import AdminExams from './admin/AdminExams'
 import AdminAttempts from './admin/AdminAttempts'
 
 export default function Admin() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -27,10 +27,12 @@ export default function Admin() {
   })
 
   useEffect(() => {
-    if (!user) navigate('/login')
-    else if (!isFetching && profile && profile.role !== 'admin') navigate('/')
-  }, [user, profile, navigate, isFetching])
+    if (authLoading) return
+    if (!user) navigate('/login', { replace: true })
+    else if (!isFetching && profile && profile.role !== 'admin') navigate('/', { replace: true })
+  }, [user, profile, navigate, isFetching, authLoading])
 
+  if (authLoading) return null
   if (!user || !profile || profile.role !== 'admin') return null
 
   const section = location.pathname.replace('/admin', '') || ''
