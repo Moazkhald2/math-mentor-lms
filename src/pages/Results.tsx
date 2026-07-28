@@ -1,8 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import type { ExamAttempt, Answer } from '../types'
+import type { ExamAttempt, Answer, Question } from '../types'
 import { useAuth } from '../hooks/useAuth'
+import LatexRenderer from '../components/LatexRenderer'
 
 export default function Results() {
   const { attemptId } = useParams<{ attemptId: string }>()
@@ -33,7 +34,7 @@ export default function Results() {
         .eq('attempt_id', attemptId)
 
       if (error) throw error
-      return data as (Answer & { question: { question_text: string; correct_answer: string; explanation: string } })[]
+      return data as (Answer & { question: Question })[]
     },
     enabled: !!attemptId,
   })
@@ -99,7 +100,7 @@ export default function Results() {
           <div
             key={a.id}
             className={`rounded-lg border p-5 ${
-              a.is_correct ? 'border-accent-green/30 bg-accent-green/5' : 'border-danger/30 bg-danger/5'
+              a.is_correct ? 'border-accent-green bg-accent-green/5' : 'border-danger bg-danger/5'
             }`}
           >
             <div className="mb-2 flex items-center justify-between">
@@ -109,19 +110,41 @@ export default function Results() {
               </span>
             </div>
 
-            <p className="mb-3 font-medium text-text">{a.question.question_text}</p>
+            <div className="mb-3 font-medium text-text">
+              <LatexRenderer content={a.question.question_text} />
+            </div>
+
+            {a.question.options.length > 0 && (
+              <div className="mb-3 space-y-1.5">
+                {a.question.options.map((opt, oi) => {
+                  const isSelected = opt === a.answer
+                  const isCorrectOpt = opt === a.question.correct_answer
+                  let className = 'rounded-lg border px-3 py-1.5 text-sm '
+                  if (isCorrectOpt) className += 'border-accent-green bg-accent-green/10 text-accent-green'
+                  else if (isSelected && !a.is_correct) className += 'border-danger bg-danger/10 text-danger'
+                  else className += 'border-border text-text-muted'
+                  return (
+                    <div key={oi} className={className}>
+                      <LatexRenderer content={opt} />
+                    </div>
+                  )
+                })}
+              </div>
+            )}
 
             <div className="mb-2 text-sm">
               <span className="text-text-muted">Your answer: </span>
               <span className={`font-semibold ${a.is_correct ? 'text-accent-green' : 'text-danger'}`}>
-                {a.answer || '(none)'}
+                <LatexRenderer content={a.answer || '(none)'} inline />
               </span>
             </div>
 
             {!a.is_correct && (
               <div className="mb-2 text-sm">
                 <span className="text-text-muted">Correct answer: </span>
-                <span className="font-semibold text-accent-green">{a.question.correct_answer}</span>
+                <span className="font-semibold text-accent-green">
+                  <LatexRenderer content={a.question.correct_answer} inline />
+                </span>
               </div>
             )}
 
@@ -130,9 +153,28 @@ export default function Results() {
                 <summary className="cursor-pointer text-sm font-semibold text-brand">
                   Explanation
                 </summary>
-                <p className="mt-2 rounded bg-ink/50 p-3 text-sm leading-relaxed text-text-muted">
-                  {a.question.explanation}
-                </p>
+                <div className="mt-2 rounded bg-ink/50 p-3 text-sm leading-relaxed text-text-muted">
+                  <LatexRenderer content={a.question.explanation} />
+                </div>
+              </details>
+            )}
+
+            {a.question.common_mistakes.length > 0 && (
+              <details className="mt-2">
+                <summary className="cursor-pointer text-sm font-semibold text-accent-gold hover:text-warning">
+                  Common Mistakes
+                </summary>
+                <div className="mt-2 space-y-3">
+                  {a.question.common_mistakes.map((cm, ci) => (
+                    <div key={ci} className="rounded-lg border border-accent-gold/20 bg-accent-gold/5 p-3">
+                      <p className="mb-1 text-sm">
+                        <span className="font-semibold text-danger">✗ <LatexRenderer content={cm.mistake} /></span>
+                      </p>
+                      <p className="mb-1 text-xs text-text-muted">Why: <LatexRenderer content={cm.why} inline /></p>
+                      <p className="text-sm text-accent-green">✓ Correct: <LatexRenderer content={cm.correct} /></p>
+                    </div>
+                  ))}
+                </div>
               </details>
             )}
           </div>
