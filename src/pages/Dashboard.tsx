@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { fetchActivityLogs } from '../lib/activity'
 import type { ExamAttempt } from '../types'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -20,6 +21,12 @@ export default function Dashboard() {
       if (error) throw error
       return data as (ExamAttempt & { exam: { title: string } })[]
     },
+    enabled: !!user,
+  })
+
+  const { data: activityLogs } = useQuery({
+    queryKey: ['my-activity', user.id],
+    queryFn: () => fetchActivityLogs(user.id, 10),
     enabled: !!user,
   })
 
@@ -135,6 +142,33 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
       )}
+
+      <div className="mt-8">
+        <h2 className="mb-4 text-xl font-bold text-text">Recent Activity</h2>
+        <div className="space-y-2">
+          {activityLogs?.map((log) => (
+            <div
+              key={log.id}
+              className="flex items-center justify-between rounded-lg border border-border bg-surface p-3"
+            >
+              <div>
+                <p className="font-medium text-text">
+                  {log.action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                </p>
+                {log.exam_id && (
+                  <p className="text-xs text-text-muted">Exam #{log.exam_id.slice(0, 8)}</p>
+                )}
+              </div>
+              <p className="text-xs text-text-muted">
+                {new Date(log.created_at).toLocaleString()}
+              </p>
+            </div>
+          ))}
+          {activityLogs?.length === 0 && (
+            <p className="text-sm text-text-muted">No recent activity</p>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
