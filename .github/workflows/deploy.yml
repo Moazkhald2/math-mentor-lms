@@ -6,13 +6,8 @@ on:
     paths-ignore:
       - '**.md'
       - '.gitignore'
-      - '.oxlintrc.json'
   pull_request:
     branches: [ main ]
-    paths-ignore:
-      - '**.md'
-      - '.gitignore'
-      - '.oxlintrc.json'
   workflow_dispatch:
 
 jobs:
@@ -31,7 +26,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -41,14 +36,12 @@ jobs:
         run: npm run build
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy ./dist --project-name=math-mentor-lms --branch=${{ github.ref_name }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler pages deploy ./dist --project-name=math-mentor-lms --branch=${{ github.ref_name }}
 
-      - name: Post deployment
+      - name: Deployment URL
         run: |
-          echo "Deployed to Cloudflare Pages"
-          echo "Branch: ${{ github.ref_name }}"
+          echo "Deployed branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
