@@ -41,6 +41,8 @@ export interface Exam {
   created_by: string
   created_at: string
   is_published: boolean
+  type: 'exam' | 'practice'
+  grade?: number
 }
 
 export interface ExamQuestion {

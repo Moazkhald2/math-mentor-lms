@@ -36,6 +36,9 @@ ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 -- Add type to exams
 ALTER TABLE public.exams ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'exam' CHECK (type IN ('exam', 'practice'));
 
+-- Add grade to exams
+ALTER TABLE public.exams ADD COLUMN IF NOT EXISTS grade INTEGER CHECK (grade BETWEEN 3 AND 12);
+
 -- RLS policies
 CREATE POLICY "Admins can read all classes" ON public.classes FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 CREATE POLICY "Teachers read own classes" ON public.classes FOR SELECT USING (auth.uid() = teacher_id);

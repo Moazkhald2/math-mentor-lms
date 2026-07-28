@@ -18,6 +18,7 @@ import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import Admin from './pages/Admin'
+import Practice from './pages/Practice'
 
 const queryClient = new QueryClient()
 
@@ -41,6 +42,7 @@ function App() {
           <Route path="/questions" element={<AppLayout><Questions /></AppLayout>} />
           <Route path="/exams" element={<AppLayout><Exams /></AppLayout>} />
           <Route path="/exam/:id" element={<Exam />} />
+          <Route path="/practice/:id" element={<Practice />} />
           <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
           <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
           <Route path="/results/:attemptId" element={<AppLayout><Results /></AppLayout>} />
