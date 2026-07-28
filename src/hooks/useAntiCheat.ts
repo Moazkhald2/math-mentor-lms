@@ -91,6 +91,19 @@ export function useAntiCheat(config: AntiCheatConfig = {}) {
       setState((prev) => ({ ...prev, isFullscreen: !!document.fullscreenElement }))
     }
 
+    let devtoolsInterval: ReturnType<typeof setInterval>
+    const isFirefox = navigator.userAgent.toLowerCase().includes('firefox')
+    if (!isFirefox) {
+      devtoolsInterval = setInterval(() => {
+        const threshold = 160
+        const widthDiff = window.outerWidth - window.innerWidth
+        const heightDiff = window.outerHeight - window.innerHeight
+        if (widthDiff > threshold || heightDiff > threshold) {
+          addViolation('devtools_open')
+        }
+      }, 1000)
+    }
+
     document.addEventListener('visibilitychange', handleVisibility)
     window.addEventListener('blur', handleBlur)
     document.addEventListener('keydown', handleKeyDown)
@@ -112,6 +125,7 @@ export function useAntiCheat(config: AntiCheatConfig = {}) {
       document.removeEventListener('contextmenu', handleContextMenu)
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
       if (timerRef.current) clearInterval(timerRef.current)
+      if (devtoolsInterval) clearInterval(devtoolsInterval)
     }
   }, [addViolation])
 
