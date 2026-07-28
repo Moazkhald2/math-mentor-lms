@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { fetchExamWithQuestions } from '../lib/exams'
+import { fetchExamQuestions } from '../lib/exams'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useActivityLogger } from '../hooks/useActivityLogger'
 import LatexRenderer from '../components/LatexRenderer'
+import type { Exam, ExamQuestion, Question } from '../types'
 
 export default function Practice() {
   const { id } = useParams<{ id: string }>()
@@ -17,9 +19,18 @@ export default function Practice() {
   const [answers, setAnswers] = useState<{ questionId: string; given: string; correct: boolean }[]>([])
   const [completed, setCompleted] = useState(false)
 
-  const { data: exam } = useQuery({
+  type ExamWithQuestions = Exam & { questions: (ExamQuestion & { question: Question })[] }
+
+  const { data: exam } = useQuery<ExamWithQuestions>({
     queryKey: ['practice', id],
-    queryFn: () => fetchExamWithQuestions(id!),
+    queryFn: async () => {
+      const [examResult, questions] = await Promise.all([
+        supabase.from('exams').select('*').eq('id', id!).single(),
+        fetchExamQuestions(id!),
+      ])
+      if (examResult.error) throw examResult.error
+      return { ...(examResult.data as Exam), questions }
+    },
     enabled: !!id,
   })
 

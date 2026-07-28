@@ -25,8 +25,8 @@ export default function Dashboard() {
   })
 
   const { data: activityLogs } = useQuery({
-    queryKey: ['my-activity', user.id],
-    queryFn: () => fetchActivityLogs(user.id, 10),
+    queryKey: ['my-activity', user?.id],
+    queryFn: () => fetchActivityLogs(user!.id, 10),
     enabled: !!user,
   })
 
@@ -153,7 +153,7 @@ export default function Dashboard() {
             >
               <div>
                 <p className="font-medium text-text">
-                  {log.action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                  {log.action.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                 </p>
                 {log.exam_id && (
                   <p className="text-xs text-text-muted">Exam #{log.exam_id.slice(0, 8)}</p>

@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
 import AdminSidebar from '../components/AdminSidebar'
 import AdminDashboard from './admin/AdminDashboard'
 import AdminUsers from './admin/AdminUsers'
@@ -10,13 +12,23 @@ import AdminExams from './admin/AdminExams'
 import AdminAttempts from './admin/AdminAttempts'
 
 export default function Admin() {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
+  const { data: profile } = useQuery({
+    queryKey: ['my-role'],
+    queryFn: async () => {
+      if (!user) return null
+      const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+      return data as { role: string } | null
+    },
+    enabled: !!user,
+  })
+
   useEffect(() => {
     if (!user) navigate('/login')
-    else if (profile?.role !== 'admin') navigate('/')
+    else if (profile && profile.role !== 'admin') navigate('/')
   }, [user, profile, navigate])
 
   if (!profile || profile.role !== 'admin') return null
