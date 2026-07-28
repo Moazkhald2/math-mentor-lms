@@ -1,14 +1,19 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { fetchExamQuestions, startAttempt, submitAnswer, completeAttempt } from '../lib/exams'
 import { supabase } from '../lib/supabase'
+import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
 import AntiCheatGuard from '../components/AntiCheatGuard'
 import DifficultyBadge from '../components/DifficultyBadge'
 import { useActivityLogger } from '../hooks/useActivityLogger'
 import LatexRenderer from '../components/LatexRenderer'
-import type { Question, Exam } from '../types'
+import type { Question, Exam, ExamQuestion } from '../types'
+
+type ShuffledQuestion = ExamQuestion & {
+  question: Question & { options: string[]; correct_answer: string }
+}
 
 export default function Exam() {
   const { id } = useParams<{ id: string }>()
@@ -23,16 +28,23 @@ export default function Exam() {
   const startedRef = useRef(false)
 
   const { data: exam } = useQuery({
-    queryKey: ['exam', id],
+    queryKey: ['exam', id, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('exams').select('*').eq('id', id!).single()
-      if (error) throw error
-      return data as Exam
+      const [examRes, profileRes] = await Promise.all([
+        supabase.from('exams').select('*').eq('id', id!).single(),
+        user ? supabase.from('profiles').select('grade').eq('id', user.id).single() : Promise.resolve({ data: null }),
+      ])
+      if (examRes.error) throw examRes.error
+      const e = examRes.data as Exam
+      if (!e.is_published) throw new Error('Exam not available')
+      const grade = (profileRes.data as { grade: number } | null)?.grade
+      if (grade && e.grade && e.grade !== grade) throw new Error('This exam is not available for your grade')
+      return e
     },
     enabled: !!id,
   })
 
-  const { data: questions, isLoading } = useQuery({
+  const { data: rawQuestions, isLoading } = useQuery({
     queryKey: ['exam-questions', id],
     queryFn: () => fetchExamQuestions(id!),
     enabled: !!id,
@@ -44,6 +56,24 @@ export default function Exam() {
     log('exam_started', { exam_id: id })
     startAttempt(id, user.id).then(a => setAttemptId(a.id)).catch(e => setError(e.message))
   }, [user, id, exam, log])
+
+  const questions = useMemo<ShuffledQuestion[] | undefined>(() => {
+    if (!rawQuestions) return undefined
+    const seed = attemptId || id || 'default'
+    let shuffled = exam?.shuffle_questions
+      ? seededShuffle(rawQuestions, seed + '_questions')
+      : [...rawQuestions]
+    shuffled = shuffled.map(eq => {
+      if (eq.question.type === 'multiple_choice' && eq.question.options.length > 0) {
+        const { options, correctAnswer } = shuffleMultipleChoice(
+          eq.question.options, eq.question.correct_answer, seed + eq.question.id
+        )
+        return { ...eq, question: { ...eq.question, options, correct_answer: correctAnswer } }
+      }
+      return eq
+    })
+    return shuffled
+  }, [rawQuestions, attemptId, id, exam?.shuffle_questions])
 
   const current = questions?.[currentIndex]
   const total = questions?.length ?? 0

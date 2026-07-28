@@ -21,6 +21,11 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
     }
   }, [timeSpent, durationMinutes, onTimeUp])
 
+  const remaining = durationMinutes ? durationMinutes * 60 - timeSpent : 0
+  const remainingMin = Math.floor(remaining / 60)
+  const remainingSec = remaining % 60
+  const isLowTime = durationMinutes ? remaining <= 300 : false // warn under 5 min
+
   if (isDisqualified) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -36,23 +41,33 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
 
   return (
     <div className="relative">
-      {!isFullscreen && (
-        <div className="mb-4 rounded-lg border border-accent-gold bg-accent-gold/10 px-4 py-2 text-sm text-accent-gold">
-          ⚠ Enter fullscreen mode to start the exam.
-          <button
-            onClick={requestFullscreen}
-            className="ml-2 underline hover:no-underline"
-          >
-            Fullscreen
-          </button>
+      {/* Header bar: fullscreen warning + timer + violations */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {!isFullscreen && (
+            <div className="rounded-lg border border-accent-gold bg-accent-gold/10 px-3 py-1.5 text-xs text-accent-gold">
+              ⚠ Click fullscreen to start
+              <button onClick={requestFullscreen} className="ml-1 underline hover:no-underline">Fullscreen</button>
+            </div>
+          )}
+          {warningCount > 0 && (
+            <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-1.5 text-xs text-danger">
+              ⚠ Violations: {warningCount}/{config.maxWarnings ?? 3}
+            </div>
+          )}
         </div>
-      )}
 
-      {warningCount > 0 && (
-        <div className="mb-4 rounded-lg border border-accent-gold/20 bg-accent-gold/5 px-4 py-2 text-sm text-accent-gold">
-          ⚠ Warning {warningCount} — leaving the exam window is not allowed.
-        </div>
-      )}
+        {durationMinutes && durationMinutes > 0 && (
+          <div className={`rounded-lg border px-3 py-1.5 text-sm font-bold ${
+            isLowTime
+              ? 'border-danger bg-danger/10 text-danger animate-pulse'
+              : 'border-border bg-surface text-text'
+          }`}>
+            {isLowTime ? '⏰ ' : '⏱ '}
+            {remainingMin}:{String(remainingSec).padStart(2, '0')}
+          </div>
+        )}
+      </div>
 
       {children}
     </div>

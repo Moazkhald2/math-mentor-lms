@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { fetchExamQuestions } from '../lib/exams'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useActivityLogger } from '../hooks/useActivityLogger'
+import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
 import LatexRenderer from '../components/LatexRenderer'
 import type { Exam, ExamQuestion, Question } from '../types'
 
@@ -24,18 +25,30 @@ export default function Practice() {
   const { data: exam } = useQuery<ExamWithQuestions>({
     queryKey: ['practice', id],
     queryFn: async () => {
-      const [examResult, questions] = await Promise.all([
+      const [examResult, rawQuestions] = await Promise.all([
         supabase.from('exams').select('*').eq('id', id!).single(),
         fetchExamQuestions(id!),
       ])
       if (examResult.error) throw examResult.error
-      return { ...(examResult.data as Exam), questions }
+      const seed = id || 'practice_default'
+      const shuffled = examResult.data.shuffle_questions
+        ? seededShuffle(rawQuestions, seed + '_questions')
+        : [...rawQuestions]
+      const mapped = shuffled.map(eq => {
+        if (eq.question.type === 'multiple_choice' && eq.question.options.length > 0) {
+          const { options, correctAnswer } = shuffleMultipleChoice(
+            eq.question.options, eq.question.correct_answer, seed + eq.question.id
+          )
+          return { ...eq, question: { ...eq.question, options, correct_answer: correctAnswer } }
+        }
+        return eq
+      })
+      return { ...(examResult.data as Exam), questions: mapped }
     },
     enabled: !!id,
   })
 
   if (!user) { navigate('/login'); return null }
-
   if (!exam || !exam.questions || exam.questions.length === 0) return <p className="text-text-muted">Loading...</p>
 
   const eqs = exam.questions
@@ -45,8 +58,7 @@ export default function Practice() {
   const handleSubmit = () => {
     if (!selectedAnswer) return
     const correct = selectedAnswer === current.question.correct_answer
-    const newAnswers = [...answers, { questionId: current.question.id, given: selectedAnswer, correct }]
-    setAnswers(newAnswers)
+    setAnswers([...answers, { questionId: current.question.id, given: selectedAnswer, correct }])
     setSubmitted(true)
     log('practice_answered', { question_id: current.question.id, correct, answer_given: selectedAnswer })
   }
@@ -76,6 +88,7 @@ export default function Practice() {
           return (
             <div key={eq.id} className={`mb-3 rounded-xl border p-4 ${ans?.correct ? 'border-accent-green bg-accent-green/5' : 'border-danger bg-danger/5'}`}>
               <p className="font-medium text-text"><LatexRenderer content={eq.question.question_text} /></p>
+              {eq.question.image_url && <img src={eq.question.image_url} alt="Diagram" className="mt-2 max-h-32 rounded" />}
               <p className="mt-1 text-sm">Your answer: <span className={ans?.correct ? 'text-accent-green' : 'text-danger'}>{ans?.given}</span></p>
               {!ans?.correct && <p className="text-sm text-accent-green">Correct: {eq.question.correct_answer}</p>}
               <p className="mt-1 text-xs text-text-muted"><LatexRenderer content={eq.question.explanation} /></p>
@@ -95,22 +108,20 @@ export default function Practice() {
       </div>
 
       <div className="mb-6 rounded-xl border border-border bg-surface p-6">
+        {current.question.image_url && (
+          <div className="mb-4 flex justify-center">
+            <img src={current.question.image_url} alt="Diagram" className="max-h-48 rounded-lg" />
+          </div>
+        )}
         <p className="mb-6 text-lg font-medium text-text"><LatexRenderer content={current.question.question_text} /></p>
 
         {current.question.type === 'multiple_choice' && current.question.options.map((opt, i) => (
-          <button
-            key={i}
-            onClick={() => !submitted && setSelectedAnswer(String(i))}
+          <button key={i} onClick={() => !submitted && setSelectedAnswer(String(i))}
             className={`mb-2 block w-full rounded-lg border p-4 text-left transition ${
               submitted
-                ? String(i) === current.question.correct_answer
-                  ? 'border-accent-green bg-accent-green/5'
-                  : selectedAnswer === String(i)
-                    ? 'border-danger bg-danger/5'
-                    : 'border-border'
-                : selectedAnswer === String(i)
-                  ? 'border-brand bg-brand/5'
-                  : 'border-border hover:border-brand/50'
+                ? String(i) === current.question.correct_answer ? 'border-accent-green bg-accent-green/5'
+                  : selectedAnswer === String(i) ? 'border-danger bg-danger/5' : 'border-border'
+                : selectedAnswer === String(i) ? 'border-brand bg-brand/5' : 'border-border hover:border-brand/50'
             }`}
           >
             <LatexRenderer content={opt} />
@@ -118,19 +129,12 @@ export default function Practice() {
         ))}
 
         {current.question.type === 'true_false' && ['true', 'false'].map(opt => (
-          <button
-            key={opt}
-            onClick={() => !submitted && setSelectedAnswer(opt)}
+          <button key={opt} onClick={() => !submitted && setSelectedAnswer(opt)}
             className={`mb-2 block w-full rounded-lg border p-4 text-left transition ${
               submitted
-                ? opt === current.question.correct_answer
-                  ? 'border-accent-green bg-accent-green/5'
-                  : selectedAnswer === opt
-                    ? 'border-danger bg-danger/5'
-                    : 'border-border'
-                : selectedAnswer === opt
-                  ? 'border-brand bg-brand/5'
-                  : 'border-border hover:border-brand/50'
+                ? opt === current.question.correct_answer ? 'border-accent-green bg-accent-green/5'
+                  : selectedAnswer === opt ? 'border-danger bg-danger/5' : 'border-border'
+                : selectedAnswer === opt ? 'border-brand bg-brand/5' : 'border-border hover:border-brand/50'
             }`}
           >
             {opt === 'true' ? 'True' : 'False'}
@@ -138,11 +142,8 @@ export default function Practice() {
         ))}
 
         {current.question.type === 'short_answer' && (
-          <input
-            value={selectedAnswer ?? ''}
-            onChange={e => !submitted && setSelectedAnswer(e.target.value)}
-            placeholder="Type your answer..."
-            className="w-full rounded-lg border border-border bg-white px-4 py-3 text-ink"
+          <input value={selectedAnswer ?? ''} onChange={e => !submitted && setSelectedAnswer(e.target.value)}
+            placeholder="Type your answer..." className="w-full rounded-lg border border-border bg-white px-4 py-3 text-ink"
             disabled={submitted}
           />
         )}
