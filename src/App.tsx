@@ -8,6 +8,8 @@ import Register from './pages/Register'
 import Questions from './pages/Questions'
 import Exams from './pages/Exams'
 import Exam from './pages/Exam'
+import Dashboard from './pages/Dashboard'
+import Results from './pages/Results'
 import Layout from './components/Layout'
 
 const queryClient = new QueryClient()
@@ -31,6 +33,8 @@ function App() {
           <Route path="/questions" element={<AppLayout><Questions /></AppLayout>} />
           <Route path="/exams" element={<AppLayout><Exams /></AppLayout>} />
           <Route path="/exam/:id" element={<Exam />} />
+          <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
+          <Route path="/results/:attemptId" element={<AppLayout><Results /></AppLayout>} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
