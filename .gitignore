@@ -23,6 +23,10 @@ supabase/.temp/
 # Subagent-driven development artifacts
 .superpowers/
 
+# Sensitive scripts
+scripts/reset-admin.mjs
+supabase/reset-admin-password.sql
+
 
 
 # Editor directories and files

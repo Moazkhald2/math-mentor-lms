@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { fetchActivityLogs } from '../lib/activity'
@@ -7,6 +8,30 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const [showGradeModal, setShowGradeModal] = useState(false)
+  const [selectedGrade, setSelectedGrade] = useState<number | null>(null)
+
+  const { data: profile } = useQuery({
+    queryKey: ['my-profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null
+      const { data } = await supabase.from('profiles').select('grade, role').eq('id', user.id).single()
+      return data as { grade: number | null; role: string } | null
+    },
+    enabled: !!user,
+  })
+
+  const updateGrade = useMutation({
+    mutationFn: async (grade: number) => {
+      const { error } = await supabase.from('profiles').update({ grade }).eq('id', user!.id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-profile'] })
+      setShowGradeModal(false)
+    },
+  })
 
   const { data: attempts } = useQuery({
     queryKey: ['my-attempts', user?.id],
@@ -49,8 +74,61 @@ export default function Dashboard() {
     )
   }
 
+  const needsGrade = profile && !profile.grade && profile.role === 'student'
+
+  useEffect(() => {
+    if (needsGrade) setShowGradeModal(true)
+  }, [needsGrade])
+
   return (
     <div>
+
+
+      {showGradeModal && !selectedGrade && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 w-full max-w-md rounded-xl border border-border bg-surface p-8 shadow-2xl">
+            <h2 className="mb-2 text-2xl font-black text-text">Welcome!</h2>
+            <p className="mb-6 text-text-muted">Select your grade to get started.</p>
+            <div className="grid grid-cols-2 gap-3">
+              {Array.from({ length: 10 }, (_, i) => i + 3).map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setSelectedGrade(g)}
+                  className="rounded-lg border border-border bg-white px-4 py-3 text-center font-bold text-text transition hover:border-brand hover:text-brand"
+                >
+                  Grade {g}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showGradeModal && selectedGrade && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 w-full max-w-md rounded-xl border border-border bg-surface p-8 shadow-2xl text-center">
+            <h2 className="mb-2 text-2xl font-black text-text">Confirm Your Grade</h2>
+            <p className="mb-2 text-text-muted">You selected:</p>
+            <p className="mb-6 text-5xl font-black text-brand">Grade {selectedGrade}</p>
+            <p className="mb-6 text-sm text-text-muted">This can be changed later in Settings.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSelectedGrade(null)}
+                className="flex-1 rounded-lg border border-border px-4 py-3 text-text-muted transition hover:border-brand hover:text-text"
+              >
+                Change
+              </button>
+              <button
+                onClick={() => updateGrade.mutate(selectedGrade)}
+                className="flex-1 rounded-lg bg-brand px-4 py-3 font-bold text-white transition hover:bg-brand-light"
+              >
+                Yes, I'm in Grade {selectedGrade}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
         <div className="mb-2 inline-block rounded-full border border-accent-green/20 bg-accent-green/10 px-4 py-1 text-sm text-accent-green">
           ✓ Signed in as {user.email}

@@ -16,8 +16,8 @@ export default function Admin() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const { data: profile } = useQuery({
-    queryKey: ['my-role'],
+  const { data: profile, isFetching } = useQuery({
+    queryKey: ['my-role', user?.id],
     queryFn: async () => {
       if (!user) return null
       const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single()
@@ -28,10 +28,10 @@ export default function Admin() {
 
   useEffect(() => {
     if (!user) navigate('/login')
-    else if (profile && profile.role !== 'admin') navigate('/')
-  }, [user, profile, navigate])
+    else if (!isFetching && profile && profile.role !== 'admin') navigate('/')
+  }, [user, profile, navigate, isFetching])
 
-  if (!profile || profile.role !== 'admin') return null
+  if (!user || !profile || profile.role !== 'admin') return null
 
   const section = location.pathname.replace('/admin', '') || ''
 

@@ -108,9 +108,9 @@ VALUES (gen_random_uuid(), 'multiple_choice', 'Sequences', 'Series', 4,
 RETURNING id INTO q10;
 
 -- Exam
-INSERT INTO public.exams (id, title, description, time_limit_minutes, passing_score, shuffle_questions, created_by, is_published)
+INSERT INTO public.exams (id, title, description, time_limit_minutes, passing_score, shuffle_questions, type, grade, created_by, is_published)
 VALUES (gen_random_uuid(), 'Math Fundamentals Diagnostic', 'Test your knowledge of limits, derivatives, sequences, and geometry. Covers Easy to Expert level questions.',
-  45, 60, true, admin_id, true)
+  45, 60, true, 'exam', 8, admin_id, true)
 RETURNING id INTO e1;
 
 -- Link questions to exam (in order)

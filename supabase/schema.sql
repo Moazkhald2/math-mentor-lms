@@ -3,6 +3,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   email TEXT,
   full_name TEXT,
   role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student', 'teacher', 'admin')),
+  grade INTEGER CHECK (grade BETWEEN 3 AND 12),
+  session_token TEXT,
   class_code TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -55,6 +57,8 @@ CREATE TABLE IF NOT EXISTS public.exams (
   time_limit_minutes INTEGER NOT NULL DEFAULT 30,
   passing_score INTEGER NOT NULL DEFAULT 60,
   shuffle_questions BOOLEAN NOT NULL DEFAULT true,
+  type TEXT NOT NULL DEFAULT 'exam' CHECK (type IN ('exam', 'practice')),
+  grade INTEGER CHECK (grade BETWEEN 3 AND 12),
   created_by UUID REFERENCES public.profiles(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   is_published BOOLEAN NOT NULL DEFAULT false
