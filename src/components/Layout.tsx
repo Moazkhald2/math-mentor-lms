@@ -1,6 +1,9 @@
 ﻿import { type ReactNode } from 'react'
+import { useAuth } from '../hooks/useAuth'
 
 export default function Layout({ children }: { children: ReactNode }) {
+  const { user, loading, signOut } = useAuth()
+
   return (
     <div className="min-h-screen bg-bg text-text">
       <header className="border-b border-border px-6 py-4">
@@ -8,16 +11,30 @@ export default function Layout({ children }: { children: ReactNode }) {
           <a href="/" className="text-xl font-bold text-brand-light">
             Math Mentor
           </a>
-          <div className="flex gap-4">
-            <a href="/login" className="text-sm text-text-muted hover:text-text">
-              Login
-            </a>
-            <a
-              href="/register"
-              className="rounded-lg bg-brand px-4 py-2 text-sm text-white hover:bg-brand-light"
-            >
-              Sign Up
-            </a>
+          <div className="flex items-center gap-4">
+            {loading ? null : user ? (
+              <>
+                <span className="text-sm text-text-muted">{user.user_metadata.full_name}</span>
+                <button
+                  onClick={signOut}
+                  className="rounded-lg border border-border px-4 py-2 text-sm text-text-muted hover:text-text"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <a href="/login" className="text-sm text-text-muted hover:text-text">
+                  Login
+                </a>
+                <a
+                  href="/register"
+                  className="rounded-lg bg-brand px-4 py-2 text-sm text-white hover:bg-brand-light"
+                >
+                  Sign Up
+                </a>
+              </>
+            )}
           </div>
         </nav>
       </header>
