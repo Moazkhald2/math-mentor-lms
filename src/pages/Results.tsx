@@ -62,21 +62,19 @@ export default function Results() {
       </div>
 
       <div className="mb-8 grid gap-6 md:grid-cols-3">
-        <div className="rounded-xl border border-brand/30 bg-brand/5 p-6 text-center">
+        <div className="rounded-xl border border-brand/40 bg-surface p-6 text-center">
           <p className="text-3xl font-black text-text">{attempt.score}%</p>
-          <p className="text-sm text-text-muted">Score</p>
+          <p className="mt-1 text-sm text-text-muted">Score</p>
         </div>
-        <div className="rounded-xl border border-accent-green/30 bg-accent-green/5 p-6 text-center">
-          <p className="text-3xl font-black text-accent-green">
-            {correct}/{total}
-          </p>
-          <p className="text-sm text-text-muted">Correct</p>
+        <div className="rounded-xl border border-accent-green/40 bg-surface p-6 text-center">
+          <span className="inline-block rounded bg-accent-green/20 px-2 py-0.5 text-xs font-semibold text-accent-green">Correct</span>
+          <p className="mt-2 text-3xl font-black text-accent-green">{correct}/{total}</p>
         </div>
-        <div className="rounded-xl border border-accent-gold/30 bg-accent-gold/5 p-6 text-center">
+        <div className="rounded-xl border border-accent-gold/40 bg-surface p-6 text-center">
           <p className="text-3xl font-black text-text">
             {Math.round((attempt.completed_at ? new Date(attempt.completed_at).getTime() - new Date(attempt.started_at).getTime() : 0) / 60000)}m
           </p>
-          <p className="text-sm text-text-muted">Time</p>
+          <p className="mt-1 text-sm text-text-muted">Time</p>
         </div>
       </div>
 

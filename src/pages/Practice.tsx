@@ -142,7 +142,7 @@ export default function Practice() {
             value={selectedAnswer ?? ''}
             onChange={e => !submitted && setSelectedAnswer(e.target.value)}
             placeholder="Type your answer..."
-            className="w-full rounded-lg border border-border bg-white px-4 py-3 text-text"
+            className="w-full rounded-lg border border-border bg-white px-4 py-3 text-ink"
             disabled={submitted}
           />
         )}

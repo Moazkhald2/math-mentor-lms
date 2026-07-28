@@ -26,6 +26,7 @@ export interface Question {
   options: string[]
   correct_answer: string
   explanation: string
+  image_url: string
   common_mistakes: { mistake: string; why: string; correct: string }[]
   created_by: string
   created_at: string

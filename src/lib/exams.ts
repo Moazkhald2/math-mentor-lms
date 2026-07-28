@@ -62,10 +62,10 @@ export async function startAttempt(examId: string, userId: string) {
   return data as ExamAttempt
 }
 
-export async function submitAnswer(attemptId: string, questionId: string, answer: string) {
+export async function submitAnswer(attemptId: string, questionId: string, answer: string, isCorrect = false, pointsEarned = 0) {
   const { data, error } = await supabase
     .from('answers')
-    .insert({ attempt_id: attemptId, question_id: questionId, answer })
+    .insert({ attempt_id: attemptId, question_id: questionId, answer, is_correct: isCorrect, points_earned: pointsEarned })
     .select()
     .single()
 

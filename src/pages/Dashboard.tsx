@@ -94,7 +94,7 @@ export default function Dashboard() {
                 <button
                   key={g}
                   onClick={() => setSelectedGrade(g)}
-                  className="rounded-lg border border-border bg-white px-4 py-3 text-center font-bold text-text transition hover:border-brand hover:text-brand"
+                  className="rounded-lg border border-border bg-white px-4 py-3 text-center font-bold text-ink transition hover:border-brand hover:text-brand"
                 >
                   Grade {g}
                 </button>
@@ -138,17 +138,17 @@ export default function Dashboard() {
       </div>
 
       <div className="mb-8 grid gap-6 md:grid-cols-3">
-        <div className="rounded-xl border border-brand/30 bg-brand/5 p-6">
-          <p className="text-sm text-brand">Exams Taken</p>
-          <p className="mt-1 text-3xl font-black text-text">{completedAttempts.length}</p>
+        <div className="rounded-xl border border-brand/40 bg-surface p-6">
+          <span className="inline-block rounded bg-brand/20 px-2 py-0.5 text-xs font-semibold text-brand">Exams Taken</span>
+          <p className="mt-2 text-3xl font-black text-text">{completedAttempts.length}</p>
         </div>
-        <div className="rounded-xl border border-accent-green/30 bg-accent-green/5 p-6">
-          <p className="text-sm text-accent-green">Average Score</p>
-          <p className="mt-1 text-3xl font-black text-text">{avgScore}%</p>
+        <div className="rounded-xl border border-accent-green/40 bg-surface p-6">
+          <span className="inline-block rounded bg-accent-green/20 px-2 py-0.5 text-xs font-semibold text-accent-green">Average Score</span>
+          <p className="mt-2 text-3xl font-black text-text">{avgScore}%</p>
         </div>
-        <div className="rounded-xl border border-accent-gold/30 bg-accent-gold/5 p-6">
-          <p className="text-sm text-accent-gold">In Progress</p>
-          <p className="mt-1 text-3xl font-black text-text">
+        <div className="rounded-xl border border-accent-gold/40 bg-surface p-6">
+          <span className="inline-block rounded bg-accent-gold/20 px-2 py-0.5 text-xs font-semibold text-accent-gold">In Progress</span>
+          <p className="mt-2 text-3xl font-black text-text">
             {attempts?.filter((a) => a.status === 'in_progress').length ?? 0}
           </p>
         </div>

@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS public.questions (
   options JSONB NOT NULL DEFAULT '[]',
   correct_answer TEXT NOT NULL,
   explanation TEXT NOT NULL DEFAULT '',
+  image_url TEXT NOT NULL DEFAULT '',
   common_mistakes JSONB NOT NULL DEFAULT '[]',
   created_by UUID REFERENCES public.profiles(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
