@@ -52,14 +52,14 @@ export default function AdminDashboard() {
 
       <div className="mb-8 grid gap-4 md:grid-cols-4">
         {[
-          { label: 'Users', value: stats?.totalUsers ?? 0, color: 'border-brand/30 bg-brand/5' },
-          { label: 'Exams', value: stats?.totalExams ?? 0, color: 'border-accent-green/30 bg-accent-green/5' },
-          { label: 'Attempts', value: stats?.totalAttempts ?? 0, color: 'border-accent-gold/30 bg-accent-gold/5' },
-          { label: 'Classes', value: stats?.totalClasses ?? 0, color: 'border-accent-green/30 bg-accent-green/5' },
+          { label: 'Users', value: stats?.totalUsers ?? 0, border: 'border-brand/40', badge: 'bg-brand/20 text-brand' },
+          { label: 'Exams', value: stats?.totalExams ?? 0, border: 'border-accent-green/40', badge: 'bg-accent-green/20 text-accent-green' },
+          { label: 'Attempts', value: stats?.totalAttempts ?? 0, border: 'border-accent-gold/40', badge: 'bg-accent-gold/20 text-accent-gold' },
+          { label: 'Classes', value: stats?.totalClasses ?? 0, border: 'border-accent-green/40', badge: 'bg-accent-green/20 text-accent-green' },
         ].map((card) => (
-          <div key={card.label} className={`rounded-xl border p-5 ${card.color}`}>
-            <p className="text-sm text-text-muted">{card.label}</p>
-            <p className="mt-1 text-3xl font-black text-text">{card.value}</p>
+          <div key={card.label} className={`rounded-xl border bg-surface p-5 ${card.border}`}>
+            <span className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${card.badge}`}>{card.label}</span>
+            <p className="mt-2 text-3xl font-black text-text">{card.value}</p>
           </div>
         ))}
       </div>

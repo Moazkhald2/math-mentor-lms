@@ -42,9 +42,9 @@ export default function AdminUsers() {
           placeholder="Search by name or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 rounded-lg border border-border bg-white px-4 py-2 text-text"
+          className="flex-1 rounded-lg border border-border bg-white px-4 py-2 text-ink"
         />
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-text">
+        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-ink">
           <option value="">All roles</option>
           <option value="student">Student</option>
           <option value="teacher">Teacher</option>
@@ -72,11 +72,11 @@ export default function AdminUsers() {
                 <td className="px-4 py-3">{u.email}</td>
                 <td className="px-4 py-3">{u.full_name}</td>
                 <td className="px-4 py-3">
-                  <select
-                    value={u.role}
-                    onChange={(e) => updateRole.mutate({ id: u.id, role: e.target.value })}
-                    className="rounded border border-border bg-white px-2 py-1 text-xs"
-                  >
+                    <select
+                      value={u.role}
+                      onChange={(e) => updateRole.mutate({ id: u.id, role: e.target.value })}
+                      className="rounded border border-border bg-white px-2 py-1 text-xs text-ink"
+                    >
                     <option value="student">Student</option>
                     <option value="teacher">Teacher</option>
                     <option value="admin">Admin</option>

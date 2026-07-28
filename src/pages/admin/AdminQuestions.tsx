@@ -29,7 +29,7 @@ export default function AdminQuestions() {
     <div>
       <h1 className="mb-6 text-2xl font-black text-text">Questions</h1>
       <div className="mb-4 flex gap-3">
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-text">
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-ink">
           <option value="">All types</option>
           <option value="multiple_choice">Multiple Choice</option>
           <option value="true_false">True/False</option>

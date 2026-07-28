@@ -47,11 +47,11 @@ export default function AdminClasses() {
         <div className="mb-6 rounded-xl border border-border bg-surface p-6">
           <h2 className="mb-4 font-bold text-text">Create Class</h2>
           <div className="flex gap-3">
-            <input placeholder="Class name" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-lg border border-border bg-white px-4 py-2 text-text" />
-            <select value={newGrade} onChange={e => setNewGrade(Number(e.target.value))} className="rounded-lg border border-border bg-white px-4 py-2 text-text">
+            <input placeholder="Class name" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+            <select value={newGrade} onChange={e => setNewGrade(Number(e.target.value))} className="rounded-lg border border-border bg-white px-4 py-2 text-ink">
               {Array.from({ length: 10 }, (_, i) => i + 3).map(g => <option key={g} value={g}>Grade {g}</option>)}
             </select>
-            <select value={newTeacher} onChange={e => setNewTeacher(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-text">
+            <select value={newTeacher} onChange={e => setNewTeacher(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-ink">
               <option value="">No teacher</option>
               {teachers?.map(t => <option key={t.id} value={t.id}>{t.full_name ?? t.email}</option>)}
             </select>
@@ -78,7 +78,7 @@ export default function AdminClasses() {
               <div className="border-t border-border p-4">
                 <h3 className="mb-3 text-sm font-bold text-text-muted uppercase">Students</h3>
                 <div className="mb-3 flex gap-2">
-                  <select id="add-student-select" className="flex-1 rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-text" defaultValue="">
+                  <select id="add-student-select" className="flex-1 rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-ink" defaultValue="">
                     <option value="" disabled>Select student to add...</option>
                     {students?.filter((s: any) => !members?.find((m: any) => m.student_id === s.id)).map((s: any) => <option key={s.id} value={s.id}>{s.full_name ?? s.email}</option>)}
                   </select>
@@ -90,7 +90,7 @@ export default function AdminClasses() {
                 <div className="space-y-1">
                   {members?.map((m: any) => (
                     <div key={m.id} className="flex items-center justify-between rounded bg-white px-3 py-2 text-sm">
-                      <span className="text-text">{m.profiles?.full_name ?? m.profiles?.email}</span>
+                      <span className="text-ink">{m.profiles?.full_name ?? m.profiles?.email}</span>
                       <button onClick={() => removeStudentFromClass(expandedClass!, m.student_id).then(() => refetchMembers())} className="text-xs text-danger hover:underline">Remove</button>
                     </div>
                   ))}
