@@ -6,6 +6,8 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Questions from './pages/Questions'
+import Exams from './pages/Exams'
+import Exam from './pages/Exam'
 import Layout from './components/Layout'
 
 const queryClient = new QueryClient()
@@ -27,6 +29,8 @@ function App() {
           <Route path="/login" element={<AppLayout><Login /></AppLayout>} />
           <Route path="/register" element={<AppLayout><Register /></AppLayout>} />
           <Route path="/questions" element={<AppLayout><Questions /></AppLayout>} />
+          <Route path="/exams" element={<AppLayout><Exams /></AppLayout>} />
+          <Route path="/exam/:id" element={<Exam />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

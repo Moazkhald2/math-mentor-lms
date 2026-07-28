@@ -15,6 +15,9 @@ export default function Layout({ children }: { children: ReactNode }) {
             <a href="/questions" className="text-sm text-text-muted hover:text-text">
               Questions
             </a>
+            <a href="/exams" className="text-sm text-text-muted hover:text-text">
+              Exams
+            </a>
           </div>
           <div className="flex items-center gap-4">
             {loading ? null : user ? (
