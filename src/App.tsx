@@ -2,6 +2,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { AuthProvider } from './hooks/useAuth'
+import { ToastProvider } from './hooks/useToast'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -29,6 +30,7 @@ function AppLayout({ children }: { children: ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ToastProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<AppLayout><Home /></AppLayout>} />
@@ -45,6 +47,7 @@ function App() {
           <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
         </Routes>
       </BrowserRouter>
+      </ToastProvider>
     </QueryClientProvider>
   )
 }

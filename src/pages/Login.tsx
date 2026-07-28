@@ -1,9 +1,12 @@
 ﻿import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../hooks/useToast'
 
 export default function Login() {
   const { signIn, signInWithGoogle } = useAuth()
+  const { toast } = useToast()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -18,6 +21,7 @@ export default function Login() {
     setError(null)
     const err = await signIn(email, password)
     if (err) setError(err)
+    else { toast('Welcome back! You are signed in.'); navigate('/dashboard') }
     setLoading(false)
   }
 
