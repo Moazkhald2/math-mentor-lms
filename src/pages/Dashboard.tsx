@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import type { ExamAttempt } from '../types'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -116,6 +117,24 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      {completedAttempts.length >= 2 && (
+        <div className="mt-8 rounded-xl border border-border bg-surface p-6">
+          <h2 className="mb-4 text-lg font-bold text-text">Score Trend</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={completedAttempts.slice().reverse().slice(-10).map(a => ({
+              name: new Date(a.started_at).toLocaleDateString(),
+              score: a.score ?? 0
+            }))}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis domain={[0, 100]} />
+              <Tooltip />
+              <Line type="monotone" dataKey="score" stroke="#1982C4" strokeWidth={2} dot={{ fill: '#1982C4' }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   )
 }
