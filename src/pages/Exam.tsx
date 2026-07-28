@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { fetchExamQuestions } from '../lib/exams'
 import AntiCheatGuard from '../components/AntiCheatGuard'
 import DifficultyBadge from '../components/DifficultyBadge'
+import { useActivityLogger } from '../hooks/useActivityLogger'
 import type { Question } from '../types'
 
 export default function Exam() {
@@ -13,6 +14,7 @@ export default function Exam() {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [submitted, setSubmitted] = useState(false)
   const [score, setScore] = useState(0)
+  const { log } = useActivityLogger(id)
 
   const { data: questions, isLoading } = useQuery({
     queryKey: ['exam-questions', id],
@@ -111,6 +113,7 @@ export default function Exam() {
       durationMinutes={60}
       onTimeUp={handleSubmit}
       onDisqualified={handleSubmit}
+      onViolation={(type) => log('violation', { type })}
     >
       <div className="mx-auto max-w-3xl">
         <div className="mb-6 flex items-center justify-between">

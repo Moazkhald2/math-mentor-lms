@@ -85,6 +85,7 @@ export function useAntiCheat(config: AntiCheatConfig = {}) {
 
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault()
+      addViolation('contextmenu')
     }
 
     const handleFullscreenChange = () => {
