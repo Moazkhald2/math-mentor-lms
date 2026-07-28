@@ -13,6 +13,7 @@ import Results from './pages/Results'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import AuthCallback from './pages/AuthCallback'
+import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
 const queryClient = new QueryClient()
@@ -41,6 +42,7 @@ function App() {
           <Route path="/forgot-password" element={<AppLayout><ForgotPassword /></AppLayout>} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
