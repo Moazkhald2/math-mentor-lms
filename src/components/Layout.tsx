@@ -6,7 +6,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-bg text-text">
-      <header className="border-b border-border px-6 py-4">
+      <header className="border-b border-border px-6 py-4 shadow-[inset_0_-2px_0_#1982C4]">
         <nav className="mx-auto flex max-w-6xl items-center justify-between">
           <a href="/" className="text-xl font-bold text-brand-light">
             Math Mentor
