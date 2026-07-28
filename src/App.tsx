@@ -10,6 +10,9 @@ import Exams from './pages/Exams'
 import Exam from './pages/Exam'
 import Dashboard from './pages/Dashboard'
 import Results from './pages/Results'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import AuthCallback from './pages/AuthCallback'
 import Layout from './components/Layout'
 
 const queryClient = new QueryClient()
@@ -35,6 +38,9 @@ function App() {
           <Route path="/exam/:id" element={<Exam />} />
           <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
           <Route path="/results/:attemptId" element={<AppLayout><Results /></AppLayout>} />
+          <Route path="/forgot-password" element={<AppLayout><ForgotPassword /></AppLayout>} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
