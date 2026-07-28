@@ -8,9 +8,14 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-bg text-text">
       <header className="border-b border-border px-6 py-4 shadow-[inset_0_-2px_0_#1982C4]">
         <nav className="mx-auto flex max-w-6xl items-center justify-between">
-          <a href="/" className="text-xl font-bold text-brand-light">
-            Math Mentor
-          </a>
+          <div className="flex items-center gap-6">
+            <a href="/" className="text-xl font-black text-brand">
+              Math Mentor
+            </a>
+            <a href="/questions" className="text-sm text-text-muted hover:text-text">
+              Questions
+            </a>
+          </div>
           <div className="flex items-center gap-4">
             {loading ? null : user ? (
               <>

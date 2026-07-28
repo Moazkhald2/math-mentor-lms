@@ -5,6 +5,7 @@ import { AuthProvider } from './hooks/useAuth'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Questions from './pages/Questions'
 import Layout from './components/Layout'
 
 const queryClient = new QueryClient()
@@ -25,6 +26,7 @@ function App() {
           <Route path="/" element={<AppLayout><Home /></AppLayout>} />
           <Route path="/login" element={<AppLayout><Login /></AppLayout>} />
           <Route path="/register" element={<AppLayout><Register /></AppLayout>} />
+          <Route path="/questions" element={<AppLayout><Questions /></AppLayout>} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
