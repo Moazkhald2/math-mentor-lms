@@ -44,8 +44,11 @@ export default function Dashboard() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-text">Dashboard</h1>
-        <p className="mt-1 text-text-muted">Welcome back, {user.user_metadata.full_name}</p>
+        <div className="mb-2 inline-block rounded-full border border-accent-green/20 bg-accent-green/10 px-4 py-1 text-sm text-accent-green">
+          ✓ Signed in as {user.email}
+        </div>
+        <h1 className="text-3xl font-black text-text">Welcome back, {user.user_metadata.full_name}!</h1>
+        <p className="mt-1 text-text-muted">Here's your learning overview</p>
       </div>
 
       <div className="mb-8 grid gap-6 md:grid-cols-3">

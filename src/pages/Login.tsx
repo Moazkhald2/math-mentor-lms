@@ -21,7 +21,10 @@ export default function Login() {
     setError(null)
     const err = await signIn(email, password)
     if (err) setError(err)
-    else { toast('Welcome back! You are signed in.'); navigate('/dashboard') }
+    else {
+      toast('Welcome back! You are signed in.')
+      setTimeout(() => navigate('/dashboard'), 1500)
+    }
     setLoading(false)
   }
 
