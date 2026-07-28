@@ -17,6 +17,7 @@ import AuthCallback from './pages/AuthCallback'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
+import Admin from './pages/Admin'
 
 const queryClient = new QueryClient()
 
@@ -46,6 +47,8 @@ function App() {
           <Route path="/forgot-password" element={<AppLayout><ForgotPassword /></AppLayout>} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/admin" element={<AppLayout><Admin /></AppLayout>} />
+          <Route path="/admin/:section" element={<AppLayout><Admin /></AppLayout>} />
           <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
         </Routes>
       </BrowserRouter>
