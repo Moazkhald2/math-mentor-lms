@@ -60,6 +60,12 @@ export default function Dashboard() {
     ? Math.round(completedAttempts.reduce((sum, a) => sum + (a.score ?? 0), 0) / completedAttempts.length)
     : 0
 
+  const needsGrade = profile && !profile.grade && profile.role === 'student'
+
+  useEffect(() => {
+    if (needsGrade) setShowGradeModal(true)
+  }, [needsGrade])
+
   if (!user) {
     return (
       <div className="rounded-xl border border-border bg-surface p-12 text-center">
@@ -73,12 +79,6 @@ export default function Dashboard() {
       </div>
     )
   }
-
-  const needsGrade = profile && !profile.grade && profile.role === 'student'
-
-  useEffect(() => {
-    if (needsGrade) setShowGradeModal(true)
-  }, [needsGrade])
 
   return (
     <div>
