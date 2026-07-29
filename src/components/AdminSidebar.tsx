@@ -13,6 +13,7 @@ const links = [
   { href: '/admin/references', label: 'References', icon: '📚' },
   { href: '/admin/grading', label: 'Grading', icon: '✏️' },
   { href: '/admin/violations', label: 'Violations', icon: '🚨' },
+  { href: '/admin/question-analysis', label: 'Question Analysis', icon: '📈' },
 ]
 
 export default function AdminSidebar() {

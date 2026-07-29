@@ -15,7 +15,7 @@ import AdminCsvExport from './admin/AdminCsvExport'
 import AdminGrading from './admin/AdminGrading'
 import AdminViolations from './admin/AdminViolations'
 import AdminBulkExams from './admin/AdminBulkExams'
-import AdminReferences from './admin/AdminReferences'
+import QuestionAnalysis from './admin/QuestionAnalysis'
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth()
@@ -57,6 +57,7 @@ export default function Admin() {
         {section === '/csv-export' && <AdminCsvExport />}
         {section === '/grading' && <AdminGrading />}
         {section === '/violations' && <AdminViolations />}
+        {section === '/question-analysis' && <QuestionAnalysis />}
       </div>
     </div>
   )
