@@ -9,7 +9,7 @@ UPDATE public.profiles SET role = 'teacher' WHERE email LIKE 'teacher%@test.com'
 
 -- 1. Profiles: ensure all columns exist
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS grade INTEGER CHECK (grade BETWEEN 3 AND 12);
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS session_token TEXT;
+ALTER TABLE public.profiles DROP COLUMN IF EXISTS session_token;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS class_code TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS parent_phone TEXT NOT NULL DEFAULT '';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS telegram_chat_id TEXT NOT NULL DEFAULT '';
