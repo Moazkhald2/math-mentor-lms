@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { fetchActivityLogs } from '../lib/activity'
+import WeakPointsCard from '../components/WeakPointsCard'
 import type { ExamAttempt } from '../types'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -255,6 +256,10 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
       )}
+
+      <div className="mb-6 mt-8">
+        <WeakPointsCard />
+      </div>
 
       <div className="mt-8">
         <h2 className="mb-4 text-xl font-bold text-text">Recent Activity</h2>
