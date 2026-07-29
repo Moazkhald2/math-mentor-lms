@@ -74,22 +74,30 @@ export default function Profile() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <span className="text-xs text-text-muted">Grade</span>
-            <p className="font-semibold text-text">{profile.grade ? `Grade ${profile.grade}` : '—'}</p>
-          </div>
-          <div>
-            <span className="text-xs text-text-muted">Class</span>
-            <p className="font-semibold text-text">{myClass?.name || profile.class_code || '—'}</p>
-          </div>
-          <div>
-            <span className="text-xs text-text-muted">Parent Phone</span>
-            <p className="font-semibold text-text">{profile.parent_phone || '—'}</p>
-          </div>
-          <div>
-            <span className="text-xs text-text-muted">Telegram Reports</span>
-            <p className="font-semibold text-text">{profile.telegram_chat_id ? '✅ Active' : '—'}</p>
-          </div>
+          {profile.role === 'student' && (
+            <div>
+              <span className="text-xs text-text-muted">Grade</span>
+              <p className="font-semibold text-text">{profile.grade ? `Grade ${profile.grade}` : '—'}</p>
+            </div>
+          )}
+          {profile.role === 'student' && (
+            <div>
+              <span className="text-xs text-text-muted">Class</span>
+              <p className="font-semibold text-text">{myClass?.name || profile.class_code || '—'}</p>
+            </div>
+          )}
+          {profile.role === 'student' && (
+            <div>
+              <span className="text-xs text-text-muted">Parent Phone</span>
+              <p className="font-semibold text-text">{profile.parent_phone || '—'}</p>
+            </div>
+          )}
+          {profile.role === 'student' && (
+            <div>
+              <span className="text-xs text-text-muted">Telegram Reports</span>
+              <p className="font-semibold text-text">{profile.telegram_chat_id ? 'Active' : '—'}</p>
+            </div>
+          )}
           <div>
             <span className="text-xs text-text-muted">Role</span>
             <p className="font-semibold text-text capitalize">{profile.role}</p>

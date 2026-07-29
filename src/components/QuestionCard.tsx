@@ -1,7 +1,15 @@
 import type { Question } from '../types'
 import DifficultyBadge from './DifficultyBadge'
 
+function parseMistakes(raw: unknown): { mistake: string; why: string; correct: string }[] {
+  if (Array.isArray(raw)) return raw
+  if (typeof raw === 'string') { try { return JSON.parse(raw) } catch { return [] } }
+  return []
+}
+
 export default function QuestionCard({ question }: { question: Question }) {
+  const mistakes = parseMistakes(question.common_mistakes)
+
   return (
     <div className="rounded-xl border border-border bg-surface p-6">
       <div className="mb-3 flex items-center gap-3">
@@ -13,7 +21,7 @@ export default function QuestionCard({ question }: { question: Question }) {
 
       <p className="mb-4 font-medium text-text">{question.question_text}</p>
 
-      {question.type === 'multiple_choice' && question.options.length > 0 && (
+      {question.type === 'multiple_choice' && (question.options?.length ?? 0) > 0 && (
         <div className="space-y-2">
           {question.options.map((opt, i) => (
             <div
@@ -59,13 +67,13 @@ export default function QuestionCard({ question }: { question: Question }) {
         </details>
       )}
 
-      {question.common_mistakes.length > 0 && (
+      {mistakes.length > 0 && (
         <details className="mt-2">
           <summary className="cursor-pointer text-sm font-semibold text-accent-gold hover:text-warning">
             Common Mistakes
           </summary>
           <div className="mt-2 space-y-3">
-            {question.common_mistakes.map((cm, i) => (
+            {mistakes.map((cm, i) => (
               <div key={i} className="rounded-lg border border-accent-gold/20 bg-accent-gold/5 p-3">
                 <p className="mb-1 text-sm">
                   <span className="font-semibold text-danger">✗ {cm.mistake}</span>

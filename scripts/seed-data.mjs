@@ -973,7 +973,7 @@ async function main() {
         question_text: q.question_text, options, correct_answer: correctAnswer,
         explanation: q.explanation,
         image_url: q.topic === 'Shapes' || q.topic === 'Circles' || q.topic === 'Triangles' ? '/images/triangle.svg' : '',
-        common_mistakes: JSON.stringify(commonMistakes),
+        common_mistakes: commonMistakes.length > 0 ? commonMistakes : [],
         created_by: 'ddb7f264-8402-45de-9d59-de4657101482', grade,
       }).select().single()
       if (qErr) { console.error(`  Failed question grade ${grade}:`, qErr.message); continue }
