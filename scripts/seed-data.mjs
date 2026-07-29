@@ -963,8 +963,8 @@ async function main() {
     if (!bank) continue
     gradeQuestions[grade] = []
     for (const q of bank) {
-      const correctAnswer = String(q.options.indexOf(q.correct_answer))
-      const options = q.options.map(o => o)
+      const options = q.options || []
+      const correctAnswer = q.type === 'multiple_choice' ? String(options.indexOf(q.correct_answer)) : q.correct_answer
       const commonMistakes = (q.common_mistakes || []).map(cm => ({
         mistake: cm.mistake, why: cm.why || 'Review the concept', correct: cm.correct,
       }))
