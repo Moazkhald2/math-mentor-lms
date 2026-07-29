@@ -1,0 +1,33 @@
+name: Telegram Reports
+
+on:
+  schedule:
+    # Weekly: Monday 8am UTC
+    - cron: '0 8 * * 1'
+    # Monthly: 1st of each month 8am UTC
+    - cron: '0 8 1 * *'
+  workflow_dispatch:
+    inputs:
+      period:
+        description: 'Report period (weekly or monthly)'
+        required: true
+        default: 'weekly'
+        type: choice
+        options:
+          - weekly
+          - monthly
+
+jobs:
+  send-reports:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install @supabase/supabase-js
+      - run: node scripts/send-reports.mjs ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.period || (github.event.schedule == '0 8 1 * *' && 'monthly' || 'weekly') }}
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

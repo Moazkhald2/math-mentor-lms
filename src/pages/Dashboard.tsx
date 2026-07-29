@@ -16,8 +16,8 @@ export default function Dashboard() {
     queryKey: ['my-profile', user?.id],
     queryFn: async () => {
       if (!user) return null
-      const { data } = await supabase.from('profiles').select('grade, role').eq('id', user.id).single()
-      return data as { grade: number | null; role: string } | null
+      const { data } = await supabase.from('profiles').select('grade, role, class_code').eq('id', user.id).single()
+      return data as { grade: number | null; role: string; class_code: string | null } | null
     },
     enabled: !!user,
   })
@@ -83,6 +83,23 @@ export default function Dashboard() {
   return (
     <div>
 
+
+      {user && !user.email_confirmed_at && (
+        <div className="mb-6 rounded-xl border border-accent-gold/30 bg-accent-gold/10 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-accent-gold">Verify your email</p>
+              <p className="text-sm text-text-muted">Please check <strong>{user.email}</strong> and click the confirmation link.</p>
+            </div>
+            <button onClick={async () => {
+              await supabase.auth.resend({ type: 'signup', email: user.email! })
+              alert('Verification email resent!')
+            }} className="rounded-lg bg-accent-gold px-4 py-2 text-sm font-semibold text-ink hover:bg-accent-gold/80">
+              Resend
+            </button>
+          </div>
+        </div>
+      )}
 
       {showGradeModal && !selectedGrade && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -152,6 +169,11 @@ export default function Dashboard() {
             {attempts?.filter((a) => a.status === 'in_progress').length ?? 0}
           </p>
         </div>
+      </div>
+
+      <div className="mb-8 rounded-xl border border-border bg-surface p-6">
+        <h2 className="mb-4 text-lg font-bold text-text">My Class</h2>
+        <JoinClass />
       </div>
 
       <h2 className="mb-4 text-xl font-bold text-text">Recent Attempts</h2>
@@ -247,6 +269,73 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+function JoinClass() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const [code, setCode] = useState('')
+  const [joining, setJoining] = useState(false)
+  const [error, setError] = useState('')
+
+  const { data: profile } = useQuery({
+    queryKey: ['my-profile', user?.id],
+    enabled: !!user,
+  }) as { data: { class_code: string | null } | null }
+
+  const { data: myClass } = useQuery({
+    queryKey: ['my-class', profile?.class_code],
+    queryFn: async () => {
+      if (!profile?.class_code) return null
+      const { data } = await supabase.from('classes').select('name').eq('code', profile.class_code).single()
+      return data as { name: string } | null
+    },
+    enabled: !!profile?.class_code,
+  })
+
+  const handleJoin = async () => {
+    setError('')
+    if (!code.trim()) return
+    setJoining(true)
+    const { data: cls, error: findErr } = await supabase.from('classes').select('id').eq('code', code.trim()).maybeSingle()
+    if (findErr || !cls) { setError('Class not found. Check the code and try again.'); setJoining(false); return }
+    const { error: updateErr } = await supabase.from('profiles').update({ class_code: code.trim() }).eq('id', user!.id)
+    if (updateErr) { setError(updateErr.message); setJoining(false); return }
+    queryClient.invalidateQueries({ queryKey: ['my-profile'] })
+    queryClient.invalidateQueries({ queryKey: ['my-class'] })
+    setCode('')
+    setJoining(false)
+  }
+
+  const handleLeave = async () => {
+    await supabase.from('profiles').update({ class_code: null }).eq('id', user!.id)
+    queryClient.invalidateQueries({ queryKey: ['my-profile'] })
+    queryClient.invalidateQueries({ queryKey: ['my-class'] })
+  }
+
+  if (profile?.class_code && myClass) {
+    return (
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-semibold text-text">{myClass.name}</p>
+          <p className="text-xs text-text-muted">Code: {profile.class_code}</p>
+        </div>
+        <button onClick={handleLeave} className="text-sm text-danger hover:underline">Leave</button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex gap-2">
+      <input value={code} onChange={e => setCode(e.target.value)} placeholder="Enter class code"
+        className="flex-1 rounded-lg border border-border bg-white px-4 py-2 text-sm text-ink" />
+      <button onClick={handleJoin} disabled={joining || !code.trim()}
+        className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-light disabled:opacity-50">
+        {joining ? 'Joining...' : 'Join'}
+      </button>
+      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>
   )
 }

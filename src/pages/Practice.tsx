@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { fetchExamQuestions } from '../lib/exams'
@@ -57,7 +57,10 @@ export default function Practice() {
 
   const handleSubmit = () => {
     if (!selectedAnswer) return
-    const correct = selectedAnswer === current.question.correct_answer
+    const ans = selectedAnswer ?? ''
+    const correct = current.question.type === 'short_answer'
+      ? ans.trim().toLowerCase() === current.question.correct_answer.trim().toLowerCase()
+      : ans === current.question.correct_answer
     setAnswers([...answers, { questionId: current.question.id, given: selectedAnswer, correct }])
     setSubmitted(true)
     log('practice_answered', { question_id: current.question.id, correct, answer_given: selectedAnswer })

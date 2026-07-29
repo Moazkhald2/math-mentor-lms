@@ -23,7 +23,11 @@ export default function Exams() {
   const filtered = (exams ?? []).filter(exam => {
     if (exam.type !== 'exam' && exam.type !== 'practice') return false
     if (profile?.grade && exam.grade && exam.grade !== profile.grade) return false
-    return exam.is_published
+    if (!exam.is_published) return false
+    const now = new Date()
+    if (exam.starts_at && now < new Date(exam.starts_at)) return false
+    if (exam.ends_at && now > new Date(exam.ends_at)) return false
+    return true
   })
 
   return (
@@ -61,7 +65,7 @@ export default function Exams() {
               <p className="mt-1 text-sm text-text-muted">{exam.description}</p>
             </div>
 
-            <div className="mb-6 flex gap-4 text-sm text-text-muted">
+            <div className="mb-6 flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-muted">
               {exam.type === 'exam' ? (
                 <>
                   <span>⏱ {exam.time_limit_minutes} min</span>
@@ -70,6 +74,7 @@ export default function Exams() {
               ) : (
                 <span>No timer · instant feedback</span>
               )}
+              {exam.starts_at && <span>📅 {new Date(exam.starts_at).toLocaleDateString()} — {exam.ends_at ? new Date(exam.ends_at).toLocaleDateString() : '∞'}</span>}
             </div>
 
             {user ? (

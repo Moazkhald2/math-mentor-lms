@@ -3,7 +3,10 @@
   email: string
   full_name: string
   role: 'student' | 'teacher' | 'admin'
+  grade?: number
   class_code?: string
+  parent_phone?: string
+  telegram_chat_id?: string
   created_at: string
 }
 
@@ -44,6 +47,8 @@ export interface Exam {
   is_published: boolean
   type: 'exam' | 'practice'
   grade?: number
+  starts_at?: string | null
+  ends_at?: string | null
 }
 
 export interface ExamQuestion {

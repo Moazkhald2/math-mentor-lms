@@ -10,6 +10,12 @@ import AdminClasses from './admin/AdminClasses'
 import AdminQuestions from './admin/AdminQuestions'
 import AdminExams from './admin/AdminExams'
 import AdminAttempts from './admin/AdminAttempts'
+import AdminCsvImport from './admin/AdminCsvImport'
+import AdminCsvExport from './admin/AdminCsvExport'
+import AdminGrading from './admin/AdminGrading'
+import AdminViolations from './admin/AdminViolations'
+import AdminBulkExams from './admin/AdminBulkExams'
+import AdminReferences from './admin/AdminReferences'
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth()
@@ -47,6 +53,10 @@ export default function Admin() {
         {section === '/questions' && <AdminQuestions />}
         {section === '/exams' && <AdminExams />}
         {section === '/attempts' && <AdminAttempts />}
+        {section === '/csv-import' && <AdminCsvImport />}
+        {section === '/csv-export' && <AdminCsvExport />}
+        {section === '/grading' && <AdminGrading />}
+        {section === '/violations' && <AdminViolations />}
       </div>
     </div>
   )

@@ -50,7 +50,7 @@ export default function AdminDashboard() {
     <div>
       <h1 className="mb-6 text-2xl font-black text-text">Dashboard</h1>
 
-      <div className="mb-8 grid gap-4 md:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
           { label: 'Users', value: stats?.totalUsers ?? 0, border: 'border-brand/40', badge: 'bg-brand/20 text-brand' },
           { label: 'Exams', value: stats?.totalExams ?? 0, border: 'border-accent-green/40', badge: 'bg-accent-green/20 text-accent-green' },
@@ -64,7 +64,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2">
         <div className="rounded-xl border border-border bg-surface p-6">
           <h2 className="mb-4 text-lg font-bold text-text">Users by Role</h2>
           <ResponsiveContainer width="100%" height={250}>

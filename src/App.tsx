@@ -13,6 +13,9 @@ import Dashboard from './pages/Dashboard'
 import Results from './pages/Results'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import CompleteProfile from './pages/CompleteProfile'
+import Profile from './pages/Profile'
+import TeacherDashboard from './pages/TeacherDashboard'
 import AuthCallback from './pages/AuthCallback'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
@@ -45,10 +48,13 @@ function App() {
           <Route path="/practice/:id" element={<Practice />} />
           <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
           <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
+          <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
+          <Route path="/teacher" element={<AppLayout><TeacherDashboard /></AppLayout>} />
           <Route path="/results/:attemptId" element={<AppLayout><Results /></AppLayout>} />
           <Route path="/forgot-password" element={<AppLayout><ForgotPassword /></AppLayout>} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/complete-profile" element={<AppLayout><CompleteProfile /></AppLayout>} />
           <Route path="/admin" element={<AppLayout><Admin /></AppLayout>} />
           <Route path="/admin/:section" element={<AppLayout><Admin /></AppLayout>} />
           <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />

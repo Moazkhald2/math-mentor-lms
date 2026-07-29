@@ -1,9 +1,30 @@
-﻿import { useState, type ReactNode } from 'react'
+﻿import { useState, useEffect, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, loading, signOut } = useAuth()
+  const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [light, setLight] = useState(() => localStorage.getItem('theme') === 'light')
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', light ? 'light' : 'dark')
+    localStorage.setItem('theme', light ? 'light' : 'dark')
+  }, [light])
+
+  useEffect(() => {
+    if (loading || !user) return
+    const skip = location.pathname === '/complete-profile' || location.pathname.startsWith('/admin')
+    if (skip) return
+    supabase.from('profiles').select('grade').eq('id', user.id).single()
+      .then(({ data }) => {
+        if (data && !data.grade) {
+          window.location.href = '/complete-profile'
+        }
+      })
+  }, [user, loading, location.pathname])
 
   return (
     <div className="min-h-screen bg-bg text-text">
@@ -19,11 +40,14 @@ export default function Layout({ children }: { children: ReactNode }) {
               <a href="/dashboard" className="text-sm text-text-muted hover:text-text">Dashboard</a>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <button onClick={() => setLight(!light)} className="rounded-lg p-2 text-text-muted hover:text-text hover:bg-surface transition-colors" title="Toggle theme">
+              {light ? '🌙' : '☀️'}
+            </button>
             <div className="hidden items-center gap-4 md:flex">
               {loading ? null : user ? (
                 <>
-                  <span className="text-sm text-text-muted">{user.user_metadata.full_name}</span>
+                  <a href="/profile" className="text-sm text-text-muted hover:text-text">{user.user_metadata.full_name}</a>
                   <button
                     onClick={signOut}
                     className="rounded-lg border border-border px-4 py-2 text-sm text-text-muted hover:text-text"

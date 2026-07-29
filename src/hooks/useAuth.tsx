@@ -14,7 +14,7 @@ interface AuthContextType {
   loginCooldown: number
   signIn: (email: string, password: string) => Promise<string | null>
   signInWithGoogle: () => Promise<void>
-  signUp: (email: string, password: string, fullName: string) => Promise<string | null>
+  signUp: (email: string, password: string, fullName: string, grade?: number, parentPhone?: string) => Promise<string | null>
   signOut: () => Promise<void>
 }
 
@@ -204,11 +204,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signInWithOAuth({ provider: 'google' })
   }
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, grade?: number, parentPhone?: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: { data: { full_name: fullName, grade, parent_phone: parentPhone ?? '' } },
     })
     return error?.message ?? null
   }

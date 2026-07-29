@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   grade INTEGER CHECK (grade BETWEEN 3 AND 12),
   session_token TEXT,
   class_code TEXT,
+  parent_phone TEXT NOT NULL DEFAULT '',
+  telegram_chat_id TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -17,12 +19,14 @@ LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = ''
 AS $func$
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name, role)
+  INSERT INTO public.profiles (id, email, full_name, role, grade, parent_phone)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
-    'student'
+    'student',
+    (NEW.raw_user_meta_data->>'grade')::int,
+    COALESCE(NEW.raw_user_meta_data->>'parent_phone', '')
   );
   RETURN NEW;
 END;

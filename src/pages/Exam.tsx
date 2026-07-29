@@ -37,6 +37,9 @@ export default function Exam() {
       if (examRes.error) throw examRes.error
       const e = examRes.data as Exam
       if (!e.is_published) throw new Error('Exam not available')
+      const now = new Date()
+      if (e.starts_at && now < new Date(e.starts_at)) throw new Error('This exam has not started yet')
+      if (e.ends_at && now > new Date(e.ends_at)) throw new Error('This exam has ended')
       const grade = (profileRes.data as { grade: number } | null)?.grade
       if (grade && e.grade && e.grade !== grade) throw new Error('This exam is not available for your grade')
       return e
@@ -90,7 +93,9 @@ export default function Exam() {
       let correct = 0
       for (const eq of questions) {
         const userAns = answers[eq.question_id] ?? ''
-        const isCorrect = userAns === eq.question.correct_answer
+        const isCorrect = eq.question.type === 'short_answer'
+          ? userAns.trim().toLowerCase() === eq.question.correct_answer.trim().toLowerCase()
+          : userAns === eq.question.correct_answer
         if (isCorrect) correct++
         await submitAnswer(attemptId, eq.question_id, userAns, isCorrect, isCorrect ? 1 : 0)
       }

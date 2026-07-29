@@ -5,7 +5,7 @@
         Personalized Guidance — Effort Leads to Excellence
       </div>
 
-      <h1 className="mb-6 text-5xl font-black leading-tight text-text">
+      <h1 className="mb-6 text-3xl sm:text-5xl font-black leading-tight text-text">
         Master Math with{' '}
         <span className="text-brand">The Math Mentor</span>
       </h1>
@@ -17,7 +17,7 @@
         <span className="font-semibold text-brand">expert guidance</span>.
       </p>
 
-      <div className="mb-16 flex gap-4">
+      <div className="mb-16 flex flex-col gap-4 sm:flex-row">
         <a
           href="/register"
           className="rounded-lg bg-brand px-8 py-3 font-semibold text-white shadow-lg shadow-brand/30 hover:bg-brand-light"
@@ -32,7 +32,7 @@
         </a>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid w-full gap-6 sm:grid-cols-3">
         {[
           {
             icon: '♠',
