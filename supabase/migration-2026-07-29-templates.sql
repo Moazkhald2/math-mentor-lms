@@ -1,1 +1,0 @@
-ALTER TABLE public.exams ADD COLUMN IF NOT EXISTS is_template BOOLEAN NOT NULL DEFAULT false;
