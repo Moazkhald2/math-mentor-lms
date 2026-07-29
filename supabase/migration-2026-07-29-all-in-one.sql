@@ -55,32 +55,40 @@ CREATE INDEX IF NOT EXISTS idx_activity_user ON public.activity_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_activity_exam ON public.activity_logs(exam_id);
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 
--- 7. RLS Policies
--- Classes
-CREATE POLICY IF NOT EXISTS "Admins can read all classes" ON public.classes FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
-CREATE POLICY IF NOT EXISTS "Teachers read own classes" ON public.classes FOR SELECT USING (auth.uid() = teacher_id);
-CREATE POLICY IF NOT EXISTS "Students read their classes" ON public.classes FOR SELECT USING (EXISTS (SELECT 1 FROM public.class_members WHERE class_id = classes.id AND student_id = auth.uid()));
-CREATE POLICY IF NOT EXISTS "Admins manage classes" ON public.classes FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+-- 7. RLS Policies (drop first, then create — avoids "already exists" errors)
 
--- Class members
-CREATE POLICY IF NOT EXISTS "Students read own classes" ON public.class_members FOR SELECT USING (auth.uid() = student_id);
-CREATE POLICY IF NOT EXISTS "Admins manage class_members" ON public.class_members FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
-CREATE POLICY IF NOT EXISTS "Teachers manage own class_members" ON public.class_members FOR ALL USING (EXISTS (SELECT 1 FROM public.classes WHERE id = class_members.class_id AND teacher_id = auth.uid()));
+DROP POLICY IF EXISTS "Admins can read all classes" ON public.classes;
+CREATE POLICY "Admins can read all classes" ON public.classes FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+DROP POLICY IF EXISTS "Teachers read own classes" ON public.classes;
+CREATE POLICY "Teachers read own classes" ON public.classes FOR SELECT USING (auth.uid() = teacher_id);
+DROP POLICY IF EXISTS "Students read their classes" ON public.classes;
+CREATE POLICY "Students read their classes" ON public.classes FOR SELECT USING (EXISTS (SELECT 1 FROM public.class_members WHERE class_id = classes.id AND student_id = auth.uid()));
+DROP POLICY IF EXISTS "Admins manage classes" ON public.classes;
+CREATE POLICY "Admins manage classes" ON public.classes FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
--- Activity logs
-CREATE POLICY IF NOT EXISTS "Users read own activity_logs" ON public.activity_logs FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Admins read all activity_logs" ON public.activity_logs FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
-CREATE POLICY IF NOT EXISTS "Users insert own activity_logs" ON public.activity_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Students read own classes" ON public.class_members;
+CREATE POLICY "Students read own classes" ON public.class_members FOR SELECT USING (auth.uid() = student_id);
+DROP POLICY IF EXISTS "Admins manage class_members" ON public.class_members;
+CREATE POLICY "Admins manage class_members" ON public.class_members FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+DROP POLICY IF EXISTS "Teachers manage own class_members" ON public.class_members;
+CREATE POLICY "Teachers manage own class_members" ON public.class_members FOR ALL USING (EXISTS (SELECT 1 FROM public.classes WHERE id = class_members.class_id AND teacher_id = auth.uid()));
 
--- Exam attempts (admin/teacher read)
-CREATE POLICY IF NOT EXISTS "Admins can read all attempts" ON public.exam_attempts FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'teacher')));
+DROP POLICY IF EXISTS "Users read own activity_logs" ON public.activity_logs;
+CREATE POLICY "Users read own activity_logs" ON public.activity_logs FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Admins read all activity_logs" ON public.activity_logs;
+CREATE POLICY "Admins read all activity_logs" ON public.activity_logs FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+DROP POLICY IF EXISTS "Users insert own activity_logs" ON public.activity_logs;
+CREATE POLICY "Users insert own activity_logs" ON public.activity_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Answers (admin/teacher read)
-CREATE POLICY IF NOT EXISTS "Admins can read all answers" ON public.answers FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'teacher')));
+DROP POLICY IF EXISTS "Admins can read all attempts" ON public.exam_attempts;
+CREATE POLICY "Admins can read all attempts" ON public.exam_attempts FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'teacher')));
 
--- Questions (teacher delete)
-CREATE POLICY IF NOT EXISTS "Teachers can delete questions" ON public.questions FOR DELETE USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'teacher'));
+DROP POLICY IF EXISTS "Admins can read all answers" ON public.answers;
+CREATE POLICY "Admins can read all answers" ON public.answers FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'teacher')));
 
--- Exams (teacher/admin manage)
+DROP POLICY IF EXISTS "Teachers can delete questions" ON public.questions;
+CREATE POLICY "Teachers can delete questions" ON public.questions FOR DELETE USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'teacher'));
+
 DROP POLICY IF EXISTS "Teachers can manage exams" ON public.exams;
-CREATE POLICY IF NOT EXISTS "Teachers and admins can manage exams" ON public.exams FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('teacher', 'admin')));
+DROP POLICY IF EXISTS "Teachers and admins can manage exams" ON public.exams;
+CREATE POLICY "Teachers and admins can manage exams" ON public.exams FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('teacher', 'admin')));
