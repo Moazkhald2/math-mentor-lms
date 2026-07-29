@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase'
 import type { ExamAttempt, Answer, Question } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import LatexRenderer from '../components/LatexRenderer'
+import BookmarkButton from '../components/BookmarkButton'
+import FeedbackButton from '../components/FeedbackButton'
 
 export default function Results() {
   const { attemptId } = useParams<{ attemptId: string }>()
@@ -103,9 +105,13 @@ export default function Results() {
           >
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm text-text-muted">Q{i + 1}</span>
-              <span className={`text-sm font-bold ${a.is_correct ? 'text-accent-green' : 'text-danger'}`}>
-                {a.is_correct ? '✓ +' + a.points_earned : '✗ 0'}
-              </span>
+              <div className="flex items-center gap-2">
+                <BookmarkButton questionId={a.question.id} />
+                <FeedbackButton questionId={a.question.id} />
+                <span className={`text-sm font-bold ${a.is_correct ? 'text-accent-green' : 'text-danger'}`}>
+                  {a.is_correct ? '✓ +' + a.points_earned : '✗ 0'}
+                </span>
+              </div>
             </div>
 
             <div className="mb-3 font-medium text-text">

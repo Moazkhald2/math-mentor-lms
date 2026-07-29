@@ -23,6 +23,7 @@ import Layout from './components/Layout'
 import Admin from './pages/Admin'
 import Practice from './pages/Practice'
 import WeakPoints from './pages/WeakPoints'
+import Bookmarks from './pages/Bookmarks'
 
 const queryClient = new QueryClient()
 
@@ -49,6 +50,7 @@ function App() {
           <Route path="/practice/:id" element={<Practice />} />
           <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
           <Route path="/weak-points" element={<AppLayout><WeakPoints /></AppLayout>} />
+          <Route path="/bookmarks" element={<AppLayout><Bookmarks /></AppLayout>} />
           <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
           <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
           <Route path="/teacher" element={<AppLayout><TeacherDashboard /></AppLayout>} />
