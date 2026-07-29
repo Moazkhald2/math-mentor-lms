@@ -115,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
     const handleActivity = () => updateLastActivity()
     events.forEach((e) => document.addEventListener(e, handleActivity))
+    let initialised = false
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const currentUser = session?.user ?? null
@@ -131,13 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await validateSession(currentUser)
         }
       }
+      initialised = true
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
-      if (currentUser && event === 'SIGNED_IN') {
+      if (currentUser && event === 'SIGNED_IN' && initialised) {
         await ensureProfile(currentUser)
         resetAttempts()
         updateLastActivity()
