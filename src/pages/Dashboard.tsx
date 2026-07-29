@@ -38,13 +38,13 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('exam_attempts')
-        .select('*, exam:exams(title)')
+        .select('*, exam:exams(title, type)')
         .eq('user_id', user!.id)
         .order('started_at', { ascending: false })
         .limit(10)
 
       if (error) throw error
-      return data as (ExamAttempt & { exam: { title: string } })[]
+      return data as (ExamAttempt & { exam: { title: string; type: string } })[]
     },
     enabled: !!user,
   })
@@ -154,10 +154,16 @@ export default function Dashboard() {
         <p className="mt-1 text-text-muted">Here's your learning overview</p>
       </div>
 
-      <div className="mb-8 grid gap-6 md:grid-cols-3">
+      <div className="mb-8 grid gap-6 md:grid-cols-4">
         <div className="rounded-xl border border-brand/40 bg-surface p-6">
           <span className="inline-block rounded bg-brand/20 px-2 py-0.5 text-xs font-semibold text-brand">Exams Taken</span>
           <p className="mt-2 text-3xl font-black text-text">{completedAttempts.length}</p>
+        </div>
+        <div className="rounded-xl border border-accent-green/40 bg-surface p-6">
+          <span className="inline-block rounded bg-accent-green/20 px-2 py-0.5 text-xs font-semibold text-accent-green">Practice Completed</span>
+          <p className="mt-2 text-3xl font-black text-text">
+            {attempts?.filter(a => a.status === 'completed' && (a.exam as any)?.type === 'practice').length ?? 0}
+          </p>
         </div>
         <div className="rounded-xl border border-accent-green/40 bg-surface p-6">
           <span className="inline-block rounded bg-accent-green/20 px-2 py-0.5 text-xs font-semibold text-accent-green">Average Score</span>
@@ -197,7 +203,12 @@ export default function Dashboard() {
             className="flex items-center justify-between rounded-lg border border-border bg-surface p-4"
           >
             <div>
-              <p className="font-medium text-text">{a.exam?.title ?? 'Exam'}</p>
+              <p className="font-medium text-text">
+                {a.exam?.title ?? 'Exam'}
+                {(a.exam as any)?.type === 'practice' && (
+                  <span className="ml-2 rounded bg-accent-green/20 px-2 py-0.5 text-xs text-accent-green">Practice</span>
+                )}
+              </p>
               <p className="text-xs text-text-muted">
                 {new Date(a.started_at).toLocaleDateString()}
               </p>
