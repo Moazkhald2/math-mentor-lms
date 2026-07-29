@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import LatexRenderer from '../../components/LatexRenderer'
 
 beforeEach(() => {
   ;(window as any).katex = {
-    render: vi.fn((tex: string, el: HTMLElement, opts: any) => {
+    render: vi.fn((tex: string, el: HTMLElement, _: any) => {
       el.textContent = `[RENDERED: ${tex}]`
     }),
   }

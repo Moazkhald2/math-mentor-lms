@@ -23,7 +23,7 @@ vi.mock('../../lib/supabase', () => {
 })
 
 import { supabase } from '../../lib/supabase'
-import { fetchQuestions, fetchQuestionFilters, fetchQuestionsByDifficulty, createQuestion, updateQuestion, deleteQuestion } from '../../lib/questions'
+import { fetchQuestions, fetchQuestionFilters, fetchQuestionsByDifficulty, createQuestion, deleteQuestion } from '../../lib/questions'
 
 describe('questions lib', () => {
   beforeEach(() => {

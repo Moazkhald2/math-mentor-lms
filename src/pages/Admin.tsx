@@ -14,7 +14,6 @@ import AdminCsvImport from './admin/AdminCsvImport'
 import AdminCsvExport from './admin/AdminCsvExport'
 import AdminGrading from './admin/AdminGrading'
 import AdminViolations from './admin/AdminViolations'
-import AdminBulkExams from './admin/AdminBulkExams'
 import QuestionAnalysis from './admin/QuestionAnalysis'
 
 export default function Admin() {
