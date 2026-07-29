@@ -2,7 +2,7 @@
 import { supabase } from '../lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
-const IDLE_TIMEOUT = 30 * 60 * 1000
+const IDLE_TIMEOUT = 60 * 60 * 1000
 
 const LOGIN_COOLDOWN_KEY = 'math_mentor_login_cooldown'
 const MAX_ATTEMPTS = 5
@@ -28,18 +28,9 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
 })
 
-async function getProfileRole(userId: string) {
-  const { data } = await supabase
-    .from('profiles')
-    .select('role, session_token')
-    .eq('id', userId)
-    .single()
-  return data as { role: string; session_token: string } | null
-}
-
 async function ensureProfile(user: User) {
-  const existing = await getProfileRole(user.id)
-  if (existing) return existing
+  const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (data) return data
   const { error } = await supabase.from('profiles').insert({
     id: user.id,
     email: user.email,
@@ -50,11 +41,6 @@ async function ensureProfile(user: User) {
   return null
 }
 
-async function updateSessionToken(userId: string, token: string) {
-  await supabase.from('profiles').update({ session_token: token }).eq('id', userId)
-}
-
-const SESSION_KEY = 'math_mentor_session_token'
 const LAST_ACTIVITY_KEY = 'math_mentor_last_activity'
 
 function updateLastActivity() {
@@ -96,77 +82,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [loginCooldown, setLoginCooldownState] = useState(getLoginCooldown)
-  const checkInterval = useRef<ReturnType<typeof setInterval> | null>(null)
-  const idleInterval = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  const validateSession = async (currentUser: User) => {
-    const profile = await getProfileRole(currentUser.id)
-    if (!profile) return
-    const storedToken = localStorage.getItem(SESSION_KEY)
-    if (profile.role === 'admin') return
-    if (profile.session_token && storedToken && profile.session_token !== storedToken) {
-      await supabase.auth.signOut()
-      localStorage.removeItem(SESSION_KEY)
-      setUser(null)
-    }
-  }
 
   useEffect(() => {
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
     const handleActivity = () => updateLastActivity()
     events.forEach((e) => document.addEventListener(e, handleActivity))
-    let initialised = false
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
-      if (currentUser) {
-        await ensureProfile(currentUser)
-        updateLastActivity()
-        const storedToken = localStorage.getItem(SESSION_KEY)
-        if (!storedToken) {
-          const newToken = crypto.randomUUID()
-          localStorage.setItem(SESSION_KEY, newToken)
-          await updateSessionToken(currentUser.id, newToken)
-        } else {
-          await validateSession(currentUser)
-        }
-      }
-      initialised = true
+      if (currentUser) await ensureProfile(currentUser)
+      updateLastActivity()
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
-      if (currentUser && event === 'SIGNED_IN' && initialised) {
+      if (currentUser && event === 'SIGNED_IN') {
         await ensureProfile(currentUser)
         resetAttempts()
-        updateLastActivity()
-        const newToken = crypto.randomUUID()
-        localStorage.setItem(SESSION_KEY, newToken)
-        await updateSessionToken(currentUser.id, newToken)
-      }
-      if (event === 'SIGNED_OUT') {
-        localStorage.removeItem(SESSION_KEY)
-        localStorage.removeItem(LAST_ACTIVITY_KEY)
       }
     })
 
-    checkInterval.current = setInterval(async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) await validateSession(session.user)
-    }, 30000)
-
-    idleInterval.current = setInterval(() => {
+    const idleInterval = setInterval(() => {
       const lastActivity = localStorage.getItem(LAST_ACTIVITY_KEY)
       if (lastActivity && Date.now() - parseInt(lastActivity, 10) > IDLE_TIMEOUT) {
         supabase.auth.signOut()
-        localStorage.removeItem(SESSION_KEY)
         localStorage.removeItem(LAST_ACTIVITY_KEY)
         setUser(null)
       }
-    }, 10000)
+    }, 30000)
 
     setInterval(() => {
       setLoginCooldownState(getLoginCooldown())
@@ -175,8 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       events.forEach((e) => document.removeEventListener(e, handleActivity))
       subscription.unsubscribe()
-      if (checkInterval.current) clearInterval(checkInterval.current)
-      if (idleInterval.current) clearInterval(idleInterval.current)
+      clearInterval(idleInterval)
     }
   }, [])
 
@@ -191,14 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return `Too many attempts. Try again in 60 seconds.`
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (!error && data.session) {
-      resetAttempts()
-      const newToken = crypto.randomUUID()
-      localStorage.setItem(SESSION_KEY, newToken)
-      updateLastActivity()
-      await updateSessionToken(data.user.id, newToken)
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
     return error?.message ?? null
   }
 
@@ -216,7 +154,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
-    localStorage.removeItem(SESSION_KEY)
     localStorage.removeItem(LAST_ACTIVITY_KEY)
     await supabase.auth.signOut()
   }

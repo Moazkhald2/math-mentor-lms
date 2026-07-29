@@ -32,7 +32,7 @@ export default function AdminUsers() {
 
   const updateRole = useMutation({
     mutationFn: async ({ id, role }: { id: string; role: string }) => {
-      const { error } = await supabase.from('profiles').update({ role, session_token: crypto.randomUUID() }).eq('id', id)
+      const { error } = await supabase.from('profiles').update({ role }).eq('id', id)
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
