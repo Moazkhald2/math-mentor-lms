@@ -1,3 +1,8 @@
+-- Migrations applied:
+-- 001: Initial schema
+-- 002: audit_logs table
+-- 003: answers UNIQUE (attempt_id, question_id)
+
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT,
