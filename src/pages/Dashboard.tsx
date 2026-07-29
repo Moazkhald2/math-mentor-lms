@@ -6,6 +6,8 @@ import { fetchActivityLogs } from '../lib/activity'
 import type { ExamAttempt } from '../types'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
+type AttemptWithExam = ExamAttempt & { exam: { title: string; type: string } }
+
 export default function Dashboard() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
@@ -44,7 +46,7 @@ export default function Dashboard() {
         .limit(10)
 
       if (error) throw error
-      return data as (ExamAttempt & { exam: { title: string; type: string } })[]
+      return data as AttemptWithExam[]
     },
     enabled: !!user,
   })
@@ -162,7 +164,7 @@ export default function Dashboard() {
         <div className="rounded-xl border border-accent-green/40 bg-surface p-6">
           <span className="inline-block rounded bg-accent-green/20 px-2 py-0.5 text-xs font-semibold text-accent-green">Practice Completed</span>
           <p className="mt-2 text-3xl font-black text-text">
-            {attempts?.filter(a => a.status === 'completed' && (a.exam as any)?.type === 'practice').length ?? 0}
+            {attempts?.filter(a => a.status === 'completed' && a.exam.type === 'practice').length ?? 0}
           </p>
         </div>
         <div className="rounded-xl border border-accent-green/40 bg-surface p-6">
@@ -205,7 +207,7 @@ export default function Dashboard() {
             <div>
               <p className="font-medium text-text">
                 {a.exam?.title ?? 'Exam'}
-                {(a.exam as any)?.type === 'practice' && (
+                {a.exam.type === 'practice' && (
                   <span className="ml-2 rounded bg-accent-green/20 px-2 py-0.5 text-xs text-accent-green">Practice</span>
                 )}
               </p>

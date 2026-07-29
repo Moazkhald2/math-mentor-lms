@@ -2,6 +2,7 @@
 -- 001: Initial schema
 -- 002: audit_logs table
 -- 003: answers UNIQUE (attempt_id, question_id)
+-- 004: RLS UPDATE policies for answers and exam_attempts
 
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,

@@ -18,10 +18,11 @@ export default function Practice() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
-  const [completed, setCompleted] = useState(false)
   const attemptRef = useRef<ExamAttempt | null>(null)
   const [saving, setSaving] = useState(false)
+  const [initError, setInitError] = useState<string | null>(null)
   const correctCountRef = useRef(0)
+  const startedRef = useRef(false)
 
   type ExamWithQuestions = Exam & { questions: (ExamQuestion & { question: Question })[] }
 
@@ -53,16 +54,30 @@ export default function Practice() {
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
-    if (id && user) {
+    if (id && user && !startedRef.current) {
+      startedRef.current = true
       startPractice(id, user.id).then(attempt => {
         attemptRef.current = attempt
         log('practice_started', { exam_id: id })
-      }).catch(() => {})
+      }).catch(e => {
+        console.error('Failed to start practice', e)
+        setInitError('Failed to start practice session. Please try again.')
+      })
     }
   }, [id, user])
 
   if (!user) return null
   if (!exam || !exam.questions || exam.questions.length === 0) return <p className="text-text-muted">Loading...</p>
+
+  if (initError) {
+    return (
+      <div className="mx-auto max-w-2xl rounded-xl border border-danger bg-danger/5 p-8 text-center">
+        <p className="text-lg font-bold text-danger">Could not start practice session</p>
+        <p className="mt-2 text-text-muted">{initError}</p>
+        <button onClick={() => navigate('/exams')} className="mt-4 rounded-lg bg-brand px-6 py-2 font-semibold text-white">Back to Exams</button>
+      </div>
+    )
+  }
 
   const eqs = exam.questions
   const current = eqs[currentIndex]
@@ -94,10 +109,14 @@ export default function Practice() {
       setSubmitted(false)
     } else {
       if (attemptRef.current) {
-        const total = eqs.length
+        const total = eqs.reduce((sum, eq) => sum + (eq.points ?? 1), 0)
         const correctCount = correctCountRef.current
-        await finishPractice(attemptRef.current.id, correctCount, total)
-        log('exam_submitted', { total, correct: correctCount, attempt_id: attemptRef.current.id })
+        try {
+          await finishPractice(attemptRef.current.id, correctCount, total)
+          log('exam_submitted', { total, correct: correctCount, attempt_id: attemptRef.current.id })
+        } catch (e) {
+          console.error('Failed to finish practice', e)
+        }
       }
       navigate(`/results/${attemptRef.current!.id}`)
     }
