@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - run: npm install @supabase/supabase-js
       - run: node scripts/send-reports.mjs ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.period || (github.event.schedule == '0 8 1 * *' && 'monthly' || 'weekly') }}
         env:
