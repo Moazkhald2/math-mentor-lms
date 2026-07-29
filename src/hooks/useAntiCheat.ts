@@ -1,8 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 
-const VIOLATION_STORAGE_KEY = 'math_mentor_violations'
-
 export interface AntiCheatConfig {
+  examId: string
   maxWarnings?: number
   onViolation?: (type: string, count: number) => void
   onDisqualified?: () => void
@@ -16,22 +15,24 @@ export interface AntiCheatState {
   isFullscreen: boolean
 }
 
-function loadPersistedViolations(): { type: string; timestamp: number }[] {
+function storageKey(examId: string) { return `math_mentor_violations_${examId}` }
+
+function loadPersistedViolations(examId: string): { type: string; timestamp: number }[] {
   try {
-    const raw = sessionStorage.getItem(VIOLATION_STORAGE_KEY)
+    const raw = sessionStorage.getItem(storageKey(examId))
     return raw ? JSON.parse(raw) : []
   } catch { return [] }
 }
 
-function persistViolations(v: { type: string; timestamp: number }[]) {
-  try { sessionStorage.setItem(VIOLATION_STORAGE_KEY, JSON.stringify(v)) } catch {}
+function persistViolations(examId: string, v: { type: string; timestamp: number }[]) {
+  try { sessionStorage.setItem(storageKey(examId), JSON.stringify(v)) } catch {}
 }
 
-export function useAntiCheat(config: AntiCheatConfig = {}) {
-  const { maxWarnings = 3, onViolation, onDisqualified } = config
+export function useAntiCheat(config: AntiCheatConfig) {
+  const { examId, maxWarnings = 3, onViolation, onDisqualified } = config
 
   const [state, setState] = useState<AntiCheatState>({
-    violations: loadPersistedViolations(),
+    violations: loadPersistedViolations(examId),
     warningCount: 0,
     isDisqualified: false,
     timeSpent: 0,
@@ -51,7 +52,7 @@ export function useAntiCheat(config: AntiCheatConfig = {}) {
     violationsRef.current = updated
     const newCount = warningRef.current + 1
     warningRef.current = newCount
-    persistViolations(updated)
+    persistViolations(examId, updated)
 
     setState((prev) => ({
       ...prev,
@@ -70,7 +71,7 @@ export function useAntiCheat(config: AntiCheatConfig = {}) {
 
   // Restore warning count from persisted violations
   useEffect(() => {
-    const restored = loadPersistedViolations()
+    const restored = loadPersistedViolations(examId)
     if (restored.length > 0) {
       violationsRef.current = restored
       warningRef.current = restored.length

@@ -137,6 +137,7 @@ export default function Exam() {
 
   return (
     <AntiCheatGuard
+      examId={id!}
       maxWarnings={3}
       durationMinutes={exam.time_limit_minutes}
       onTimeUp={handleTimeUp}

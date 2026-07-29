@@ -50,9 +50,10 @@ export default function Exams() {
 
       <div className="grid gap-6 md:grid-cols-2">
         {filtered.map((exam) => (
-          <div
+          <a
             key={exam.id}
-            className="rounded-xl border border-border bg-surface p-6 transition hover:border-brand/50"
+            href={user ? (exam.type === 'practice' ? `/practice/${exam.id}` : `/exam/${exam.id}`) : '/login'}
+            className="block rounded-xl border border-border bg-surface p-6 transition hover:border-brand/50 hover:no-underline"
           >
             <div className="mb-2 flex items-center gap-2">
               <span className={`rounded px-2 py-0.5 text-xs ${exam.type === 'exam' ? 'bg-accent-gold/10 text-accent-gold' : 'bg-accent-green/10 text-accent-green'}`}>
@@ -77,22 +78,10 @@ export default function Exams() {
               {exam.starts_at && <span>📅 {new Date(exam.starts_at).toLocaleDateString()} — {exam.ends_at ? new Date(exam.ends_at).toLocaleDateString() : '∞'}</span>}
             </div>
 
-            {user ? (
-              <a
-                href={exam.type === 'practice' ? `/practice/${exam.id}` : `/exam/${exam.id}`}
-                className="inline-block rounded-lg bg-brand px-6 py-2 font-semibold text-white hover:bg-brand-light"
-              >
-                {exam.type === 'practice' ? 'Start Practice' : 'Start Exam'}
-              </a>
-            ) : (
-              <a
-                href="/login"
-                className="inline-block rounded-lg border border-border px-6 py-2 text-sm text-text-muted hover:text-text"
-              >
-                Sign in to start
-              </a>
-            )}
-          </div>
+            <span className="inline-block rounded-lg bg-brand px-6 py-2 font-semibold text-white hover:bg-brand-light">
+              {exam.type === 'practice' ? 'Start Practice' : 'Start Exam'}
+            </span>
+          </a>
         ))}
       </div>
     </div>
