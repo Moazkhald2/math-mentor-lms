@@ -38,27 +38,24 @@ export default function QuestionAnalysis() {
       const qIds = questions.map((q: any) => q.id)
       const { data: answers } = await supabase
         .from('answers')
-        .select('question_id, is_correct, points_earned, max_points')
+        .select('question_id, is_correct')
         .in('question_id', qIds)
 
-      const statsMap: Record<string, { correct: number; total: number; pointsEarned: number; maxPoints: number }> = {}
+      const statsMap: Record<string, { correct: number; total: number }> = {}
       for (const q of questions) {
-        statsMap[q.id] = { correct: 0, total: 0, pointsEarned: 0, maxPoints: 0 }
+        statsMap[q.id] = { correct: 0, total: 0 }
       }
       for (const a of answers ?? []) {
         const s = statsMap[a.question_id]
         if (!s) continue
         s.total++
         if (a.is_correct) s.correct++
-        s.pointsEarned += a.points_earned ?? 0
-        s.maxPoints += a.max_points ?? 0
       }
       return questions.map((q: any) => ({
         ...q,
         attempts: statsMap[q.id]?.total ?? 0,
         correctCount: statsMap[q.id]?.correct ?? 0,
         accuracy: statsMap[q.id]?.total > 0 ? (statsMap[q.id].correct / statsMap[q.id].total * 100) : null,
-        avgScore: statsMap[q.id]?.maxPoints > 0 ? (statsMap[q.id].pointsEarned / statsMap[q.id].maxPoints * 100) : null,
       }))
     },
   })
@@ -109,7 +106,6 @@ export default function QuestionAnalysis() {
               <th className="px-4 py-3">Difficulty</th>
               <th className="px-4 py-3 text-center">Attempts</th>
               <th className="px-4 py-3 text-center">Accuracy</th>
-              <th className="px-4 py-3 text-center">Avg Score</th>
             </tr></thead>
             <tbody className="divide-y divide-border">
               {stats.map((q: any) => (
@@ -121,9 +117,6 @@ export default function QuestionAnalysis() {
                   <td className="px-4 py-3 text-center font-bold">{q.attempts}</td>
                   <td className={`px-4 py-3 text-center font-bold ${q.accuracy !== null && q.accuracy < 40 ? 'text-danger' : q.accuracy !== null && q.accuracy < 60 ? 'text-accent-gold' : 'text-accent-green'}`}>
                     {q.accuracy !== null ? `${q.accuracy.toFixed(1)}%` : '-'}
-                  </td>
-                  <td className={`px-4 py-3 text-center font-bold ${q.avgScore !== null && q.avgScore < 40 ? 'text-danger' : q.avgScore !== null && q.avgScore < 60 ? 'text-accent-gold' : 'text-accent-green'}`}>
-                    {q.avgScore !== null ? `${q.avgScore.toFixed(1)}%` : '-'}
                   </td>
                 </tr>
               ))}
