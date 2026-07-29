@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { fetchExamQuestions } from '../lib/exams'
+import { startPractice, upsertAnswer, finishPractice } from '../lib/practice'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useActivityLogger } from '../hooks/useActivityLogger'
 import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
 import LatexRenderer from '../components/LatexRenderer'
-import type { Exam, ExamQuestion, Question } from '../types'
+import type { Exam, ExamQuestion, Question, ExamAttempt } from '../types'
 
 export default function Practice() {
   const { id } = useParams<{ id: string }>()
@@ -17,8 +18,10 @@ export default function Practice() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
-  const [answers, setAnswers] = useState<{ questionId: string; given: string; correct: boolean }[]>([])
   const [completed, setCompleted] = useState(false)
+  const attemptRef = useRef<ExamAttempt | null>(null)
+  const [saving, setSaving] = useState(false)
+  const correctCountRef = useRef(0)
 
   type ExamWithQuestions = Exam & { questions: (ExamQuestion & { question: Question })[] }
 
@@ -48,59 +51,56 @@ export default function Practice() {
     enabled: !!id,
   })
 
-  if (!user) { navigate('/login'); return null }
+  useEffect(() => {
+    if (!user) { navigate('/login'); return }
+    if (id && user) {
+      startPractice(id, user.id).then(attempt => {
+        attemptRef.current = attempt
+        log('practice_started', { exam_id: id })
+      }).catch(() => {})
+    }
+  }, [id, user])
+
+  if (!user) return null
   if (!exam || !exam.questions || exam.questions.length === 0) return <p className="text-text-muted">Loading...</p>
 
   const eqs = exam.questions
   const current = eqs[currentIndex]
   if (!current) return <p className="text-text-muted">Loading question...</p>
 
-  const handleSubmit = () => {
-    if (!selectedAnswer) return
+  const handleSubmit = async () => {
+    if (!selectedAnswer || !attemptRef.current) return
+    setSaving(true)
     const ans = selectedAnswer ?? ''
     const correct = current.question.type === 'short_answer'
       ? ans.trim().toLowerCase() === current.question.correct_answer.trim().toLowerCase()
       : ans === current.question.correct_answer
-    setAnswers([...answers, { questionId: current.question.id, given: selectedAnswer, correct }])
-    setSubmitted(true)
-    log('practice_answered', { question_id: current.question.id, correct, answer_given: selectedAnswer })
+    try {
+      await upsertAnswer(attemptRef.current.id, current.question.id, ans, correct, correct ? 1 : 0)
+      if (correct) correctCountRef.current++
+      setSubmitted(true)
+      log('practice_answered', { question_id: current.question.id, correct, answer_given: selectedAnswer })
+    } catch (e) {
+      console.error('Failed to save answer', e)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIndex < eqs.length - 1) {
       setCurrentIndex(currentIndex + 1)
       setSelectedAnswer(null)
       setSubmitted(false)
     } else {
-      setCompleted(true)
-      log('exam_submitted', { total: eqs.length, correct: answers.filter(a => a.correct).length })
+      if (attemptRef.current) {
+        const total = eqs.length
+        const correctCount = correctCountRef.current
+        await finishPractice(attemptRef.current.id, correctCount, total)
+        log('exam_submitted', { total, correct: correctCount, attempt_id: attemptRef.current.id })
+      }
+      navigate(`/results/${attemptRef.current!.id}`)
     }
-  }
-
-  if (completed) {
-    const correctCount = answers.filter(a => a.correct).length
-    return (
-      <div className="mx-auto max-w-2xl">
-        <h1 className="mb-6 text-3xl font-black text-text">Practice Complete!</h1>
-        <div className="mb-6 rounded-xl border border-border bg-surface p-6 text-center">
-          <p className="text-5xl font-black text-text">{correctCount}/{eqs.length}</p>
-          <p className="mt-2 text-text-muted">{(correctCount / eqs.length * 100).toFixed(0)}% correct</p>
-        </div>
-        {eqs.map((eq, i) => {
-          const ans = answers[i]
-          return (
-            <div key={eq.id} className={`mb-3 rounded-xl border p-4 ${ans?.correct ? 'border-accent-green bg-accent-green/5' : 'border-danger bg-danger/5'}`}>
-              <p className="font-medium text-text"><LatexRenderer content={eq.question.question_text} /></p>
-              {eq.question.image_url && <img src={eq.question.image_url} alt="Diagram" className="mt-2 max-h-32 rounded" />}
-              <p className="mt-1 text-sm">Your answer: <span className={ans?.correct ? 'text-accent-green' : 'text-danger'}>{ans?.given}</span></p>
-              {!ans?.correct && <p className="text-sm text-accent-green">Correct: {eq.question.correct_answer}</p>}
-              <p className="mt-1 text-xs text-text-muted"><LatexRenderer content={eq.question.explanation} /></p>
-            </div>
-          )
-        })}
-        <button onClick={() => navigate('/exams')} className="mt-4 rounded-lg bg-brand px-6 py-2 font-semibold text-white">Back to Exams</button>
-      </div>
-    )
   }
 
   return (
@@ -153,11 +153,31 @@ export default function Practice() {
       </div>
 
       {submitted && (
-        <div className={`mb-6 rounded-xl border p-4 ${answers[answers.length - 1]?.correct ? 'border-accent-green bg-accent-green/5' : 'border-danger bg-danger/5'}`}>
-          <p className={`font-bold ${answers[answers.length - 1]?.correct ? 'text-accent-green' : 'text-danger'}`}>
-            {answers[answers.length - 1]?.correct ? 'Correct!' : 'Wrong'}
+        <div className={`mb-6 rounded-xl border p-4 ${
+          selectedAnswer !== null && (
+            current.question.type === 'short_answer'
+              ? selectedAnswer.trim().toLowerCase() === current.question.correct_answer.trim().toLowerCase()
+              : selectedAnswer === current.question.correct_answer
+          ) ? 'border-accent-green bg-accent-green/5' : 'border-danger bg-danger/5'
+        }`}>
+          <p className={`font-bold ${
+            selectedAnswer !== null && (
+              current.question.type === 'short_answer'
+                ? selectedAnswer.trim().toLowerCase() === current.question.correct_answer.trim().toLowerCase()
+                : selectedAnswer === current.question.correct_answer
+            ) ? 'text-accent-green' : 'text-danger'
+          }`}>
+            {selectedAnswer !== null && (
+              current.question.type === 'short_answer'
+                ? selectedAnswer.trim().toLowerCase() === current.question.correct_answer.trim().toLowerCase()
+                : selectedAnswer === current.question.correct_answer
+            ) ? 'Correct!' : 'Wrong'}
           </p>
-          {!answers[answers.length - 1]?.correct && <p className="text-sm text-accent-green mt-1">Correct answer: {current.question.correct_answer}</p>}
+          {selectedAnswer !== null && !(
+            current.question.type === 'short_answer'
+              ? selectedAnswer.trim().toLowerCase() === current.question.correct_answer.trim().toLowerCase()
+              : selectedAnswer === current.question.correct_answer
+          ) && <p className="text-sm text-accent-green mt-1">Correct answer: {current.question.correct_answer}</p>}
           <p className="mt-1 text-sm text-text-muted"><LatexRenderer content={current.question.explanation} /></p>
         </div>
       )}
@@ -167,7 +187,10 @@ export default function Practice() {
           ? <button onClick={handleNext} className="rounded-lg bg-brand px-6 py-2 font-semibold text-white">
               {currentIndex < eqs.length - 1 ? 'Next Question →' : 'See Results'}
             </button>
-          : <button onClick={handleSubmit} disabled={!selectedAnswer} className="rounded-lg bg-brand px-6 py-2 font-semibold text-white disabled:opacity-50">Submit Answer</button>
+          : <button onClick={handleSubmit} disabled={!selectedAnswer || saving}
+              className="rounded-lg bg-brand px-6 py-2 font-semibold text-white disabled:opacity-50">
+              {saving ? 'Saving...' : 'Submit Answer'}
+            </button>
         }
       </div>
     </div>
