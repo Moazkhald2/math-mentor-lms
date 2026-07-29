@@ -3,6 +3,10 @@
 -- Run this entire file in Supabase SQL Editor
 -- ============================================================
 
+-- 0. Fix admin and teacher roles (handle_new_user defaults to 'student')
+UPDATE public.profiles SET role = 'admin' WHERE email = 'admin@mathmentor.com';
+UPDATE public.profiles SET role = 'teacher' WHERE email LIKE 'teacher%@test.com';
+
 -- 1. Profiles: ensure all columns exist
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS grade INTEGER CHECK (grade BETWEEN 3 AND 12);
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS session_token TEXT;

@@ -19,9 +19,12 @@ export default function AdminClasses() {
     enabled: !!expandedClass,
   })
 
+  const [createError, setCreateError] = useState('')
+
   const createMutation = useMutation({
     mutationFn: () => createClass(newName, newGrade, newTeacher || undefined),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-classes'] }); setShowCreate(false); setNewName(''); setNewGrade(3); setNewTeacher('') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-classes'] }); setShowCreate(false); setNewName(''); setNewGrade(3); setNewTeacher(''); setCreateError('') },
+    onError: (e: Error) => setCreateError(e.message),
   })
 
   const addMutation = useMutation({
@@ -55,8 +58,9 @@ export default function AdminClasses() {
               <option value="">No teacher</option>
               {teachers?.map(t => <option key={t.id} value={t.id}>{t.full_name ?? t.email}</option>)}
             </select>
-            <button onClick={() => createMutation.mutate()} disabled={!newName} className="rounded-lg bg-accent-green px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Create</button>
+            <button onClick={() => createMutation.mutate()} disabled={!newName || createMutation.isPending} className="rounded-lg bg-accent-green px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{createMutation.isPending ? 'Creating...' : 'Create'}</button>
           </div>
+          {createError && <p className="mt-2 text-sm text-danger">{createError}</p>}
         </div>
       )}
 

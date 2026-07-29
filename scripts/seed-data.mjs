@@ -73,7 +73,33 @@ function genAnswer(q) {
 async function main() {
   console.log('Starting seed...\n')
   
-  // Step 1: Create student accounts
+  // Step 0: Fix admin profile role
+  const { data: adminProfile } = await supabase.from('profiles').select('id, role').eq('email', 'admin@mathmentor.com').single()
+  if (adminProfile) {
+    await supabase.from('profiles').update({ role: 'admin' }).eq('id', adminProfile.id)
+    console.log('  ✓ Fixed admin role')
+  }
+
+  // Step 0.5: Create teacher account
+  let teacherId = null
+  const { data: existingTeacher } = await supabase.from('profiles').select('id').eq('email', 'teacher@test.com').single()
+  if (existingTeacher) {
+    teacherId = existingTeacher.id
+    await supabase.from('profiles').update({ role: 'teacher', full_name: 'Mr. Smith' }).eq('id', teacherId)
+    console.log('  ✓ Found existing teacher')
+  } else {
+    const { data: teacherUser, error: tErr } = await supabase.auth.admin.createUser({
+      email: 'teacher@test.com', password: 'test123', email_confirm: true,
+      user_metadata: { full_name: 'Mr. Smith', role: 'teacher' }
+    }).catch(() => ({ data: null, error: { message: 'Maybe already exists' } }))
+    if (teacherUser) {
+      teacherId = teacherUser.user.id
+      await supabase.from('profiles').upsert({
+        id: teacherId, email: 'teacher@test.com', full_name: 'Mr. Smith', role: 'teacher'
+      })
+      console.log('  ✓ Created teacher: teacher@test.com / test123')
+    }
+  }
   const studentIds = []
   for (const grade of GRADES) {
     for (let n = 1; n <= STUDENTS_PER_GRADE; n++) {
@@ -205,6 +231,30 @@ async function main() {
   console.log('✅ Seed complete!')
 
   // Print test accounts
+  // Step 4: Create classes & assign students
+  let classCount = 0
+  for (const grade of GRADES) {
+    const gradeStudents = studentIds.filter(s => s.grade === grade)
+    if (gradeStudents.length === 0) continue
+
+    const { data: cls, error: cErr } = await supabase.from('classes').insert({
+      name: `Grade ${grade} - Section A`,
+      grade,
+      teacher_id: teacherId,
+    }).select().single()
+    if (cErr) { console.error(`  Failed to create class for grade ${grade}:`, cErr.message); continue }
+
+    // Assign all students in this grade to the class
+    for (const student of gradeStudents) {
+      await supabase.from('class_members').insert({
+        class_id: cls.id, student_id: student.id,
+      }).catch(() => {})
+    }
+    classCount++
+    console.log(`  ✓ Created class: Grade ${grade} Section A (${gradeStudents.length} students)`)
+  }
+  console.log(`\nCreated ${classCount} classes\n`)
+
   console.log('\n=== TEST ACCOUNTS ===')
   console.log('Admin: admin@mathmentor.com / (use Google sign-in or set password)')
   for (const grade of GRADES) {
