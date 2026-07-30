@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toggleBookmark, fetchBookmarkedIds } from '../lib/bookmarks'

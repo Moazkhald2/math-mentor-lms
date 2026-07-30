@@ -42,7 +42,7 @@ export async function fetchBookmarkedQuestions(userId: string) {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data as { created_at: string; question: import('../types').Question }[]
+  return data as unknown as { created_at: string; question: import('../types').Question }[]
 }
 
 export async function submitFeedback(

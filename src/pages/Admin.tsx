@@ -40,7 +40,7 @@ export default function Admin() {
   if (authLoading) return null
   if (!user || !profile || profile.role !== 'admin') return null
 
-  const section = location.pathname.replace('/admin', '') || ''
+  const section = location.pathname.replace(/^\/admin/, '') || ''
 
   return (
     <div className="flex gap-8">

@@ -1,6 +1,6 @@
 import { useAuth } from '../hooks/useAuth'
 import { useQuery } from '@tanstack/react-query'
-import { fetchSubjectSummary, fetchWeakPoints } from '../lib/weakpoints'
+import { fetchSubjectSummary } from '../lib/weakpoints'
 import { Link } from 'react-router-dom'
 
 export default function WeakPointsCard() {

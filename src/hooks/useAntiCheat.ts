@@ -67,7 +67,7 @@ export function useAntiCheat(config: AntiCheatConfig) {
       setState((prev) => ({ ...prev, isDisqualified: true }))
       onDisqualified?.()
     }
-  }, [maxWarnings, onViolation, onDisqualified])
+  }, [maxWarnings, onViolation, onDisqualified, examId])
 
   // Restore warning count from persisted violations
   useEffect(() => {

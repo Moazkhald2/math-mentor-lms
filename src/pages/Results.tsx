@@ -7,6 +7,17 @@ import LatexRenderer from '../components/LatexRenderer'
 import BookmarkButton from '../components/BookmarkButton'
 import FeedbackButton from '../components/FeedbackButton'
 
+function answerDisplay(answer: string, question: Question): string {
+  if (!answer) return '(none)'
+  if (question.type === 'multiple_choice' && question.options.length > 0) {
+    const idx = parseInt(answer, 10)
+    if (!isNaN(idx) && idx >= 0 && idx < question.options.length) {
+      return question.options[idx]
+    }
+  }
+  return answer
+}
+
 export default function Results() {
   const { attemptId } = useParams<{ attemptId: string }>()
   const navigate = useNavigate()
@@ -121,8 +132,9 @@ export default function Results() {
             {a.question.options.length > 0 && (
               <div className="mb-3 space-y-1.5">
                 {a.question.options.map((opt, oi) => {
-                  const isSelected = opt === a.answer
-                  const isCorrectOpt = opt === a.question.correct_answer
+                  const optIdx = String(oi)
+                  const isSelected = a.question.type === 'multiple_choice' ? optIdx === a.answer : opt === a.answer
+                  const isCorrectOpt = a.question.type === 'multiple_choice' ? optIdx === a.question.correct_answer : opt === a.question.correct_answer
                   let className = 'rounded-lg border px-3 py-1.5 text-sm '
                   if (isCorrectOpt) className += 'border-accent-green bg-accent-green/10 text-accent-green'
                   else if (isSelected && !a.is_correct) className += 'border-danger bg-danger/10 text-danger'
@@ -139,7 +151,7 @@ export default function Results() {
             <div className="mb-2 text-sm">
               <span className="text-text-muted">Your answer: </span>
               <span className={`font-semibold ${a.is_correct ? 'text-accent-green' : 'text-danger'}`}>
-                <LatexRenderer content={a.answer || '(none)'} inline />
+                <LatexRenderer content={answerDisplay(a.answer, a.question)} inline />
               </span>
             </div>
 
@@ -147,7 +159,7 @@ export default function Results() {
               <div className="mb-2 text-sm">
                 <span className="text-text-muted">Correct answer: </span>
                 <span className="font-semibold text-accent-green">
-                  <LatexRenderer content={a.question.correct_answer} inline />
+                  <LatexRenderer content={answerDisplay(a.question.correct_answer, a.question)} inline />
                 </span>
               </div>
             )}

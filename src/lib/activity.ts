@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 export type ActivityAction =
   | 'exam_started'
   | 'exam_submitted'
+  | 'practice_started'
   | 'question_answered'
   | 'practice_answered'
   | 'tab_switch'

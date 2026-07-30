@@ -196,7 +196,7 @@ export default function Practice() {
             current.question.type === 'short_answer'
               ? selectedAnswer.trim().toLowerCase() === current.question.correct_answer.trim().toLowerCase()
               : selectedAnswer === current.question.correct_answer
-          ) && <p className="text-sm text-accent-green mt-1">Correct answer: {current.question.correct_answer}</p>}
+          ) && <p className="text-sm text-accent-green mt-1">Correct answer: {current.question.type === 'multiple_choice' ? current.question.options[parseInt(current.question.correct_answer)] || current.question.correct_answer : current.question.correct_answer}</p>}
           <p className="mt-1 text-sm text-text-muted"><LatexRenderer content={current.question.explanation} /></p>
         </div>
       )}

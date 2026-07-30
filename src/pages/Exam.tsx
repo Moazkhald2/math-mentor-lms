@@ -157,10 +157,10 @@ export default function Exam() {
           </div>
           <button
             onClick={handleSubmit}
-            disabled={answered < total || submitting}
+            disabled={answered < total || submitting || !attemptId}
             className="rounded-lg bg-accent-green px-4 py-2 text-sm font-semibold text-white hover:bg-accent-green/80 disabled:opacity-50"
           >
-            {submitting ? 'Saving...' : 'Submit'}
+            {submitting ? 'Saving...' : !attemptId ? 'Loading...' : 'Submit'}
           </button>
         </div>
 
