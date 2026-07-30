@@ -73,6 +73,23 @@ export async function submitAnswer(attemptId: string, questionId: string, answer
   return data as Answer
 }
 
+export async function saveAnswer(attemptId: string, questionId: string, answer: string) {
+  const { data, error } = await supabase
+    .from('answers')
+    .upsert({
+      attempt_id: attemptId,
+      question_id: questionId,
+      answer,
+      is_correct: false,
+      points_earned: 0,
+    }, { onConflict: 'attempt_id,question_id' })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Answer
+}
+
 export async function completeAttempt(attemptId: string, score: number, totalPoints: number) {
   const { data, error } = await supabase
     .from('exam_attempts')
