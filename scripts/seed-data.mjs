@@ -905,6 +905,13 @@ function genAnswer(question) {
 async function main() {
   console.log('Starting seed...\n')
 
+  const { data: qCheck } = await supabase.from('questions').select('id').limit(10)
+  if (qCheck && qCheck.length >= 10) {
+    console.log(`  Database already has ${qCheck.length}+ questions. Seed skipped.\n`)
+    console.log('  To force re-seed, delete all questions via Supabase dashboard.\n')
+    return
+  }
+
   // Step 0: Fix admin profile role
   const { data: adminProfile } = await supabase.from('profiles').select('id, role').eq('email', 'admin@mathmentor.com').single()
   if (adminProfile) {

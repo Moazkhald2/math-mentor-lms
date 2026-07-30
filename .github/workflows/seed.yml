@@ -1,0 +1,38 @@
+name: Seed Database
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type YES to seed the production database'
+        required: true
+        default: ''
+
+jobs:
+  seed:
+    if: github.event.inputs.confirm == 'YES'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Seed the database
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/seed-data.mjs
+
+      - name: Done
+        run: echo 'Seed complete'
