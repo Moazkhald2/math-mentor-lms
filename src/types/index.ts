@@ -45,6 +45,7 @@ export interface Exam {
   created_by: string
   created_at: string
   is_published: boolean
+  is_important?: boolean
   type: 'exam' | 'practice'
   grade?: number
   starts_at?: string | null

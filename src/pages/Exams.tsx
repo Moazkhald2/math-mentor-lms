@@ -59,6 +59,11 @@ export default function Exams() {
               <span className={`rounded px-2 py-0.5 text-xs ${exam.type === 'exam' ? 'bg-accent-gold/10 text-accent-gold' : 'bg-accent-green/10 text-accent-green'}`}>
                 {exam.type === 'exam' ? 'Exam' : 'Practice'}
               </span>
+              {exam.is_important && (
+                <span className="rounded bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand">
+                  ⭐ Important
+                </span>
+              )}
             </div>
 
             <div className="mb-4">

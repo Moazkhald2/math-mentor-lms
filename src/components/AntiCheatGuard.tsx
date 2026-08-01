@@ -12,10 +12,6 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
     useAntiCheat(config)
 
   useEffect(() => {
-    requestFullscreen()
-  }, [requestFullscreen])
-
-  useEffect(() => {
     if (durationMinutes && timeSpent >= durationMinutes * 60) {
       onTimeUp?.()
     }

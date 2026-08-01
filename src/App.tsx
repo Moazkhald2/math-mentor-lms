@@ -46,8 +46,8 @@ function App() {
           <Route path="/register" element={<AppLayout><Register /></AppLayout>} />
           <Route path="/questions" element={<AppLayout><Questions /></AppLayout>} />
           <Route path="/exams" element={<AppLayout><Exams /></AppLayout>} />
-          <Route path="/exam/:id" element={<Exam />} />
-          <Route path="/practice/:id" element={<Practice />} />
+          <Route path="/exam/:id" element={<AuthProvider><Exam /></AuthProvider>} />
+          <Route path="/practice/:id" element={<AuthProvider><Practice /></AuthProvider>} />
           <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
           <Route path="/weak-points" element={<AppLayout><WeakPoints /></AppLayout>} />
           <Route path="/bookmarks" element={<AppLayout><Bookmarks /></AppLayout>} />
