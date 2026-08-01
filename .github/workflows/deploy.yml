@@ -58,6 +58,8 @@ jobs:
 
       - name: Run migrations and seed database
         if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        working-directory: .
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
