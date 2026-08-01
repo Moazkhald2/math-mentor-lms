@@ -202,18 +202,18 @@ describe('exams lib', () => {
   })
 
   describe('submitAnswer', () => {
-    it('calls insert with attempt_id, question_id, answer, is_correct, points_earned', async () => {
+    it('calls upsert with attempt_id, question_id, answer, is_correct, points_earned', async () => {
       const qb = createQueryBuilder([])
       vi.mocked(supabase.from).mockReturnValue(qb)
       await submitAnswer('attempt-1', 'q-1', 'A', true, 10)
       expect(supabase.from).toHaveBeenCalledWith('answers')
-      expect(qb.insert).toHaveBeenCalledWith({
+      expect(qb.upsert).toHaveBeenCalledWith({
         attempt_id: 'attempt-1',
         question_id: 'q-1',
         answer: 'A',
         is_correct: true,
         points_earned: 10,
-      })
+      }, { onConflict: 'attempt_id,question_id' })
       expect(qb.select).toHaveBeenCalled()
       expect(qb.single).toHaveBeenCalled()
     })
@@ -222,13 +222,13 @@ describe('exams lib', () => {
       const qb = createQueryBuilder([])
       vi.mocked(supabase.from).mockReturnValue(qb)
       await submitAnswer('attempt-1', 'q-1', 'B')
-      expect(qb.insert).toHaveBeenCalledWith({
+      expect(qb.upsert).toHaveBeenCalledWith({
         attempt_id: 'attempt-1',
         question_id: 'q-1',
         answer: 'B',
         is_correct: false,
         points_earned: 0,
-      })
+      }, { onConflict: 'attempt_id,question_id' })
     })
 
     it('returns the created answer', async () => {
