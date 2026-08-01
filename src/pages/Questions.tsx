@@ -45,7 +45,7 @@ export default function Questions() {
           <select value={topic} onChange={e => setTopic(e.target.value)}
             className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text">
             <option value="">All topics</option>
-            {topicsForSubject.map(t => <option key={t} value={t}>{t}</option>)}
+            {(topicsForSubject ?? []).map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         )}
         <select value={difficulty} onChange={e => setDifficulty(e.target.value ? Number(e.target.value) : '')}
