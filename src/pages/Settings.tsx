@@ -14,9 +14,10 @@ export default function Settings() {
 
   useEffect(() => {
     if (!user) return
-    supabase.from('profiles').select('grade, parent_phone, telegram_chat_id').eq('id', user.id).single()
+    supabase.from('profiles').select('full_name, grade, parent_phone, telegram_chat_id').eq('id', user.id).single()
       .then(({ data }) => {
         if (data) {
+          if (data.full_name) setFullName(data.full_name)
           if (data.grade) setGrade(data.grade)
           if (data.parent_phone) setParentPhone(data.parent_phone)
           if (data.telegram_chat_id) setTelegramChatId(data.telegram_chat_id)

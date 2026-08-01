@@ -85,7 +85,7 @@ Practice sessions: ${practices.length}
     const olderCutoff = new Date(Date.now() - CUTOFF_DAYS * 2 * 86400000).toISOString()
     const { data: olderAttempts } = await supabase
       .from('exam_attempts')
-      .select('score')
+      .select('score, exam:exams(type)')
       .eq('user_id', s.id)
       .eq('status', 'completed')
       .eq('exam.type', 'exam')

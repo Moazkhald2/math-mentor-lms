@@ -137,7 +137,7 @@ describe('PracticePage', () => {
     await userEvent.click(screen.getByText('See Results'))
 
     await waitFor(() => {
-      expect(finishPractice).toHaveBeenCalledWith('att-1', 1, 1)
+      expect(finishPractice).toHaveBeenCalledWith('att-1', 100, 1)
     })
   })
 })

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchQuestions, fetchQuestionFilters } from '../lib/questions'
+import { fetchQuestions, fetchQuestionFilters, fetchTopicsForSubject } from '../lib/questions'
 import QuestionCard from '../components/QuestionCard'
 import { useState } from 'react'
 
@@ -13,9 +13,11 @@ export default function Questions() {
     queryFn: fetchQuestionFilters,
   })
 
-  const topicsForSubject = subject
-    ? filters?.topics ?? []
-    : []
+  const { data: topicsForSubject } = useQuery({
+    queryKey: ['topics-for-subject', subject],
+    queryFn: () => fetchTopicsForSubject(subject),
+    enabled: !!subject,
+  })
 
   const { data: questions, isLoading } = useQuery({
     queryKey: ['questions', { subject, topic, difficulty }],

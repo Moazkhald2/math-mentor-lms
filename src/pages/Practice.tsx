@@ -111,9 +111,10 @@ export default function Practice() {
       if (attemptRef.current) {
         const total = eqs.reduce((sum, eq) => sum + (eq.points ?? 1), 0)
         const correctCount = correctCountRef.current
+        const percentage = Math.round((correctCount / eqs.length) * 100)
         try {
-          await finishPractice(attemptRef.current.id, correctCount, total)
-          log('exam_submitted', { total, correct: correctCount, attempt_id: attemptRef.current.id })
+          await finishPractice(attemptRef.current.id, percentage, total)
+          log('practice_submitted', { total, correct: correctCount, attempt_id: attemptRef.current.id })
         } catch (e) {
           console.error('Failed to finish practice', e)
         }

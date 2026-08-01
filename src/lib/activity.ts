@@ -4,6 +4,7 @@ export type ActivityAction =
   | 'exam_started'
   | 'exam_submitted'
   | 'practice_started'
+  | 'practice_submitted'
   | 'question_answered'
   | 'practice_answered'
   | 'tab_switch'

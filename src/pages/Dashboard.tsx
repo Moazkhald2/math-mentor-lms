@@ -7,7 +7,7 @@ import WeakPointsCard from '../components/WeakPointsCard'
 import type { ExamAttempt } from '../types'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
-type AttemptWithExam = ExamAttempt & { exam: { title: string; type: string } }
+type AttemptWithExam = ExamAttempt & { exam: { title: string; type: string; passing_score: number } }
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -41,7 +41,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('exam_attempts')
-        .select('*, exam:exams(title, type)')
+        .select('*, exam:exams(title, type, passing_score)')
         .eq('user_id', user!.id)
         .order('started_at', { ascending: false })
         .limit(10)
@@ -219,7 +219,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-4">
               {a.status === 'completed' ? (
                 <>
-                  <span className={`text-lg font-bold ${(a.score ?? 0) >= 60 ? 'text-accent-green' : 'text-danger'}`}>
+                  <span className={`text-lg font-bold ${(a.score ?? 0) >= (a.exam?.passing_score ?? 60) ? 'text-accent-green' : 'text-danger'}`}>
                     {a.score}%
                   </span>
                   <a

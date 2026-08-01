@@ -17,6 +17,15 @@ export async function fetchQuestionFilters() {
   return filtersCache
 }
 
+export async function fetchTopicsForSubject(subject: string) {
+  const { data, error } = await supabase
+    .from('questions')
+    .select('topic')
+    .eq('subject', subject)
+  if (error) throw error
+  return [...new Set((data ?? []).map(r => r.topic).filter(Boolean))].sort() as string[]
+}
+
 export async function fetchQuestions(filters?: { subject?: string; topic?: string; difficulty?: Difficulty }) {
   let query = supabase.from('questions').select('*')
   if (filters?.subject) query = query.eq('subject', filters.subject)

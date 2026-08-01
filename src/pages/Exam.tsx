@@ -24,6 +24,7 @@ export default function Exam() {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [attemptId, setAttemptId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const startedRef = useRef(false)
 
@@ -62,7 +63,7 @@ export default function Exam() {
 
   const questions = useMemo<ShuffledQuestion[] | undefined>(() => {
     if (!rawQuestions) return undefined
-    const seed = attemptId || id || 'default'
+    const seed = id || 'default'
     let shuffled = exam?.shuffle_questions
       ? seededShuffle(rawQuestions, seed + '_questions')
       : [...rawQuestions]
@@ -76,7 +77,7 @@ export default function Exam() {
       return eq
     })
     return shuffled
-  }, [rawQuestions, attemptId, id, exam?.shuffle_questions])
+  }, [rawQuestions, id, exam?.shuffle_questions])
 
   const current = questions?.[currentIndex]
   const total = questions?.length ?? 0
@@ -91,16 +92,23 @@ export default function Exam() {
     setSubmitting(true)
     try {
       let correct = 0
+      let totalPoints = 0
+      let earnedPoints = 0
       for (const eq of questions) {
+        const points = eq.points ?? 1
+        totalPoints += points
         const userAns = answers[eq.question_id] ?? ''
         const isCorrect = eq.question.type === 'short_answer'
           ? userAns.trim().toLowerCase() === eq.question.correct_answer.trim().toLowerCase()
           : userAns === eq.question.correct_answer
-        if (isCorrect) correct++
-        await submitAnswer(attemptId, eq.question_id, userAns, isCorrect, isCorrect ? 1 : 0)
+        if (isCorrect) {
+          correct++
+          earnedPoints += points
+        }
+        await submitAnswer(attemptId, eq.question_id, userAns, isCorrect, isCorrect ? points : 0)
       }
-      const score = Math.round((correct / questions.length) * 100)
-      await completeAttempt(attemptId, score, questions.length)
+      const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0
+      await completeAttempt(attemptId, score, totalPoints)
       log('exam_submitted', { score, correct, total: questions.length })
       navigate(`/results/${attemptId}`, { replace: true })
     } catch (e: any) {
@@ -112,6 +120,16 @@ export default function Exam() {
   const handleTimeUp = useCallback(() => {
     if (!submitting) handleSubmit()
   }, [submitting, handleSubmit])
+
+  const handleSubmitClick = () => {
+    if (!questions) return
+    const unanswered = questions.filter(q => !(q.question_id in answers)).length
+    if (unanswered > 0) {
+      setShowConfirm(true)
+    } else {
+      handleSubmit()
+    }
+  }
 
   if (isLoading) {
     return <p className="mt-16 text-center text-text-muted">Loading exam...</p>
@@ -156,8 +174,8 @@ export default function Exam() {
             />
           </div>
           <button
-            onClick={handleSubmit}
-            disabled={answered < total || submitting || !attemptId}
+            onClick={handleSubmitClick}
+            disabled={submitting || !attemptId}
             className="rounded-lg bg-accent-green px-4 py-2 text-sm font-semibold text-white hover:bg-accent-green/80 disabled:opacity-50"
           >
             {submitting ? 'Saving...' : !attemptId ? 'Loading...' : 'Submit'}
@@ -174,6 +192,33 @@ export default function Exam() {
             onNext={() => setCurrentIndex(i => Math.min(i + 1, total - 1))}
             onPrev={() => setCurrentIndex(i => Math.max(i - 1, 0))}
           />
+        )}
+
+        {showConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="mx-4 w-full max-w-md rounded-xl border border-border bg-surface p-8 shadow-2xl">
+              <h2 className="mb-4 text-2xl font-black text-text">Submit Exam?</h2>
+              <p className="mb-2 text-text-muted">
+                You have {questions.filter(q => !(q.question_id in answers)).length} unanswered question(s).
+                Unanswered questions will be marked as incorrect.
+              </p>
+              <p className="mb-6 text-sm text-text-muted">Are you sure you want to submit?</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="flex-1 rounded-lg border border-border px-5 py-3 text-text-muted hover:bg-surface"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => { setShowConfirm(false); handleSubmit() }}
+                  className="flex-1 rounded-lg bg-danger px-5 py-3 font-bold text-white hover:bg-danger/80"
+                >
+                  Submit Anyway
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </AntiCheatGuard>

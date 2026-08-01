@@ -10,7 +10,6 @@ const links = [
   { href: '/admin/csv-import', label: 'CSV Import', icon: '📄' },
   { href: '/admin/csv-export', label: 'CSV Export', icon: '⬇️' },
   { href: '/admin/bulk-exams', label: 'Bulk Exams', icon: '🏗️' },
-  { href: '/admin/references', label: 'References', icon: '📚' },
   { href: '/admin/grading', label: 'Grading', icon: '✏️' },
   { href: '/admin/violations', label: 'Violations', icon: '🚨' },
   { href: '/admin/question-analysis', label: 'Question Analysis', icon: '📈' },

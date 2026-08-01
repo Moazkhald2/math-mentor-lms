@@ -1,6 +1,18 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import type { Question } from '../../types'
+
+function answerDisplay(answer: string, question: Question): string {
+  if (!answer) return '(none)'
+  if (question.type === 'multiple_choice' && question.options.length > 0) {
+    const idx = parseInt(answer, 10)
+    if (!isNaN(idx) && idx >= 0 && idx < question.options.length) {
+      return question.options[idx]
+    }
+  }
+  return answer
+}
 
 export default function AdminAttempts() {
   const [statusFilter, setStatusFilter] = useState('')
@@ -24,7 +36,7 @@ export default function AdminAttempts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('answers')
-        .select('*, questions!inner(question_text, correct_answer, explanation)')
+        .select('*, questions!inner(question_text, correct_answer, explanation, options, type)')
         .eq('attempt_id', expanded!)
       if (error) throw error
       return data
@@ -62,8 +74,8 @@ export default function AdminAttempts() {
                 {answers.map((ans: any) => (
                   <div key={ans.id} className={`rounded-lg border p-3 ${ans.is_correct ? 'border-accent-green bg-accent-green/5' : 'border-danger bg-danger/5'}`}>
                     <p className="font-medium text-text">{ans.questions?.question_text}</p>
-                    <p className="text-sm mt-1">Answer: <span className={ans.is_correct ? 'text-accent-green' : 'text-danger'}>{ans.answer}</span></p>
-                    {!ans.is_correct && <p className="text-sm text-accent-green">Correct: {ans.questions?.correct_answer}</p>}
+                    <p className="text-sm mt-1">Answer: <span className={ans.is_correct ? 'text-accent-green' : 'text-danger'}>{answerDisplay(ans.answer, ans.questions)}</span></p>
+                    {!ans.is_correct && <p className="text-sm text-accent-green">Correct: {answerDisplay(ans.questions?.correct_answer, ans.questions)}</p>}
                     <p className="text-xs text-text-muted mt-1">{ans.questions?.explanation}</p>
                   </div>
                 ))}
