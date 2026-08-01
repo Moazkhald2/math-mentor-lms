@@ -24,6 +24,7 @@
     "date-fns": "^4.4.0",
     "katex": "^0.18.1",
     "lucide-react": "^1.27.0",
+    "pg": "^8.22.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-hook-form": "^7.83.0",

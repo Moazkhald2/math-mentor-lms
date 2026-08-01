@@ -8,6 +8,7 @@ function createQueryBuilder(returnData: any[] = []) {
     select: vi.fn(() => chain),
     single: vi.fn(() => Promise.resolve({ data: returnData[0], error: null })),
     insert: vi.fn(() => chain),
+    upsert: vi.fn(() => chain),
     update: vi.fn(() => chain),
     delete: vi.fn(() => chain),
     then: (onFulfilled: any) => Promise.resolve(resolveValue).then(onFulfilled),
@@ -33,6 +34,7 @@ import {
   startAttempt,
   submitAnswer,
   completeAttempt,
+  saveAnswer,
 } from '../../lib/exams'
 
 describe('exams lib', () => {
@@ -242,6 +244,42 @@ describe('exams lib', () => {
       qb.single = vi.fn(() => Promise.resolve({ data: null, error: new Error('Insert failed') }))
       vi.mocked(supabase.from).mockReturnValue(qb)
       await expect(submitAnswer('attempt-1', 'q-1', 'A')).rejects.toThrow('Insert failed')
+    })
+  })
+
+  describe('saveAnswer', () => {
+    it('calls upsert with attempt_id, question_id, answer, is_correct, points_earned, and onConflict', async () => {
+      const qb = createQueryBuilder([])
+      vi.mocked(supabase.from).mockReturnValue(qb)
+      await saveAnswer('attempt-1', 'q-1', 'B')
+      expect(supabase.from).toHaveBeenCalledWith('answers')
+      expect(qb.upsert).toHaveBeenCalledWith(
+        {
+          attempt_id: 'attempt-1',
+          question_id: 'q-1',
+          answer: 'B',
+          is_correct: false,
+          points_earned: 0,
+        },
+        { onConflict: 'attempt_id,question_id' }
+      )
+      expect(qb.select).toHaveBeenCalled()
+      expect(qb.single).toHaveBeenCalled()
+    })
+
+    it('returns the saved answer', async () => {
+      const mockData = { id: '1', attempt_id: 'attempt-1', answer: 'B' }
+      const qb = createQueryBuilder([mockData])
+      vi.mocked(supabase.from).mockReturnValue(qb)
+      const result = await saveAnswer('attempt-1', 'q-1', 'B')
+      expect(result).toEqual(mockData)
+    })
+
+    it('throws on error', async () => {
+      const qb = createQueryBuilder([])
+      qb.single = vi.fn(() => Promise.resolve({ data: null, error: new Error('Upsert failed') }))
+      vi.mocked(supabase.from).mockReturnValue(qb)
+      await expect(saveAnswer('attempt-1', 'q-1', 'B')).rejects.toThrow('Upsert failed')
     })
   })
 

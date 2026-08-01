@@ -56,9 +56,12 @@ jobs:
           echo "Deployed branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
 
-      - name: Seed database
+      - name: Run migrations and seed database
         if: github.ref == 'refs/heads/main'
         env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: node scripts/seed-data.mjs
+        run: |
+          node scripts/migrate.mjs
+          node scripts/seed-data.mjs

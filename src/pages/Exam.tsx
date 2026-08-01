@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { fetchExamQuestions, startAttempt, submitAnswer, completeAttempt } from '../lib/exams'
+import { fetchExamQuestions, startAttempt, submitAnswer, completeAttempt, saveAnswer } from '../lib/exams'
 import { supabase } from '../lib/supabase'
 import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
 import AntiCheatGuard from '../components/AntiCheatGuard'
@@ -24,6 +24,7 @@ export default function Exam() {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [attemptId, setAttemptId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const startedRef = useRef(false)
@@ -86,6 +87,21 @@ export default function Exam() {
   const handleAnswer = (questionId: string, answer: string) => {
     setAnswers(prev => ({ ...prev, [questionId]: answer }))
   }
+
+  const handleSave = useCallback(async () => {
+    if (!attemptId || saving || answered === 0) return
+    setSaving(true)
+    try {
+      for (const [qid, ans] of Object.entries(answers)) {
+        await saveAnswer(attemptId, qid, ans)
+      }
+      log('exam_saved', { answered })
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }, [attemptId, saving, answered, answers, log])
 
   const handleSubmit = useCallback(async () => {
     if (!attemptId || !questions || submitting) return
@@ -173,6 +189,13 @@ export default function Exam() {
               style={{ width: `${(answered / total) * 100}%` }}
             />
           </div>
+          <button
+            onClick={handleSave}
+            disabled={answered === 0 || saving || !attemptId}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-muted hover:bg-surface disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </button>
           <button
             onClick={handleSubmitClick}
             disabled={submitting || !attemptId}
