@@ -35,6 +35,9 @@ export default function Exams() {
       <div className="mb-8">
         <h1 className="text-3xl font-black text-text">Exams & Practice</h1>
         <p className="mt-1 text-text-muted">Timed exams and untimed practice sheets</p>
+        {user && profile?.grade && (
+          <p className="mt-2 text-sm text-text-muted">Showing exams for Grade {profile.grade}</p>
+        )}
       </div>
 
       {isLoading && <p className="text-text-muted">Loading...</p>}

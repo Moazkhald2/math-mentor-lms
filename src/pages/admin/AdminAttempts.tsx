@@ -23,7 +23,7 @@ export default function AdminAttempts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('exam_attempts')
-        .select('*, profiles!inner(email, full_name), exams!inner(title, type)')
+        .select('*, profiles!inner(email, full_name, grade), exams!inner(title, type)')
         .order('started_at', { ascending: false })
         .limit(100)
       if (error) throw error
@@ -62,7 +62,8 @@ export default function AdminAttempts() {
           <div key={a.id} className="rounded-xl border border-border bg-surface">
             <button onClick={() => setExpanded(expanded === a.id ? null : a.id)} className="flex w-full items-center justify-between p-4 text-left">
               <div className="flex items-center gap-4">
-                <span className="font-medium text-text">{a.profiles?.email}</span>
+                <span className="font-medium text-text">{a.profiles?.full_name || a.profiles?.email}</span>
+                <span className="text-sm text-text-muted">Grade {a.profiles?.grade ?? '-'}</span>
                 <span className="text-text-muted">{a.exams?.title}</span>
                 {a.status === 'completed' && <span className="font-bold text-accent-green">{a.score}%</span>}
                 <span className={`rounded px-2 py-0.5 text-xs ${a.status === 'completed' ? 'bg-accent-green/10 text-accent-green' : a.status === 'in_progress' ? 'bg-accent-gold/10 text-accent-gold' : 'bg-danger/10 text-danger'}`}>{a.status}</span>

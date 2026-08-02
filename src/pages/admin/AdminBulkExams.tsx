@@ -73,6 +73,19 @@ export default function AdminBulkExams() {
     },
   })
 
+  const existingExams = useQuery({
+    queryKey: ['admin-exams-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('exams')
+        .select('id, title, grade, type, is_published, exam_questions(count)')
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (error) throw error
+      return data?.map(e => ({ ...e, question_count: (e.exam_questions as any)?.[0]?.count ?? 0 })) ?? []
+    },
+  })
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-black text-text">Bulk Exam Creator</h1>
@@ -140,6 +153,41 @@ export default function AdminBulkExams() {
           className="mt-6 w-full rounded-lg bg-brand py-3 font-bold text-white hover:bg-brand-light disabled:opacity-50">
           {bulkCreate.isPending ? 'Creating...' : `Create ${names.split('\n').filter(Boolean).length || '?'} Exams`}
         </button>
+      </div>
+
+      {/* Existing exams list */}
+      <div className="mt-8">
+        <h2 className="mb-4 text-xl font-bold text-text">Existing Exams</h2>
+        {existingExams.isLoading && <p className="text-text-muted">Loading...</p>}
+        {existingExams.data && (
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-surface text-text-muted">
+                <tr>
+                  <th className="px-4 py-3">Title</th>
+                  <th className="px-4 py-3">Grade</th>
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Questions</th>
+                  <th className="px-4 py-3">Published</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {existingExams.data.map((e: any) => (
+                  <tr key={e.id} className="text-text">
+                    <td className="px-4 py-3">{e.title}</td>
+                    <td className="px-4 py-3">{e.grade ?? '-'}</td>
+                    <td className="px-4 py-3 capitalize">{e.type}</td>
+                    <td className="px-4 py-3">{e.question_count}</td>
+                    <td className="px-4 py-3">{e.is_published ? 'Yes' : 'No'}</td>
+                  </tr>
+                ))}
+                {existingExams.data.length === 0 && (
+                  <tr><td colSpan={5} className="p-4 text-center text-text-muted">No exams created yet</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )

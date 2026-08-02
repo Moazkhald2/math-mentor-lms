@@ -4,9 +4,9 @@
 @theme {
   --font-montserrat: 'Montserrat', sans-serif;
 
-  --color-brand: #1982C4;
-  --color-brand-light: #36A3DF;
-  --color-brand-dark: #13659C;
+  --color-brand: #112A43;
+  --color-brand-light: #1F4A73;
+  --color-brand-dark: #0D1F33;
 
   --color-ink: #222C31;
   --color-ink-light: #2C3840;
@@ -30,7 +30,7 @@ body {
 }
 
 ::selection {
-  background-color: #1982C4;
+  background-color: #112A43;
   color: #fff;
 }
 
