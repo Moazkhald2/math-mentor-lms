@@ -28,11 +28,12 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-bg text-text">
-      <header className="border-b border-border shadow-[inset_0_-2px_0_#1982C4]">
+      <header className="border-b border-border shadow-[inset_0_-2px_0_theme(colors.brand)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-6">
             <a href="/" className="flex items-center gap-2">
               <img src="/logo-main.png" alt="The Math Mentor" className="h-8 w-auto" />
+              <img src="/logo-white.svg" alt="The Math Mentor" className="hidden h-8 w-auto dark:inline-block" />
             </a>
             <div className="hidden gap-6 md:flex">
               <a href="/questions" className="text-sm text-text-muted hover:text-text">Questions</a>
