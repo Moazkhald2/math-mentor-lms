@@ -1,0 +1,559 @@
+/* Math Mentor LMS - Theme System */
+/* Implements the design system brand colors and theme switching */
+
+/* ============================================
+   THEME VARIANTS
+   ============================================ */
+
+/* Light theme (default) - applies to elements with data-theme="light" */
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  —text-primary: #1f2937;
+  —text-secondary: #4b5563;
+  --text-muted: #6b7280;
+  --border-color: #d1d5db;
+  --surface: #f8fafc;
+  --brand-primary: #4f46e5;
+  --brand-secondary: #6366f1;
+  --brand-accent: #8b5cf6;
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-color: #475569;
+  --surface: #1e293b;
+  --brand-primary: #818cf8;
+  --brand-secondary: #a5b4fc;
+  --brand-accent: #c7d2fe;
+}
+
+/* ============================================
+   GRADE-SPECIFIC THEMES (for math-docs)
+   ============================================ */
+
+/* Primary Theme - Grade 3-6: Colorful, engaging, playful */
+[data-theme="primary"] {
+  --brand-primary: #ff9800;
+  --brand-secondary: #e91e63;
+  --brand-accent: #4caf50;
+  --heading-color: #e65100;
+  --link-color: #1565c0;
+  --code-bg: #fce4ec;
+  
+  --bg-primary: #fff9f0;
+  --bg-secondary: #fff3e0;
+  --bg-tertiary: #ffe0b2;
+  --text-primary: #333333;
+  --text-secondary: #555555;
+  --text-muted: #888888;
+  --border-color: #ffcc80;
+  --success: #4caf50;
+  --warning: #ffeb3b;
+  --danger: #f44336;
+  --info: #2196f3;
+}
+
+/* Middle Theme - Grade 7-9: Clean, organized, slightly more formal */
+[data-theme="middle"] {
+  --brand-primary: #007bff;
+  --brand-secondary: #6f42c1;
+  --brand-accent: #28a745;
+  --heading-color: #343a40;
+  ---link-color: #0056b3;
+  --code-bg: #f1f3f5;
+  
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #e9ecef;
+  --bg-tertiary: #dee2e6;
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-muted: #6c757d;
+  --border-color: #adb5bd;
+  --success: #28a745;
+  --warning: #ffc107;
+  --danger: #dc3545;
+  --info: #17a2b8;
+}
+
+/* High Theme - Grade 10-12: Professional, academic, clean */
+[data-theme="high"] {
+  --brand-primary: #6c5ce7;
+  --brand-secondary: #00b894;
+  --brand-accent: #fdcb6e;
+  --heading-color: #2d3436;
+  --link-color: #6c5ce7;
+  --code-bg: #dfe6e9;
+  
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-muted: #6c757d;
+  --border-color: #dee2e6;
+  --success: #00b894;
+  --warning: #fdcb6e;
+  --danger: #d63031;
+  --info: #0984e3;
+}
+
+/* College Theme: Minimal, professional, publication-ready */
+[data-theme="college"] {
+  --brand-primary: #1a237e;
+  --brand-secondary: #00695c;
+  --brand-accent: #f57f17;
+  --heading-color: #1a1a1a;
+  --link-color: #1a237e;
+  --code-bg: #f5f5f5;
+  
+  --bg-primary: #ffffff;
+  --bg-secondary: #fafafa;
+  --bg-tertiary: #f5f5f5;
+  --text-primary: #1a1a1a;
+  --text-secondary: #424242;
+  --text-muted: #757575;
+  --border-color: #e0e0e0;
+  --success: #2e7d32;
+  --warning: #f57f17;
+  --danger: #c62828;
+  --info: #1565c0;
+}
+
+/* ============================================
+   UTILITY CLASSES FOR THEMING
+   ============================================ */
+
+/* Theme awareness classes */
+.theme-aware {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: var(--transition-normal);
+}
+
+/* Brand color utilities */
+.text-brand { color: var(--brand-primary); }
+.bg-brand { background-color: var(--brand-primary); }
+.border-brand { border-color: var(--brand-primary); }
+
+.text-brand-secondary { color: var(--brand-secondary); }
+.bg-brand-secondary { background-color: var(--brand-secondary); }
+.border-brand-secondary { border-color: var(--brand-secondary); }
+
+.text-brand-accent { color: var(--brand-accent); }
+.bg-brand-accent { background-color: var(--brand-accent); }
+.border-brand-accent { border-color: var(--brand-accent); }
+
+/* Semantic color utilities */
+.text-success { color: var(--success); }
+.bg-success { background-color: var(--success); }
+
+.text-warning { color: var(--warning); }
+.bg-warning { background-color: var(--warning); }
+
+.text-danger { color: var(--danger); }
+.bg-danger { background-color: var(--danger); }
+
+.text-info { color: var(--info); }
+.bg-info { background-color: var(--info); }
+
+/* Background color utilities */
+.bg-primary { background-color: var(--bg-primary); }
+.bg-secondary { background-color: var(--bg-secondary); }
+.bg-tertiary { background-color: var(--bg-tertiary); }
+
+/* Text color utilities */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+
+/* Border color utilities */
+.border-primary { border-color: var(--border-color); }
+
+/* Shadow utilities */
+.shadow-none { box-shadow: none; }
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+
+/* Border radius utilities */
+.rounded-none { border-radius: 0; }
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: 9999px; }
+
+/* ============================================
+   HIGH CONTRAST MODE
+   ============================================ */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: #000000;
+    --bg-secondary: #ffffff;
+    --text-muted: #000000;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  }
+  
+  .card, .btn {
+    border-width: 2px;
+  }
+  
+  .brand-banner {
+    border: 3px solid #000;
+  }
+  
+  .gradient-border::before {
+    display: none;
+  }
+  
+  .input, .nav-link {
+    border-width: 2px;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION MODE
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .card:hover,
+  .btn:hover {
+    transform: none;
+  }
+  
+  .shimmer {
+    animation: none;
+    background: linear-gradient(90deg, #e0e0e0 25%, #f5f5f5 50%, #e0e0e0 75%);
+  }
+  
+  .fade-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============================================
+   THEME TOGGLE COMPONENT
+   ============================================ */
+
+.theme-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.theme-toggle:hover {
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--brand-foreground);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
+.theme-toggle-icon {
+  width: 20px;
+  height: 20px;
+  transition: transform var(--transition-normal);
+}
+
+.theme-toggle:hover .theme-toggle-icon {
+  transform: rotate(30deg);
+}
+
+/* ============================================
+   BRAND BANNER COMPONENT
+   ============================================ */
+
+.brand-banner {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+  color: var(--brand-foreground);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-xl);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.brand-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  z-index: 1;
+}
+
+.brand-banner-content {
+  position: relative;
+  z-index: 2;
+}
+
+.brand-banner-title {
+  font-size: var(--spacing-2xl);
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.brand-banner-subtitle {
+  font-size: var(--spacing-lg);
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+/* ============================================
+   GRADIENT BORDERS
+   ============================================ */
+
+.gradient-border {
+  position: relative;
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--radius-lg) + 2px);
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
+  z-index: -1;
+  opacity: 0.7;
+  transition: opacity var(--transition-normal);
+}
+
+.gradient-border:hover::before {
+  opacity: 1;
+}
+
+/* ============================================
+   HOVER EFFECTS
+   ============================================ */
+
+.hover-lift {
+  transition: all var(--transition-normal);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.hover-scale {
+  transition: all var(--transition-normal);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.hover-glow {
+  transition: all var(--transition-normal);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(79, 70, 229, 0.3);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.fade-in {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    var(--bg-secondary) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ============================================
+   Z-INDEX LAYERS
+   ============================================ */
+
+.z-base { z-index: 1; }
+.z-dropdown { z-index: 1000; }
+.z-sticky { z-index: 1020; }
+.z-fixed { z-index: 1030; }
+.z-modal { z-index: 1040; }
+.z-popover { z-index: 1050; }
+.z-tooltip { z-index: 1060; }
+.z-toast { z-index: 1070; }
+
+/* ============================================
+   PRINT OPTIMIZATIONS
+   ============================================ */
+@media print {
+  .no-print { display: none !important; }
+  .print-break { page-break-before: always; }
+  .print-avoid-break { page-break-inside: avoid; }
+  
+  .card, .btn {
+    border-color: #ccc !important;
+    box-shadow: none !important;
+  }
+  
+  .brand-banner {
+    background: none !important;
+    border: 2px solid var(--brand-primary) !important;
+    color: var(--text-primary) !important;
+  }
+  
+  .theme-toggle, .nav, .sidebar {
+    display: none !important;
+  }
+  
+  html, body {
+    background-color: white !important;
+    color: black !important;
+  }
+  
+  a {
+    color: var(--brand-primary) !important;
+    text-decoration: underline !important;
+  }
+  
+  .gradient-border::before {
+    display: none !important;
+  }
+  
+  .shimmer {
+    animation: none !important;
+    background: #f0f0f0 !important;
+  }
+  
+  .skip-nav, .theme-toggle, .nav, .sidebar {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   DARK THEME UTILITIES
+   ============================================ */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] .brand-banner {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 50%, var(--brand-accent) 100%);
+}
+
+/* ============================================
+   ACCESSIBILITY IMPROVEMENTS
+   ============================================ */
+
+/* Ensure sufficient color contrast */
+.text-on-brand {
+  color: var(--brand-foreground);
+}
+
+.bg-on-brand {
+  background-color: var(--brand-primary);
+  color: var(--brand-foreground);
+}
+
+/* Focus indicators */
+*:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
+/* Skip navigation link */
+.skip-nav {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--brand-primary);
+  color: var(--brand-foreground);
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  z-index: 1100;
+}
+
+.skip-nav:focus {
+  top: 6px;
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

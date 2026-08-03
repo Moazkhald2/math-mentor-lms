@@ -921,23 +921,29 @@ async function main() {
 
   // Step 0.5: Create teacher account
   let teacherId = null
-  const { data: existingTeacher } = await supabase.from('profiles').select('id').eq('email', 'teacher@test.com').single()
-  if (existingTeacher) {
-    teacherId = existingTeacher.id
-    await supabase.from('profiles').update({ role: 'teacher', full_name: 'Mr. Smith' }).eq('id', teacherId)
-    console.log('  ✓ Found existing teacher')
-  } else {
-    const { data: teacherUser, error: tErr } = await supabase.auth.admin.createUser({
-      email: 'teacher@test.com', password: 'test123', email_confirm: true,
-      user_metadata: { full_name: 'Mr. Smith', role: 'teacher' }
-    }).catch(() => ({ data: null, error: { message: 'Maybe already exists' } }))
-    if (teacherUser) {
-      teacherId = teacherUser.user.id
-      await supabase.from('profiles').upsert({
-        id: teacherId, email: 'teacher@test.com', full_name: 'Mr. Smith', role: 'teacher'
+  try {
+    const { data: existingTeacher } = await supabase.from('profiles').select('id').eq('email', 'teacher@test.com').single()
+    if (existingTeacher) {
+      teacherId = existingTeacher.id
+      await supabase.from('profiles').update({ role: 'teacher', full_name: 'Mr. Smith' }).eq('id', teacherId)
+      console.log('  ✓ Found existing teacher')
+    } else {
+      const { data: teacherUser, error: tErr } = await supabase.auth.admin.createUser({
+        email: 'teacher@test.com', password: 'test123', email_confirm: true,
+        user_metadata: { full_name: 'Mr. Smith', role: 'teacher' }
       })
-      console.log('  ✓ Created teacher: teacher@test.com / test123')
+      if (teacherUser) {
+        teacherId = teacherUser.user.id
+        await supabase.from('profiles').upsert({
+          id: teacherId, email: 'teacher@test.com', full_name: 'Mr. Smith', role: 'teacher'
+        })
+        console.log('  ✓ Created teacher: teacher@test.com / test123')
+      } else {
+        console.log('  ⏩ Teacher exists or create failed:', tErr.message)
+      }
     }
+  } catch (e) {
+    console.log('  ⏩ Teacher create failed (likely exists):', e.message)
   }
 
   // Step 1: Create student accounts

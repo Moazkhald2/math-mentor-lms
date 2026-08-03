@@ -21,7 +21,7 @@ export default function AdminSidebar() {
   return (
     <>
       <nav className="hidden w-56 shrink-0 md:block">
-        <h2 className="mb-4 text-lg font-bold text-text">Admin Panel</h2>
+        <h2 className="mb-4 text-lg font-bold text-primary">Admin Panel</h2>
         <div className="space-y-1">
           {links.map((link) => {
             const active = location.pathname === link.href
@@ -29,10 +29,10 @@ export default function AdminSidebar() {
               <a
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                className={`nav-link ${
                   active
-                    ? 'bg-brand text-white'
-                    : 'text-text-muted hover:bg-surface hover:text-text'
+                    ? 'bg-brand text-brand-foreground'
+                    : 'text-muted hover:bg-secondary hover:text-primary'
                 }`}
               >
                 <span>{link.icon}</span>
@@ -52,8 +52,8 @@ export default function AdminSidebar() {
                 href={link.href}
                 className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   active
-                    ? 'bg-brand text-white'
-                    : 'border border-border text-text-muted hover:border-brand hover:text-text'
+                    ? 'bg-brand text-brand-foreground'
+                    : 'border border-border text-muted hover:border-brand hover:text-primary'
                 }`}
               >
                 {link.label}
