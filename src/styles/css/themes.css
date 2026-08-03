@@ -10,8 +10,8 @@
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
   --bg-tertiary: #f1f5f9;
-  —text-primary: #1f2937;
-  —text-secondary: #4b5563;
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
   --text-muted: #6b7280;
   --border-color: #d1d5db;
   --surface: #f8fafc;
@@ -67,7 +67,7 @@
   --brand-secondary: #6f42c1;
   --brand-accent: #28a745;
   --heading-color: #343a40;
-  ---link-color: #0056b3;
+  --link-color: #0056b3;
   --code-bg: #f1f3f5;
   
   --bg-primary: #f8f9fa;

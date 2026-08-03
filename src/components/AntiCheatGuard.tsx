@@ -27,7 +27,7 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="max-w-md rounded-xl border border-danger bg-danger/10 p-8 text-center">
           <h2 className="mb-2 text-2xl font-bold text-danger">Exam Disqualified</h2>
-          <p className="text-text-muted">
+          <p className="text-muted">
             Too many violations detected. This exam has been automatically submitted.
           </p>
         </div>
@@ -41,7 +41,7 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           {!isFullscreen && (
-            <div className="rounded-lg border border-accent-gold bg-accent-gold/10 px-3 py-1.5 text-xs text-accent-gold">
+            <div className="rounded-lg border border-warning bg-warning/10 px-3 py-1.5 text-xs text-warning">
               ⚠ Click fullscreen to start
               <button onClick={requestFullscreen} className="ml-1 underline hover:no-underline">Fullscreen</button>
             </div>
@@ -57,7 +57,7 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
           <div className={`rounded-lg border px-3 py-1.5 text-sm font-bold ${
             isLowTime
               ? 'border-danger bg-danger/10 text-danger animate-pulse'
-              : 'border-border bg-surface text-text'
+              : 'border-border bg-secondary text-primary'
           }`}>
             {isLowTime ? '⏰ ' : '⏱ '}
             {remainingMin}:{String(remainingSec).padStart(2, '0')}

@@ -27,7 +27,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, [user, loading, location.pathname])
 
   return (
-    <div className="min-h-screen bg-bg text-primary">
+    <div className="min-h-screen bg-primary text-primary">
       <header className="border-b border-border shadow-[inset_0_-2px_0_theme(colors.brand)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-6">

@@ -27,11 +27,11 @@ export default function BookmarkButton({ questionId }: { questionId: string }) {
       onClick={() => toggle.mutate()}
       disabled={toggle.isPending}
       className={`rounded-lg border p-2 transition ${
-        isBookmarked ? 'border-accent-gold bg-accent-gold/10 text-accent-gold' : 'border-border text-text-muted hover:border-accent-gold/50 hover:text-accent-gold'
+        isBookmarked ? 'border-warning bg-warning/10 text-warning' : 'border-border text-muted hover:border-warning/50 hover:text-warning'
       }`}
       title={isBookmarked ? 'Remove bookmark' : 'Bookmark question'}
     >
-      <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-accent-gold' : ''}`} />
+      <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-warning' : ''}`} />
     </button>
   )
 }

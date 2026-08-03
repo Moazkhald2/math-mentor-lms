@@ -17,23 +17,23 @@ export default function WeakPointsCard() {
   const weakSubjects = subjects.filter(s => s.accuracy < 70)
 
   return (
-    <div className="rounded-xl border border-border bg-surface p-6">
+    <div className="card border border-border">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-text">Weak Points</h2>
+        <h2 className="text-lg font-bold text-primary">Weak Points</h2>
         <Link to="/weak-points" className="text-sm text-brand hover:underline">View Details →</Link>
       </div>
       <div className="space-y-3">
         {weakSubjects.length === 0 ? (
-          <p className="text-sm text-accent-green font-semibold">Great job! No weak subjects found.</p>
+          <p className="text-sm text-success font-semibold">Great job! No weak subjects found.</p>
         ) : (
           weakSubjects.slice(0, 4).map(s => {
-            const colorClass = s.accuracy < 50 ? 'bg-danger/20 text-danger' : 'bg-accent-gold/20 text-accent-gold'
+            const colorClass = s.accuracy < 50 ? 'bg-danger/20 text-danger' : 'bg-warning/20 text-warning'
             return (
               <div key={s.subject} className="flex items-center justify-between">
-                <span className="text-sm font-medium text-text">{s.subject}</span>
+                <span className="text-sm font-medium text-primary">{s.subject}</span>
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-24 overflow-hidden rounded-full bg-border">
-                    <div className={`h-full rounded-full ${s.accuracy < 50 ? 'bg-danger' : 'bg-accent-gold'}`} style={{ width: `${s.accuracy}%` }} />
+                  <div className="h-2 w-24 overflow-hidden rounded-full bg-secondary">
+                    <div className={`h-full rounded-full ${s.accuracy < 50 ? 'bg-danger' : 'bg-warning'}`} style={{ width: `${s.accuracy}%` }} />
                   </div>
                   <span className={`rounded px-2 py-0.5 text-xs font-semibold ${colorClass}`}>{s.accuracy}%</span>
                 </div>
