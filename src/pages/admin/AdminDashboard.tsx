@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
-const COLORS = ['#112A43', '#00784A', '#E8BB1A', '#DC3545']
+const COLORS = ['var(--color-brand)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-danger)']
 
 export default function AdminDashboard() {
   const { data: stats } = useQuery({
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
               <XAxis dataKey="range" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="count" fill="#112A43" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="count" fill="var(--color-brand)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

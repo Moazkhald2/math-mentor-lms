@@ -81,7 +81,7 @@ describe('QuestionCard', () => {
 
   it('shows correct answer highlighted', () => {
     const { container } = render(<QuestionCard question={mcQuestion} />)
-    const correctOption = container.querySelector('.border-accent-green')
+    const correctOption = container.querySelector('.border-success')
     expect(correctOption).toBeInTheDocument()
   })
 })

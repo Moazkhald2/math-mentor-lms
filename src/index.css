@@ -1,9 +1,15 @@
 ﻿@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
+/* ============================================
+   DESIGN TOKENS (single source of truth)
+   Tailwind v4 @theme — generates utility classes:
+   bg-brand, text-accent-green, border-danger, etc.
+   ============================================ */
 @theme {
   --font-montserrat: 'Montserrat', sans-serif;
 
+  /* Core brand colors */
   --color-brand: #112A43;
   --color-brand-light: #1F4A73;
   --color-brand-dark: #0D1F33;
@@ -11,39 +17,58 @@
   --color-ink: #222C31;
   --color-ink-light: #2C3840;
 
+  /* Accents (used heavily in components) */
   --color-accent-green: #00784A;
   --color-accent-gold: #E8BB1A;
 
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --color-surface-light: #334155;
-  --color-text: #f1f5f9;
-  --color-text-muted: #94a3b8;
-  --color-border: #334155;
+  /* Status colors */
   --color-success: #00784A;
   --color-warning: #E8BB1A;
   --color-danger: #ef4444;
+
+  /* Background tokens */
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-tertiary: #334155;
+
+  /* Text tokens */
+  --color-text: #f1f5f9;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #94a3b8;
+
+  /* Border token */
+  --color-border: #334155;
+
+  /* On-brand foreground (text on colored backgrounds) */
+  --color-brand-foreground: #ffffff;
+  --color-on-brand: #ffffff;
 }
 
+/* Base styles using semantic tokens */
 body {
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--font-montserrat);
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
 ::selection {
-  background-color: #112A43;
-  color: #fff;
+  background-color: var(--color-brand);
+  color: var(--color-brand-foreground);
 }
 
+/* Light theme overrides */
 [data-theme="light"] {
   --color-bg: #f8fafc;
   --color-surface: #ffffff;
-  --color-surface-light: #f1f5f9;
+  --color-tertiary: #f1f5f9;
   --color-text: #0f172a;
+  --color-text-secondary: #475569;
   --color-text-muted: #64748b;
   --color-border: #e2e8f0;
   --color-ink: #0f172a;
 }
 
+/* Animations */
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(1rem); }
   to   { opacity: 1; transform: translateY(0); }

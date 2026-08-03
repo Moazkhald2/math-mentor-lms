@@ -25,6 +25,6 @@ describe('DifficultyBadge', () => {
 
   it('applies correct color class for each level', () => {
     const { container } = render(<DifficultyBadge level={1} />)
-    expect(container.firstChild).toHaveClass('text-accent-green')
+    expect(container.firstChild).toHaveClass('badge-success')
   })
 })

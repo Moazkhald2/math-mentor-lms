@@ -1,397 +1,59 @@
-/* Math Mentor LMS - Design System CSS */
-/* This file implements the design system guidelines for consistent branding and colors */
-
-/* ============================================
-   CSS Custom Properties (Design Tokens)
-   Based on 8px grid system from design system
-   ============================================ */
+/* Math Mentor LMS - Design System Tokens
+   Values mirror src/index.css @theme → single source of truth for colors.
+   These variables power the semantic CSS utility classes in themes.css. */
 
 :root {
   /* Typography */
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-math: 'KaTeX_Main', 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-  
-  /* Colors - Design System Palette */
-  --brand-primary: #4f46e5;      /* Primary from design system */
-  --brand-secondary: #6366f1;    /* Supporting brand color */
-  --brand-accent: #8b5cf6;       /* Highlights, badges */
-  --neutral-100: #1f2937;         /* Dark text */
-  --neutral-200: #374151;         /* Medium text */
-  --neutral-300: #4b5563;         /* Secondary text */
-  --neutral-400: #6b7280;         /* Muted text */
-  --neutral-500: #9ca3af;         /* Borders, subtle backgrounds */
-  --neutral-600: #d1d5db;         /* Light backgrounds */
-  --neutral-700: #e5e7eb;         /* Very light backgrounds */
-  
-  /* Semantic colors from design system */
-  --success: #10b981;
-  --warning: #fbbf24;
-  --danger: #ef4444;
-  --info: #3b82f6;
-  
-  /* Background colors */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
-  
+
+  /* Colors — mirror @theme in index.css */
+  --brand-primary: var(--color-brand, #112A43);
+  --brand-secondary: var(--color-brand-light, #1F4A73);
+  --brand-accent: var(--color-accent-gold, #E8BB1A);
+  --brand-foreground: var(--color-brand-foreground, #ffffff);
+
+  --success: var(--color-success, #00784A);
+  --accent-green: var(--color-accent-green, #00784A);
+  --warning: var(--color-warning, #E8BB1A);
+  --accent-gold: var(--color-accent-gold, #E8BB1A);
+  --danger: var(--color-danger, #ef4444);
+
+  /* Backgrounds */
+  --bg-primary: var(--color-bg, #0f172a);
+  --bg-secondary: var(--color-surface, #1e293b);
+  --bg-tertiary: var(--color-tertiary, #334155);
+
+  /* Text colors */
+  --text-primary: var(--color-text, #f1f5f9);
+  --text-secondary: var(--color-text-secondary, #cbd5e1);
+  --text-muted: var(--color-text-muted, #94a3b8);
+  --text-ink: var(--color-ink, #222C31);
+
+  /* Borders */
+  --border-color: var(--color-border, #334155);
+  --surface: var(--color-surface, #1e293b);
+
   /* Component tokens */
-  --radius-sm: 4px;      /* 2px * 2 */
-  --radius-md: 8px;      /* 4px * 2 */
-  --radius-lg: 12px;     /* 6px * 2 */
-  --radius-xl: 16px;     /* 8px * 2 */
-  
-  --spacing-xs: 0.25rem; /* 4px */
-  --spacing-sm: 0.5rem;  /* 8px */
-  --spacing-md: 1rem;    /* 16px */
-  --spacing-lg: 1.5rem;  /* 24px */
-  --spacing-xl: 2rem;    /* 32px */
-  --spacing-2xl: 3rem;   /* 48px */
-  
-  /* Shadows */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  
-  /* Transitions */
+
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 350ms ease;
-  
-  /* Text colors (light mode defaults) */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --text-ink: #0f172a;
-  --border-color: #d1d5db;
-  
-  /* Brand foreground */
-  --brand-foreground: #ffffff;
 }
-
-/* Dark mode support for Math Mentor LMS */
-[data-theme="dark"] {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --text-primary: #f1f5f9;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --border-color: #475569;
-  --brand-primary: #818cf8;
-  --brand-secondary: #a5b4fc;
-  --brand-accent: #c7d2fe;
-  --neutral-100: #f8fafc;
-  --neutral-200: #e2e8f0;
-  --neutral-300: #cbd5e1;
-  --neutral-400: #94a3b8;
-  --neutral-500: #64748b;
-  --neutral-600: #475569;
-  --neutral-700: #334155;
-}
-
-/* ============================================
-   BASE STYLES (All themes)
-   ============================================ */
-
-html,
-body {
-  font-family: var(--font-body);
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  line-height: 1.5;
-  margin: 0;
-  padding: 0;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-/* Typography hierarchy based on design system */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--text-primary);
-  margin: 0 0 var(--spacing-md) 0;
-}
-
-h1 {
-  font-size: var(--spacing-2xl);
-}
-h2 {
-  font-size: var(--spacing-xl);
-}
-h3 {
-  font-size: var(--spacing-lg);
-}
-h4 {
-  font-size: var(--spacing-md);
-}
-
-p {
-  margin: 0 0 var(--spacing-md) 0;
-  line-height: 1.7;
-}
-
-/* Links */
-a {
-  color: var(--brand-primary);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-}
-
-a:hover {
-  color: var(--brand-secondary);
-}
-
-/* ============================================
-   COMPONENT STYLES - Based on design system checklist
-   ============================================ */
-
-/* Button base styles with all states */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xs) var(--spacing-md);
-  border-radius: var(--radius-md);
-  font-size: var(--spacing-sm);
-  font-weight: 500;
-  transition: all var(--transition-normal);
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-
-.btn-primary {
-  background-color: var(--brand-primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: var(--brand-secondary);
-}
-
-.btn-primary:active {
-  transform: translateY(1px);
-}
-
-.btn-primary:focus {
-  outline: 2px solid var(--brand-accent);
-  outline-offset: 2px;
-}
-
-.btn-outline {
-  background-color: transparent;
-  border-color: var(--border-color);
-  color: var(--text-primary);
-}
-
-.btn-outline:hover {
-  background-color: var(--bg-secondary);
-  border-color: var(--brand-primary);
-  color: var(--brand-primary);
-}
-
-.btn-outline:focus {
-  outline: 2px solid var(--brand-accent);
-  outline-offset: 2px;
-}
-
-.btn:disabled,
-.btn[disabled] {
-  opacity: 0.5;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-/* Card component */
-.card {
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-normal);
-}
-
-.card:hover {
-  box-shadow: var(--shadow-md);
-}
-
-/* Form inputs */
-input,
-textarea,
-select {
-  font-family: var(--font-body);
-  font-size: var(--spacing-sm);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  transition: all var(--transition-fast);
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-}
-
-/* ============================================
-   MATH SPECIFIC STYLES
-   ============================================ */
-
-.math-display {
-  font-family: var(--font-math);
-  font-size: 1.1em;
-  color: var(--text-primary);
-  background-color: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  margin: var(--spacing-md) 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-/* Markdown styling */
-.prose {
-  max-width: none;
-  color: var(--text-secondary);
-}
-
-.prose h1,
-.prose h2,
-.prose h3,
-.prose h4 {
-  color: var(--text-primary);
-}
-
-.prose a {
-  color: var(--brand-primary);
-  font-weight: 500;
-}
-
-.prose a:hover {
-  color: var(--brand-secondary);
-  text-decoration: underline;
-}
-
-/* ============================================
-   ACCESSIBILITY
-   ============================================ */
-
-/* Focus indicators for keyboard navigation */
-*:focus-visible {
-  outline: 2px solid var(--brand-accent);
-  outline-offset: 2px;
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  :root {
-    --border-color: #000000;
-    --bg-secondary: #ffffff;
-  }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* ============================================
-   PRINT STYLES
-   ============================================ */
-@media print {
-  * {
-    background: white !important;
-    color: black !important;
-    box-shadow: none !important;
-    text-shadow: none !important;
-  }
-
-  .no-print {
-    display: none !important;
-  }
-
-  a {
-    text-decoration: underline !important;
-  }
-
-  .card,
-  .prose {
-    break-inside: avoid !important;
-  }
-}
-
-/* ============================================
-   SCROLLBAR STYLING
-   ============================================ */
-
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-  border-radius: var(--radius-sm);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: var(--radius-sm);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-/* ============================================
-   UTILITY CLASSES (based on design system spacing)
-   ============================================ */
-
-.m-0 { margin: 0; }
-.mt-0 { margin-top: 0; }
-.mr-0 { margin-right: 0; }
-.mb-0 { margin-bottom: 0; }
-.ml-0 { margin-left: 0; }
-.mx-0 { margin-left: 0; margin-right: 0; }
-.my-0 { margin-top: 0; margin-bottom: 0; }
-
-.p-0 { padding: 0; }
-.pt-0 { padding-top: 0; }
-.pr-0 { padding-right: 0; }
-.pb-0 { padding-bottom: 0; }
-.pl-0 { padding-left: 0; }
-.px-0 { padding-left: 0; padding-right: 0; }
-.py-0 { padding-top: 0; padding-bottom: 0; }
-
-/* 8px grid spacing utilities */
-.m-xs { margin: var(--spacing-xs); }
-.p-xs { padding: var(--spacing-xs); }
-.m-sm { margin: var(--spacing-sm); }
-.p-sm { padding: var(--spacing-sm); }
-.m-md { margin: var(--spacing-md); }
-.p-md { padding: var(--spacing-md); }
-.m-lg { margin: var(--spacing-lg); }
-.p-lg { padding: var(--spacing-lg); }
-.m-xl { margin: var(--spacing-xl); }
-.p-xl { padding: var(--spacing-xl); }
-.m-2xl { margin: var(--spacing-2xl); }
-.p-2xl { padding: var(--spacing-2xl); }
