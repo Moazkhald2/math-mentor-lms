@@ -4,43 +4,13 @@ export default {
   darkMode: ['class'],
   theme: {
     extend: {
-      colors: {
-        // Brand colors from design system
-        brand: {
-          primary: '#4f46e5',
-          secondary: '#6366f1',
-          accent: '#8b5cf6',
-          foreground: '#ffffff',
-        },
-        background: {
-          primary: '#ffffff',
-          secondary: '#f8fafc',
-          tertiary: '#f1f5f9',
-        },
-        foreground: {
-          primary: '#0f172a',
-          secondary: '#64748b',
-          muted: '#94a3b8',
-        },
-        neutral: {
-          100: '#1f2937',
-          200: '#374151',
-          300: '#4b5563',
-          400: '#6b7280',
-          500: '#9ca3af',
-          600: '#d1d5db',
-          700: '#e5e7eb',
-        },
-        success: '#10b981',
-        warning: '#fbbf24',
-        danger: '#ef4444',
-        info: '#3b82f6',
-        surface: '#f8fafc',
-      },
+      /* Colors are defined in src/index.css @theme — that's the single source.
+         Keep tailwind.config.js for non-color config only. */
+
       borderRadius: {
         lg: '0.75rem',
         md: '0.5rem',
-        sm: '0.375rem',
+        sm: '0.25rem',
         xl: '1rem',
         full: '9999px',
       },
@@ -63,11 +33,6 @@ export default {
         '3xl': ['1.875rem', { lineHeight: '1.2' }],
         '4xl': ['2.25rem', { lineHeight: '1.2' }],
       },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        serif: ['Georgia', 'Times New Roman', 'serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],
-      },
       keyframes: {
         'caret-blink': {
           '0%, 100%': { opacity: '0' },
@@ -77,7 +42,7 @@ export default {
           '0%': { opacity: '0', transform: 'translateY(20px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
-        'pulse': {
+        pulse: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.5' },
         },
@@ -85,9 +50,12 @@ export default {
       animation: {
         'caret-blink': 'caret-blink 1.0s ease-in-out infinite',
         'fade-in-up': 'fade-in-up 0.6s ease-out',
-        'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
     },
   },
-  plugins: [require('@tailwindcss/forms'), require('@tailwindcss/typography')],
+  plugins: [
+    require('@tailwindcss/forms'),
+    require('@tailwindcss/typography'),
+  ],
 }

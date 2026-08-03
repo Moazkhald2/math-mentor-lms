@@ -251,7 +251,7 @@ export default function Dashboard() {
               <XAxis dataKey="name" />
               <YAxis domain={[0, 100]} />
               <Tooltip />
-              <Line type="monotone" dataKey="score" stroke="#112A43" strokeWidth={2} dot={{ fill: '#112A43' }} />
+               <Line type="monotone" dataKey="score" stroke="var(--color-brand)" strokeWidth={2} dot={{ fill: 'var(--color-brand)' }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
