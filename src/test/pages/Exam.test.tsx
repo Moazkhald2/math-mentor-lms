@@ -29,14 +29,14 @@ vi.mock('../../lib/exams', () => ({
       },
     },
   ],
-  startAttempt: async () => ({ id: 'attempt-1' }),
-  saveAnswer: async () => ({ id: 'answer-1' }),
-  submitAnswer: async () => ({ id: 'answer-1' }),
-  completeAttempt: async () => ({ id: 'attempt-1' }),
+  startAttempt: async (..._args: any[]) => ({ id: 'attempt-1' }),
+  saveAnswer: async (..._args: any[]) => ({ id: 'answer-1' }),
+  submitAnswer: async (..._args: any[]) => ({ id: 'answer-1' }),
+  completeAttempt: async (..._args: any[]) => ({ id: 'attempt-1' }),
 }))
 
 vi.mock('../../lib/supabase', () => ({
-  from: (table) => {
+  from: (table: string) => {
     const chain = {
       select: () => {
         const eqChain = {
@@ -73,7 +73,7 @@ vi.mock('../../lib/supabase', () => ({
 }))
 
 vi.mock('../../components/AntiCheatGuard', () => ({
-  default: ({ children }) => <div>{children}</div>,
+  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
 const renderExam = () => {
@@ -89,7 +89,7 @@ const renderExam = () => {
 
 describe('Exam Save and Submit Buttons', () => {
   it('renders save and submit buttons', async () => {
-    const { container } = renderExam()
+    renderExam()
     await waitFor(() => {
       const saveButton = screen.getByText('Save')
       expect(saveButton).toBeInTheDocument()
@@ -100,34 +100,32 @@ describe('Exam Save and Submit Buttons', () => {
 
   it('save button calls saveAnswer when clicked', async () => {
     const examsLib = await import('../../lib/exams')
-    const saveAnswerMock = vi.fn(() => Promise.resolve({ id: 'answer-1' }))
-    vi.mocked(examsLib.saveAnswer).mockImplementation(saveAnswerMock)
+    vi.mocked(examsLib.saveAnswer).mockImplementation(async (..._args: any[]) => ({ id: 'answer-1' }))
 
-    const { container } = renderExam()
+    renderExam()
     await waitFor(() => {
       const saveButton = screen.getByText('Save').closest('button')
       fireEvent.click(saveButton!)
     })
 
-    expect(saveAnswerMock).toHaveBeenCalled()
+    expect(vi.mocked(examsLib.saveAnswer)).toHaveBeenCalled()
   })
 
   it('submit button calls submitAnswer when clicked', async () => {
     const examsLib = await import('../../lib/exams')
-    const submitAnswerMock = vi.fn(() => Promise.resolve({ id: 'answer-1' }))
-    vi.mocked(examsLib.submitAnswer).mockImplementation(submitAnswerMock)
+    vi.mocked(examsLib.submitAnswer).mockImplementation(async (..._args: any[]) => ({ id: 'answer-1' }))
 
-    const { container } = renderExam()
+    renderExam()
     await waitFor(() => {
       const submitButton = screen.getByText('Submit').closest('button')
       fireEvent.click(submitButton!)
     })
 
-    expect(submitAnswerMock).toHaveBeenCalled()
+    expect(vi.mocked(examsLib.submitAnswer)).toHaveBeenCalled()
   })
 
   it('submit button shows confirmation when unanswered questions exist', async () => {
-    const { container } = renderExam()
+    renderExam()
     await waitFor(() => {
       const submitButton = screen.getByText('Submit').closest('button')
       fireEvent.click(submitButton!)
