@@ -201,7 +201,7 @@ export default function Exam() {
             disabled={submitting || !attemptId}
             className="rounded-lg bg-accent-green px-4 py-2 text-sm font-semibold text-white hover:bg-accent-green/80 disabled:opacity-50"
           >
-            {submitting ? 'Saving...' : !attemptId ? 'Loading...' : 'Submit'}
+            {submitting ? 'Submitting...' : !attemptId ? 'Loading...' : 'Submit'}
           </button>
         </div>
 
