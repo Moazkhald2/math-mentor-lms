@@ -156,20 +156,21 @@ CREATE POLICY "Users can insert own answers"
   );
 
 -- Helper function to get current user's role from profiles
--- SECURITY DEFINER bypasses RLS to avoid infinite recursion when querying profiles from profiles policy
+-- Uses SET LOCAL row_security = off to bypass RLS (avoids infinite recursion)
 CREATE OR REPLACE FUNCTION public.get_current_user_role()
 RETURNS TEXT
 LANGUAGE plpgsql
-STABLE
 SECURITY DEFINER
-SET search_path = public
 AS $$
+DECLARE
+  user_role TEXT;
 BEGIN
-  RETURN (
-    SELECT role FROM public.profiles 
-    WHERE id = auth.uid()
-    LIMIT 1
-  );
+  EXECUTE 'SET LOCAL row_security = off';
+  SELECT role INTO user_role
+  FROM public.profiles 
+  WHERE id = auth.uid()
+  LIMIT 1;
+  RETURN COALESCE(user_role, 'student');
 EXCEPTION 
   WHEN OTHERS THEN 
     RETURN 'student';
