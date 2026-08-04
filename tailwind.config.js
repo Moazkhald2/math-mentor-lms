@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./src/**/*.{ts,tsx,js,jsx,html,mdx}'],
-  darkMode: ['class'],
+  darkMode: false,
   theme: {
     extend: {
       /* Colors are defined in src/index.css @theme — that's the single source.

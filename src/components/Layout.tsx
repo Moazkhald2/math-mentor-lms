@@ -7,12 +7,6 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { user, loading, signOut } = useAuth()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [light, setLight] = useState(() => localStorage.getItem('theme') === 'light')
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', light ? 'light' : 'dark')
-    localStorage.setItem('theme', light ? 'light' : 'dark')
-  }, [light])
 
   useEffect(() => {
     if (loading || !user) return
@@ -33,7 +27,6 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-6">
             <a href="/" className="flex items-center gap-2">
               <img src="/logo-main.png" alt="The Math Mentor" className="h-8 w-auto" />
-              <img src="/logo-white.svg" alt="The Math Mentor" className="hidden h-8 w-auto dark:inline-block" />
             </a>
             <div className="hidden gap-6 md:flex">
               <a href="/questions" className="text-sm text-muted hover:text-primary">Questions</a>
@@ -42,9 +35,6 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setLight(!light)} className="theme-toggle" title="Toggle theme">
-              {light ? '🌙' : '☀️'}
-            </button>
             <div className="hidden items-center gap-4 md:flex">
               {loading ? null : user ? (
                 <>

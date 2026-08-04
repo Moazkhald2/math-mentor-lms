@@ -38,8 +38,8 @@ export default function Login() {
     <div className="flex min-h-[70vh] items-center justify-center">
       <div className="w-full max-w-md rounded-xl border border-border bg-surface p-8 shadow-lg">
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-black text-text">Sign In</h1>
-          <p className="mt-1 text-sm text-text-muted">Welcome back to Math Mentor</p>
+          <h1 className="text-4xl font-black text-text">Sign In</h1>
+          <p className="mt-2 text-lg text-text-muted">Welcome back to Math Mentor</p>
         </div>
 
         {resetSuccess && (
@@ -50,28 +50,28 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm text-text-muted">Email</label>
+            <label className="mb-2 block text-base text-text-muted">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink outline-none focus:border-brand"
+              className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-text outline-none focus:border-brand"
               required
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-text-muted">Password</label>
+            <label className="mb-2 block text-base text-text-muted">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink outline-none focus:border-brand"
+              className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-text outline-none focus:border-brand"
               required
             />
           </div>
 
           <div className="flex justify-end">
-            <a href="/forgot-password" className="text-xs text-text-muted hover:text-brand">
+            <a href="/forgot-password" className="text-sm text-text-muted hover:text-brand">
               Forgot password?
             </a>
           </div>
@@ -81,16 +81,16 @@ export default function Login() {
           <button
             type="submit"
             disabled={submitting || loading}
-            className="w-full rounded-lg bg-brand px-4 py-2 text-white transition hover:bg-brand-light disabled:opacity-50"
+            className="w-full rounded-lg bg-brand px-4 py-3 text-base font-semibold text-white transition hover:bg-brand-light disabled:opacity-50"
           >
             {submitting ? 'Signing in...' : 'Sign In'}
           </button>
 
-          <div className="relative my-4">
+          <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-border" />
             </div>
-            <div className="relative flex justify-center text-xs">
+            <div className="relative flex justify-center text-sm">
               <span className="bg-surface px-2 text-text-muted">or continue with</span>
             </div>
           </div>
@@ -98,7 +98,7 @@ export default function Login() {
           <button
             type="button"
             onClick={signInWithGoogle}
-            className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-white px-4 py-2 text-ink transition hover:bg-surface hover:border-brand"
+            className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-base font-medium text-text transition hover:bg-tertiary"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -109,7 +109,7 @@ export default function Login() {
             Sign in with Google
           </button>
 
-          <p className="text-center text-sm text-text-muted">
+          <p className="text-center text-base text-text-muted">
             No account?{' '}
             <a href="/register" className="text-brand hover:underline">
               Sign up
