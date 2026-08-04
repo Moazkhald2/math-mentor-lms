@@ -158,6 +158,13 @@ CREATE POLICY "Users can insert own answers"
 CREATE POLICY "Users can read own profile"
   ON public.profiles FOR SELECT USING (auth.uid() = id);
 
+CREATE POLICY "Admins and teachers can read all profiles"
+  ON public.profiles FOR SELECT
+  USING (
+    (auth.jwt()->'app_metadata'->>'role') IN ('admin', 'teacher') 
+    OR auth.uid() = id
+  );
+
 CREATE POLICY "Users can insert own profile"
   ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
