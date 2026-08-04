@@ -155,13 +155,34 @@ CREATE POLICY "Users can insert own answers"
     EXISTS (SELECT 1 FROM public.exam_attempts WHERE id = attempt_id AND user_id = auth.uid())
   );
 
+-- Helper function to get current user's role from profiles
+-- SECURITY DEFINER bypasses RLS to avoid infinite recursion when querying profiles from profiles policy
+CREATE OR REPLACE FUNCTION public.get_current_user_role()
+RETURNS TEXT
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN (
+    SELECT role FROM public.profiles 
+    WHERE id = auth.uid()
+    LIMIT 1
+  );
+EXCEPTION 
+  WHEN OTHERS THEN 
+    RETURN 'student';
+END;
+$$;
+
 CREATE POLICY "Users can read own profile"
   ON public.profiles FOR SELECT USING (auth.uid() = id);
 
 CREATE POLICY "Admins and teachers can read all profiles"
   ON public.profiles FOR SELECT
   USING (
-    (auth.jwt()->'app_metadata'->>'role') IN ('admin', 'teacher') 
+    public.get_current_user_role() IN ('admin', 'teacher')
     OR auth.uid() = id
   );
 
