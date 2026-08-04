@@ -100,7 +100,7 @@ describe('Exam Save and Submit Buttons', () => {
 
   it('save button calls saveAnswer when clicked', async () => {
     const examsLib = await import('../../lib/exams')
-    vi.mocked(examsLib.saveAnswer).mockImplementation(async (..._args: any[]) => ({ id: 'answer-1' }))
+    vi.mocked(examsLib.saveAnswer).mockImplementation(async (..._args: any[]): Promise<any> => ({ id: 'answer-1' }))
 
     renderExam()
     await waitFor(() => {
@@ -113,7 +113,7 @@ describe('Exam Save and Submit Buttons', () => {
 
   it('submit button calls submitAnswer when clicked', async () => {
     const examsLib = await import('../../lib/exams')
-    vi.mocked(examsLib.submitAnswer).mockImplementation(async (..._args: any[]) => ({ id: 'answer-1' }))
+    vi.mocked(examsLib.submitAnswer).mockImplementation(async (..._args: any[]): Promise<any> => ({ id: 'answer-1' }))
 
     renderExam()
     await waitFor(() => {
