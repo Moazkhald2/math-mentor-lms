@@ -223,7 +223,7 @@ export default function Results() {
         {left > 0 && (
           <Link
             to={`/exam/${attempt.exam_id}`}
-            className="rounded-lg bg-brand px-6 py-2 font-semibold text-white hover:bg-brand-light"
+            className="text-brand underline hover:text-brand-light"
           >
             Take another attempt
           </Link>
