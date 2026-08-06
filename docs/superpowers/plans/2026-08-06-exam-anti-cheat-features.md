@@ -1,6 +1,6 @@
 # Exam Anti-Cheat & Attempt Features Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add per-attempt question + option shuffle, a 3-attempt limit with best-score grading and 24h cooldown, time-seeded question variants, and a watermark overlay during exams.
 
@@ -30,7 +30,7 @@
 - Consumes: existing `public.exams`, `public.exam_attempts`, `public.questions`.
 - Produces: columns `questions.variant_group_id`, `exams.max_attempts`, `exams.cooldown_hours`, `exam_attempts.seed`, `exam_attempts.attempt_number`; RPC `public.start_exam_attempt(p_exam_id UUID, p_user_id UUID) RETURNS exam_attempts`. Errors raised with message `exam_not_found` | `exam_no_attempts_left` | `exam_cooldown_active`.
 
-- [ ] **Step 1: Write the migration SQL file**
+- [x] **Step 1: Write the migration SQL file**
 
 `supabase/migration-2026-08-06-exam-anti-cheat.sql`:
 
@@ -99,7 +99,7 @@ END;
 $$;
 ```
 
-- [ ] **Step 2: Apply the migration to the remote Supabase project**
+- [x] **Step 2: Apply the migration to the remote Supabase project**
 
 Use the Supabase MCP `apply_migration` tool with `name: "exam_attempt_limits_variants"` and the full SQL above as `query`. Then verify columns:
 
@@ -111,16 +111,16 @@ AND column_name IN ('variant_group_id','max_attempts','cooldown_hours','seed','a
 
 Expected: all 5 rows.
 
-- [ ] **Step 3: Update `src/types/index.ts`**
+- [x] **Step 3: Update `src/types/index.ts`**
 
 In `Question` add `variant_group_id: string | null`. In `Exam` add `max_attempts: number; cooldown_hours: number`. In `ExamAttempt` add `seed?: string | null; attempt_number?: number`. In `Answer` add `variant_group_id?: string | null` (used to remember which variant a student answered).
 
-- [ ] **Step 4: Run typecheck**
+- [x] **Step 4: Run typecheck**
 
 Run: `npm run build`
 Expected: PASS (no new type errors).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add supabase/migration-2026-08-06-exam-anti-cheat.sql src/types/index.ts
@@ -143,7 +143,7 @@ git commit -m "feat: add exam attempt-limit, cooldown, and variant schema + RPC"
   - `fetchMyAttemptsCount(examId, userId)` = `fetchStudentAttempts(...).then(completions)`. Migration only for completed ones.
   - `getBestScore(attempts: ExamAttempt[]): number` — max `score` among `status === 'completed'`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Append to `src/test/lib/exams.test.ts`:
 
@@ -192,12 +192,12 @@ describe('getBestScore', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/test/lib/exams.test.ts`
 Expected: FAIL (functions not exported).
 
-- [ ] **Step 3: Update implementation**
+- [x] **Step 3: Update implementation**
 
 In `src/lib/exams.ts` replace the `startAttempt` body:
 
@@ -231,12 +231,12 @@ export function getBestScore(attempts: ExamAttempt[]): number {
 
 Also add `rpc` support to the test's `createQueryBuilder` mock if unused — not required since tests stub `supabase.rpc` directly. But the supabase mock in the test file must be extended so `vi.mocked(supabase as any).rpc` is assignable. If TS complains, add `rpc: vi.fn(() => Promise.resolve({ data: null, error: null }))` inside the module mock object returned by `vi.mock`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run src/test/lib/exams.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/exams.ts src/test/lib/exams.test.ts
@@ -260,7 +260,7 @@ git commit -m "feat: use RPC start_exam_attempt, add attempt helpers"
   - `resolveVariant(question: Question, seed: string, variantPool: Question[]): Question | null` — returns the picked Question if there's a pool, else the original.
   - `hashString(str: string): number` (exported additively from `shuffle.ts`).
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Create `src/test/lib/variants.test.ts`:
 
@@ -305,12 +305,12 @@ describe('resolveVariant', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/test/lib/variants.test.ts`
 Expected: FAIL (module missing).
 
-- [ ] **Step 3: Implement `src/lib/variants.ts`**
+- [x] **Step 3: Implement `src/lib/variants.ts`**
 
 ```ts
 import { hashString } from './shuffle'
@@ -330,16 +330,16 @@ export function resolveVariant(base: Question, seed: string, variantPool: Questi
 }
 ```
 
-- [ ] **Step 4: Export `hashString` from `src/lib/shuffle.ts`**
+- [x] **Step 4: Export `hashString` from `src/lib/shuffle.ts`**
 
 Add `export` to the existing `function hashString`.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `npx vitest run src/test/lib/variants.test.ts src/test/lib/shuffle.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/lib/variants.ts src/test/lib/variants.test.ts src/lib/shuffle.ts
@@ -359,7 +359,7 @@ git commit -m "feat: time-seeded variant selection helper"
 - Resolve per-attempt shuffle: `seededShuffle(rawQuestions, attempt.seed + '_q')`; option-shuffle keyed by `attempt.seed + qid`.
 - Fetch variant pool: one query of `questions` where `variant_group_id in (groupIds in the exam)`, then run each row through `resolveVariant`.
 
-- [ ] **Step 1: Update mocked `lib/exams` in test**
+- [x] **Step 1: Update mocked `lib/exams` in test**
 
 In `src/test/devices/pages/Exam.test.tsx`, change the mocked `startAttempt` to return a seed and `attempt_number`:
 
@@ -369,7 +369,7 @@ startAttempt: async (..._args: any[]) => ({ id: 'attempt-1', seed: 'seed-1', att
 
 And add `variant_group_id: null` to the mocked `question` fixture (line ~20 region). Also add `rpc` to the mocked `supabase` module because `startAttempt` now calls `.rpc`. Easiest: keep the module mock that maps `fetchExamQuestions`/`startAttempt` — those are mocked separately, so `supabase.rpc` is only exercised by `lib/exams`, which the test overrides. Leave as is unless type errors appear; add `rpc: vi.fn(() => Promise.resolve({ data: null }))` to the `vi.mock('../../lib/supabase'...)` object if typecheck complains.
 
-- [ ] **Step 2: Update `src/lib/exams.ts` `fetchExamQuestions`?** — NOT needed (pool fetch is separate). Add a new export in `src/lib/exams.ts` used only by Exam.tsx:
+- [x] **Step 2: Update `src/lib/exams.ts` `fetchExamQuestions`?** — NOT needed (pool fetch is separate). Add a new export in `src/lib/exams.ts` used only by Exam.tsx:
 
 ```ts
 export async function fetchVariantPool(groupIds: string[]) {
@@ -400,7 +400,7 @@ describe('fetchVariantPool', () => {
 })
 ```
 
-- [ ] **Step 3: Implement the data wiring in `Exam.tsx`**
+- [x] **Step 3: Implement the data wiring in `Exam.tsx`**
 
 In `Exam.tsx`:
 
@@ -448,14 +448,14 @@ const questions = useMemo<ShuffledQuestion[] | undefined>(() => {
 
 Make sure to import `resolveVariant` from `../lib/variants` and `fetchVariantPool` from `../lib/exams`.
 
-- [ ] **Step 4: Update options `const`. `Exam.tsx` import of `Question` type keeps `options`.** The `ShuffledQuestion` type already requires `options: string[]; correct_answer: string` — stays valid.
+- [x] **Step 4: Update options `const`. `Exam.tsx` import of `Question` type keeps `options`.** The `ShuffledQuestion` type already requires `options: string[]; correct_answer: string` — stays valid.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `npx vitest run src/test/pages/Exam.test.tsx src/test/lib/exams.test.ts src/test/lib/variants.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/pages/Exam.tsx src/lib/exams.ts src/test/pages/Exam.test.tsx src/test/lib/exams.test.ts
@@ -473,7 +473,7 @@ git commit -m "feat: per-attempt shuffle + variant resolution in exam flow"
 
 **Behavior:** Fixed, semi-transparent diagonal text `Student Name — Grade X` repeated across the screen. `pointer-events-none`, z-index above content, low opacity (won't obscure questions but appears in screenshots).
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Create `src/test/components/Watermark.test.tsx`:
 
@@ -495,12 +495,12 @@ describe('Watermark', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/test/components/Watermark.test.tsx`
 Expected: FAIL (component missing).
 
-- [ ] **Step 3: Implement `src/components/Watermark.tsx`**
+- [x] **Step 3: Implement `src/components/Watermark.tsx`**
 
 ```tsx
 export default function Watermark({ label }: { label: string }) {
@@ -520,7 +520,7 @@ export default function Watermark({ label }: { label: string }) {
 }
 ```
 
-- [ ] **Step 4: Wire into `Exam.tsx`**
+- [x] **Step 4: Wire into `Exam.tsx`**
 
 Inside the `AntiCheatGuard` children `div` (line ~182), before the header bar, add:
 
@@ -530,7 +530,7 @@ Inside the `AntiCheatGuard` children `div` (line ~182), before the header bar, a
 
 You have `grade` from the profile query? The exam query already fetches `profiles.grade` into `profileRes`. Capture it as a state or lift the query. Simplest: keep fetching profile grade in a small query inside Exam or read from `user.user_metadata.grade`. Use `user.user_metadata?.grade`.
 
-- [ ] **Step 5: Update Exam test to assert watermark exists**
+- [x] **Step 5: Update Exam test to assert watermark exists**
 
 In `src/test/pages/Exam.test.tsx` add:
 
@@ -545,12 +545,12 @@ it('shows watermark during the exam', async () => {
 
 (English label as base because metadata empty in mock.)
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 Run: `npx vitest run src/test/components/Watermark.test.tsx src/test/pages/Exam.test.tsx`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/components/Watermark.tsx src/test/components/Watermark.test.tsx src/pages/Exam.tsx src/test/pages/Exam.test.tsx
@@ -571,17 +571,17 @@ git commit -m "feat: watermark overlay during exams"
 - `Exam.tsx`, on load, `fetchStudentAttempts`; compute gate: if already at cap → show "no attempts left — best score X%"; if cooldown → show countdown screen (server still enforces).
 - On successful submit, invalidate `['student-exam-entries', userId]` so the card refreshes.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Append to `src/test/pages/ExamsPage.test.tsx` new test cases for card contents (matching how ExamsPage is currently tested). The page already uses a `fetchExams` mock — extend it to return attempt fields and add a `fetchStudentAttempts` mock. Concretely, describe new summaries with `Attempts: 1/3` and cooldown label.
 
 Provide the test that renders the list, asserts `Attempts: 1/3`, `Best: 85`, and a disabled `Start Exam` when a 24h cooldown field is armed.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Expected: FAIL (feature missing → text not found).
 
-- [ ] **Step 3: Implement `Exams.tsx`**
+- [x] **Step 3: Implement `Exams.tsx`**
 
 Add a query for all of the user's attempts grouped by exam:
 
@@ -641,7 +641,7 @@ Replace the CTA `<span>` block:
 
 (Cooldown shows hours; exact `Xh Ym` format in Task 7.)
 
-- [ ] **Step 4: Implement gating in `Exam.tsx`**
+- [x] **Step 4: Implement gating in `Exam.tsx`**
 
 Add:
 
@@ -694,16 +694,16 @@ export function cooldownRemainingMs(exam: Pick<Exam, 'cooldown_hours'>, attempts
 
 Import `cooldownRemainingMs` in Exam.tsx; call `const cd = cooldownRemainingMs(exam, pastAttempts); const gate = exam ? (completedCount >= (exam.max_attempts ?? 3) ? 'no_attempts' : cd > 0 ? 'cooldown' : null) : null`.
 
-- [ ] **Step 5: Update `Exam.tsx` to not auto-start attempt when gate is set**
+- [x] **Step 5: Update `Exam.tsx` to not auto-start attempt when gate is set**
 
 The existing `useEffect` that calls `startAttempt` must skip when `gate` is truthy — otherwise the DB blocks with `exam_no_attempts_left`. Guard it: only run when `!gate`.
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 Run: `npx vitest run src/test/pages/ExamsPage.test.tsx src/test/pages/Exam.test.tsx src/test/lib/exams.test.ts`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/pages/Exams.tsx src/pages/Exam.tsx src/lib/exams.ts src/test/pages/ExamsPage.test.tsx src/test/lib/exams.test.ts
@@ -721,7 +721,7 @@ git commit -m "feat: enforce max attempts and cooldown gate in UI"
 **Behavior:**
 - Show current attempt score (existing) PLUS: "Best score across attempts: X%" line plus "You have N attempt(s) left" when the current exam allows more.
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Create `src/test/pages/Results.test.tsx` (mirroring existing page-tests pattern — `useParams`/`MemoryRouter`). Mock the page's supabase queries to return an attempt with `exam_id: 'e1'`, plus `fetchStudentAttempts` returning both the test attempt and a higher score. Assert:
 
@@ -730,11 +730,11 @@ expect(screen.getByText(/Best score/)).toBeInTheDocument()
 expect(screen.getByText(/2 attempts left/)).toBeInTheDocument()
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Expected: FAIL (not rendered).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `Results.tsx`, after the attempt query, load all attempts and compute displayed lines:
 
@@ -773,12 +773,12 @@ Hmm — in the (old) types `Exam` lacks `max_attempts`. Add it in Task 1 so this
 </div>
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run src/test/pages/Results.test.tsx`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pages/Results.tsx src/test/pages/Results.test.tsx
@@ -796,7 +796,7 @@ git commit -m "feat: show best score and remaining attempts on results"
 - In `ExamEditModal`, add two number fields: `Max Attempts` (1–5) and `Cooldown (hours)` (0–72). Include them in `handleSave` payload.
 - Also surface a badge on the list row: `Attempts: n/max`.
 
-- [ ] **Step 1: Implement fields**
+- [x] **Step 1: Implement fields**
 
 In `ExamEditModal` add state:
 
@@ -823,7 +823,7 @@ data.cooldown_hours = Math.max(0, cooldownHours || 0)
 
 In the list table, under "Actions update covered area" — simplest: add a `<td>` "Attempts" showing `${e.max_attempts ?? 3}`.
 
-- [ ] **Step 2: No unit test needed** (admin modal is covered by the existing page tests; add a lightweight render+change assertion if the file's test exists). If none exists, add a minimal snapshot check in the existing exams-page test:
+- [x] **Step 2: No unit test needed** (admin modal is covered by the existing page tests; add a lightweight render+change assertion if the file's test exists). If none exists, add a minimal snapshot check in the existing exams-page test:
 
 ```tsx
 it('shows attempt limit on the admin row', async () => {
@@ -832,12 +832,12 @@ it('shows attempt limit on the admin row', async () => {
 })
 ```
 
-- [ ] **Step 3: Run tests + lint**
+- [x] **Step 3: Run tests + lint**
 
 Run: `npm run test && npm run lint`
 Expected: PASS (all).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/pages/admin/AdminExams.tsx
@@ -854,7 +854,7 @@ git commit -m "feat: admin exam attempt limit + cooldown fields"
 **Behavior:**
 - Provide 2 extra variants for a representative set of existing grade-10/11 questions so the feature is live testable without manual authoring.
 
-- [ ] **Step 1: Write seed script**
+- [x] **Step 1: Write seed script**
 
 Select a handful of existing questions and clone them with new numbers/answers, same `variant_group_id` (the base id). One example per type (then copy pattern):
 
@@ -886,7 +886,7 @@ VALUES
    '5', 'Subtract 3, divide by 5.', '', '[]', NULL, '<BASE_Q_ID>');
 ```
 
-- [ ] **Step 2: Apply variance for at least one active exam**
+- [x] **Step 2: Apply variance for at least one active exam**
 
 Update a practice-less published exam's questions so that 3+ entries use variants. Verify with:
 
@@ -894,16 +894,16 @@ Update a practice-less published exam's questions so that 3+ entries use variant
 SELECT q.variant_group_id, count(*) FROM question_variants v GROUP BY variant_group_id HAVING count(*) > 1;
 ```
 
-- [ ] **Step 3: Verify per-attempt flatten seeding works end to end on the deployed site**
+- [ ] **Step 3: Verify per-attempt flatten seeding works end to end on the deployed site** (PENDING: needs deployed site + human browser E2E)
 
 Sign in as `student@mathmentor.com` / `test123`, open the anti-cheat exam, screenshot: watermark present + variant numbers differ from a neighbor's. Submit → Results shows best score/attempts.
 
-- [ ] **Step 4: Final full run**
+- [x] **Step 4: Final full run**
 
 Run: `npm run test` then `npm run lint` then `npm run build`
 Expected: all PASS, build clean, no warnings in oxlint.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add supabase/seed-variants-2026-08-06.sql
