@@ -81,7 +81,7 @@ describe('PracticePage', () => {
     const mockAttempt: ExamAttempt = { id: 'att-1', exam_id: 'exam-1', user_id: 'user-1', started_at: new Date().toISOString(), completed_at: null, score: null, total_points: 0, status: 'in_progress' } as any
     vi.mocked(startPractice).mockResolvedValue(mockAttempt)
 
-    const mockQuestions = [{ id: 'eq-1', exam_id: 'exam-1', question_id: 'q-1', order_index: 1, points: 1, question: { id: 'q-1', type: 'multiple_choice' as const, question_text: 'What is 2+2?', options: ['3', '4', '5'], correct_answer: '1', explanation: '2+2=4', subject: 'math', topic: 'algebra', difficulty: 1 as const, image_url: '', common_mistakes: [], created_by: '', created_at: '' } }]
+    const mockQuestions = [{ id: 'eq-1', exam_id: 'exam-1', question_id: 'q-1', order_index: 1, points: 1, question: { id: 'q-1', type: 'multiple_choice' as const, question_text: 'What is 2+2?', options: ['3', '4', '5'], correct_answer: '1', explanation: '2+2=4', subject: 'math', topic: 'algebra', difficulty: 1 as const, image_url: '', common_mistakes: [], created_by: '', created_at: '', variant_group_id: null } }]
     vi.mocked(fetchExamQuestions).mockResolvedValue(mockQuestions)
     const qb = createQueryBuilder([])
     vi.mocked(supabase.from).mockReturnValue(qb)
@@ -98,7 +98,7 @@ describe('PracticePage', () => {
     const mockAttempt: ExamAttempt = { id: 'att-1', exam_id: 'exam-1', user_id: 'user-1', started_at: new Date().toISOString(), completed_at: null, score: null, total_points: 0, status: 'in_progress' } as any
     vi.mocked(startPractice).mockResolvedValue(mockAttempt)
     vi.mocked(upsertAnswer).mockResolvedValue({ id: 'ans-1' } as any)
-    const mockQuestions = [{ id: 'eq-1', exam_id: 'exam-1', question_id: 'q-1', order_index: 1, points: 1, question: { id: 'q-1', type: 'multiple_choice' as const, question_text: 'What is 2+2?', options: ['3', '4', '5'], correct_answer: '1', explanation: '2+2=4', subject: 'math', topic: 'algebra', difficulty: 1 as const, image_url: '', common_mistakes: [], created_by: '', created_at: '' } }]
+    const mockQuestions = [{ id: 'eq-1', exam_id: 'exam-1', question_id: 'q-1', order_index: 1, points: 1, question: { id: 'q-1', type: 'multiple_choice' as const, question_text: 'What is 2+2?', options: ['3', '4', '5'], correct_answer: '1', explanation: '2+2=4', subject: 'math', topic: 'algebra', difficulty: 1 as const, image_url: '', common_mistakes: [], created_by: '', created_at: '', variant_group_id: null } }]
     vi.mocked(fetchExamQuestions).mockResolvedValue(mockQuestions)
 
     const qb = createQueryBuilder([])
@@ -121,7 +121,7 @@ describe('PracticePage', () => {
     vi.mocked(startPractice).mockResolvedValue(mockAttempt)
     vi.mocked(upsertAnswer).mockResolvedValue({ id: 'ans-1' } as any)
     vi.mocked(finishPractice).mockResolvedValue({ id: 'att-1', score: 1, total_points: 1, status: 'completed' } as any)
-    const mockQuestions = [{ id: 'eq-1', exam_id: 'exam-1', question_id: 'q-1', order_index: 1, points: 1, question: { id: 'q-1', type: 'multiple_choice' as const, question_text: 'What is 2+2?', options: ['3', '4', '5'], correct_answer: '1', explanation: '2+2=4', subject: 'math', topic: 'algebra', difficulty: 1 as const, image_url: '', common_mistakes: [], created_by: '', created_at: '' } }]
+    const mockQuestions = [{ id: 'eq-1', exam_id: 'exam-1', question_id: 'q-1', order_index: 1, points: 1, question: { id: 'q-1', type: 'multiple_choice' as const, question_text: 'What is 2+2?', options: ['3', '4', '5'], correct_answer: '1', explanation: '2+2=4', subject: 'math', topic: 'algebra', difficulty: 1 as const, image_url: '', common_mistakes: [], created_by: '', created_at: '', variant_group_id: null } }]
     vi.mocked(fetchExamQuestions).mockResolvedValue(mockQuestions)
 
     const qb = createQueryBuilder([])
