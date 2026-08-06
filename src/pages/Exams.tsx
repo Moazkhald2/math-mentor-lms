@@ -1,13 +1,28 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchExams } from '../lib/exams'
+import { fetchExams, getBestScore } from '../lib/exams'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import type { ExamAttempt } from '../types'
 
 export default function Exams() {
   const { user } = useAuth()
   const { data: exams, isLoading } = useQuery({
     queryKey: ['exams'],
     queryFn: fetchExams,
+  })
+
+  const { data: myAttempts = [] } = useQuery({
+    queryKey: ['my-exam-attempts', user?.id],
+    queryFn: async () => {
+      if (!user) return []
+      const { data, error } = await supabase
+        .from('exam_attempts')
+        .select('*')
+        .eq('user_id', user.id)
+      if (error) throw error
+      return data as ExamAttempt[]
+    },
+    enabled: !!user,
   })
 
   const { data: profile } = useQuery({
@@ -52,7 +67,16 @@ export default function Exams() {
       )}
 
       <div className="grid gap-6 md:grid-cols-2">
-        {filtered.map((exam) => (
+        {filtered.map((exam) => {
+          const examAttempts = myAttempts.filter(a => a.exam_id === exam.id)
+          const used = examAttempts.filter(a => a.status === 'completed').length
+          const best = getBestScore(examAttempts)
+          const lastCompleted = examAttempts.find(a => a.status === 'completed')
+          const cooldownMs = lastCompleted && exam.cooldown_hours > 0
+            ? (new Date(lastCompleted.completed_at!).getTime() + exam.cooldown_hours * 3600e3) - Date.now()
+            : 0
+          const locked = exam.type === 'exam' && (used >= (exam.max_attempts ?? 3) || cooldownMs > 0)
+          return (
           <a
             key={exam.id}
             href={user ? (exam.type === 'practice' ? `/practice/${exam.id}` : `/exam/${exam.id}`) : '/login'}
@@ -74,6 +98,13 @@ export default function Exams() {
               <p className="mt-1 text-sm text-text-muted">{exam.description}</p>
             </div>
 
+            {exam.type === 'exam' && (
+              <div className="mb-1 mt-1 text-xs">
+                <span>Attempts: {Math.min(used, exam.max_attempts ?? 3)}/{exam.max_attempts ?? 3}</span>
+                {best > 0 && <span className="ml-3 font-semibold text-accent-green">Best: {best}%</span>}
+              </div>
+            )}
+
             <div className="mb-6 flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-muted">
               {exam.type === 'exam' ? (
                 <>
@@ -86,11 +117,18 @@ export default function Exams() {
               {exam.starts_at && <span>📅 {new Date(exam.starts_at).toLocaleDateString()} — {exam.ends_at ? new Date(exam.ends_at).toLocaleDateString() : '∞'}</span>}
             </div>
 
-            <span className="inline-block rounded-lg bg-brand px-6 py-2 font-semibold text-white hover:bg-brand-light">
-              {exam.type === 'practice' ? 'Start Practice' : 'Start Exam'}
-            </span>
+            {exam.type === 'practice' ? (
+              <span className="inline-block rounded-lg bg-brand px-6 py-2 font-semibold text-white hover:bg-brand-light">Start Practice</span>
+            ) : locked ? (
+              <span className="inline-block rounded-lg px-6 py-2 font-semibold text-text-muted">
+                {cooldownMs > 0 ? `Next attempt in ${Math.ceil(cooldownMs / 3.6e6)}h` : 'No attempts left'}
+              </span>
+            ) : (
+              <span className="inline-block rounded-lg bg-brand px-6 py-2 font-semibold text-white hover:bg-brand-light">Start Exam</span>
+            )}
           </a>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

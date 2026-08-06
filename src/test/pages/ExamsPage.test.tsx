@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { useQuery } from '@tanstack/react-query'
 import Exams from '../../pages/Exams'
 
@@ -100,6 +100,23 @@ describe('ExamsPage', () => {
       if (options.queryKey[0] === 'my-grade') {
         return { data: { grade: 10 } } as any
       }
+      if (options.queryKey[0] === 'my-exam-attempts') {
+        return {
+          data: [
+            {
+              id: 'a1',
+              user_id: 'user-1',
+              exam_id: '1',
+              started_at: '2024-01-10T00:00:00Z',
+              completed_at: '2024-01-10T01:00:00Z',
+              score: 85,
+              total_points: 100,
+              status: 'completed',
+            },
+          ],
+          isLoading: false,
+        } as any
+      }
       return { data: undefined, isLoading: false } as any
     })
 
@@ -108,6 +125,117 @@ describe('ExamsPage', () => {
     expect(screen.getByText('Algebra Exam')).toBeInTheDocument()
 
     expect(screen.queryByText('Grade 11 Exam')).not.toBeInTheDocument()
+  })
+
+  it('shows attempts used and best score badge when attempts exist', () => {
+    vi.mocked(useQuery).mockImplementation((options: any) => {
+      if (options.queryKey[0] === 'exams') {
+        return { data: [mockExams[0]], isLoading: false } as any
+      }
+      if (options.queryKey[0] === 'my-exam-attempts') {
+        return {
+          data: [
+            {
+              id: 'a1',
+              user_id: 'user-1',
+              exam_id: '1',
+              status: 'completed',
+              score: 85,
+              total_points: 100,
+            },
+          ],
+          isLoading: false,
+        } as any
+      }
+      return { data: undefined, isLoading: false } as any
+    })
+
+    render(<Exams />)
+
+    const algebraCard = screen.getByText('Algebra Exam').closest('a')
+    expect(within(algebraCard!).getByText('Attempts: 1/3')).toBeInTheDocument()
+    expect(within(algebraCard!).getByText('Best: 85%')).toBeInTheDocument()
+  })
+
+  it('shows an enabled Start Exam when below attempts limit and no cooldown', () => {
+    vi.mocked(useQuery).mockImplementation((options: any) => {
+      if (options.queryKey[0] === 'exams') {
+        return { data: [mockExams[0]], isLoading: false } as any
+      }
+      if (options.queryKey[0] === 'my-exam-attempts') {
+        return {
+          data: [
+            {
+              id: 'a1',
+              user_id: 'user-1',
+              exam_id: '1',
+              status: 'completed',
+              score: 60,
+              total_points: 100,
+            },
+          ],
+          isLoading: false,
+        } as any
+      }
+      return { data: undefined, isLoading: false } as any
+    })
+
+    render(<Exams />)
+
+    const algebraCard = screen.getByText('Algebra Exam').closest('a')
+    expect(within(algebraCard!).queryByText('Start Exam')).toBeInTheDocument()
+    expect(within(algebraCard!).queryByText(/Next attempt in/i)).not.toBeInTheDocument()
+  })
+
+  it('locks the exam when a cooldown is active', () => {
+    vi.mocked(useQuery).mockImplementation((options: any) => {
+      if (options.queryKey[0] === 'exams') {
+        return {
+          data: [createExam({ id: '1', title: 'Algebra Exam', grade: 10, cooldown_hours: 24 })],
+          isLoading: false,
+        } as any
+      }
+      if (options.queryKey[0] === 'my-grade') {
+        return { data: { grade: 10 } } as any
+      }
+      if (options.queryKey[0] === 'my-exam-attempts') {
+        return {
+          data: [
+            {
+              id: 'a1',
+              user_id: 'user-1',
+              exam_id: '1',
+              status: 'completed',
+              score: 85,
+              total_points: 100,
+              completed_at: new Date(Date.now() - 3600e3).toISOString(),
+            },
+          ],
+          isLoading: false,
+        } as any
+      }
+      return { data: undefined, isLoading: false } as any
+    })
+
+    render(<Exams />)
+
+    const algebraCard = screen.getByText('Algebra Exam').closest('a') as HTMLElement
+    expect(within(algebraCard).queryByText('Start Exam')).not.toBeInTheDocument()
+    expect(within(algebraCard).getByText(/Next attempt in \d+h/)).toBeInTheDocument()
+  })
+
+  it('shows Start Practice for practice sheets', () => {
+    vi.mocked(useQuery).mockImplementation((options: any) => {
+      if (options.queryKey[0] === 'exams') {
+        return { data: mockExams, isLoading: false } as any
+      }
+      return { data: undefined, isLoading: false } as any
+    })
+
+    render(<Exams />)
+
+    const practiceCard = screen.getByText('Geometry Practice').closest('a')
+    expect(within(practiceCard!).queryByText('Start Practice')).toBeInTheDocument()
   })
 
   it('shows only published exams', () => {

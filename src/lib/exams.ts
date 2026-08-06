@@ -84,6 +84,14 @@ export function getBestScore(attempts: ExamAttempt[]): number {
     .reduce((best, a) => Math.max(best, a.score ?? 0), 0)
 }
 
+export function cooldownRemainingMs(exam: Pick<Exam, 'cooldown_hours'>, attempts: ExamAttempt[]): number {
+  const last = attempts.filter(a => a.status === 'completed')
+    .sort((a, b) => new Date(b.completed_at!).getTime() - new Date(a.completed_at!).getTime())[0]
+  if (!last || !exam.cooldown_hours) return 0
+  return Math.max(0, new Date(last.completed_at!).getTime()
+    + exam.cooldown_hours * 3600e3 - Date.now())
+}
+
 export async function submitAnswer(attemptId: string, questionId: string, answer: string, isCorrect = false, pointsEarned = 0) {
   const { data, error } = await supabase
     .from('answers')

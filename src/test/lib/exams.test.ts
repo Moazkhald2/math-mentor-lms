@@ -40,6 +40,7 @@ import {
   saveAnswer,
   fetchStudentAttempts,
   getBestScore,
+  cooldownRemainingMs,
 } from '../../lib/exams'
 
 describe('exams lib', () => {
@@ -243,6 +244,42 @@ describe('exams lib', () => {
 
     it('returns 0 when no completed attempts', () => {
       expect(getBestScore([{ id: 'a1', status: 'in_progress' } as any])).toBe(0)
+    })
+  })
+
+  describe('cooldownRemainingMs', () => {
+    it('returns > 0 when the last completed attempt is within the cooldown window', () => {
+      const within = new Date(Date.now() - 3600e3).toISOString()
+      const attempts = [{ id: 'a1', status: 'completed', completed_at: within }] as any
+      expect(cooldownRemainingMs({ cooldown_hours: 24 }, attempts)).toBeGreaterThan(0)
+    })
+
+    it('returns 0 when the last completed attempt is older than the cooldown window', () => {
+      const old = new Date(Date.now() - 48 * 3600e3).toISOString()
+      const attempts = [{ id: 'a1', status: 'completed', completed_at: old }] as any
+      expect(cooldownRemainingMs({ cooldown_hours: 24 }, attempts)).toBe(0)
+    })
+
+    it('returns 0 when there are no completed attempts', () => {
+      const attempts = [{ id: 'a1', status: 'in_progress' }] as any
+      expect(cooldownRemainingMs({ cooldown_hours: 24 }, attempts)).toBe(0)
+    })
+
+    it('returns 0 when cooldown_hours is 0', () => {
+      const recent = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+      const attempts = [{ id: 'a1', status: 'completed', completed_at: recent }] as any
+      expect(cooldownRemainingMs({ cooldown_hours: 0 }, attempts)).toBe(0)
+    })
+
+    it('uses the most recent completed attempt when several exist', () => {
+      const older = new Date(Date.now() - 20 * 3600e3).toISOString()
+      const newer = new Date(Date.now() - 2 * 3600e3).toISOString()
+      const oldAttempt = { id: 'a1', status: 'completed', completed_at: older } as any
+      const newAttempt = { id: 'a2', status: 'completed', completed_at: newer } as any
+      const withOldOnly = cooldownRemainingMs({ cooldown_hours: 24 }, [oldAttempt])
+      const withBoth = cooldownRemainingMs({ cooldown_hours: 24 }, [newAttempt, oldAttempt])
+      expect(withBoth).toBeGreaterThan(withOldOnly)
+      expect(withBoth).toBe(cooldownRemainingMs({ cooldown_hours: 24 }, [newAttempt]))
     })
   })
 

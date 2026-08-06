@@ -32,6 +32,11 @@ vi.mock('../../lib/exams', () => ({
   ]),
   fetchVariantPool: vi.fn(async () => []),
   startAttempt: vi.fn(async (..._args: any[]) => ({ id: 'attempt-1', seed: 'seed-1', attempt_number: 1 })),
+  fetchStudentAttempts: vi.fn(async () => []),
+  getBestScore: vi.fn((attempts: any[]) =>
+    Math.max(0, ...attempts.filter((a: any) => a.status === 'completed').map((a: any) => a.score ?? 0)),
+  ),
+  cooldownRemainingMs: vi.fn(() => 0),
   saveAnswer: vi.fn(async (..._args: any[]) => ({ id: 'answer-1' })),
   submitAnswer: vi.fn(async (..._args: any[]) => ({ id: 'answer-1' })),
   completeAttempt: vi.fn(async (..._args: any[]) => ({ id: 'attempt-1' })),
@@ -167,5 +172,44 @@ describe('Exam Save and Submit Buttons', () => {
     await waitFor(() => {
       expect(screen.getAllByText(/@test\.com/).length).toBeGreaterThan(0)
     })
+  })
+
+  it('shows the no-attempts-left gate screen and does not auto-start when at the cap', async () => {
+    const examsLib = await import('../../lib/exams')
+    vi.mocked(examsLib.startAttempt).mockClear()
+    vi.mocked(examsLib.fetchStudentAttempts).mockResolvedValue([
+      { id: 'a1', exam_id: '1', user_id: 'user-1', status: 'completed', score: 70, total_points: 100, started_at: '2024-01-01T00:00:00Z', completed_at: '2024-01-01T01:00:00Z' },
+      { id: 'a2', exam_id: '1', user_id: 'user-1', status: 'completed', score: 85, total_points: 100, started_at: '2024-01-02T00:00:00Z', completed_at: '2024-01-02T01:00:00Z' },
+      { id: 'a3', exam_id: '1', user_id: 'user-1', status: 'completed', score: 90, total_points: 100, started_at: '2024-01-03T00:00:00Z', completed_at: '2024-01-03T01:00:00Z' },
+    ] as any)
+
+    renderExam()
+
+    await waitFor(() => {
+      expect(screen.getByText('No attempts left')).toBeInTheDocument()
+    })
+    expect(screen.getByText(/Your best score: 90%/)).toBeInTheDocument()
+    expect(vi.mocked(examsLib.startAttempt)).not.toHaveBeenCalled()
+  })
+
+  it('shows the cooldown gate and does not autostart when a cooldown is active', async () => {
+    const examsLib = await import('../../lib/exams')
+    vi.mocked(examsLib.startAttempt).mockClear()
+    vi.mocked(examsLib.fetchStudentAttempts).mockResolvedValue([
+      {
+        id: 'a1', exam_id: '1', user_id: 'user-1', status: 'completed', score: 80, total_points: 100,
+        started_at: new Date(Date.now() - 3600e3).toISOString(),
+        completed_at: new Date(Date.now() - 3600e3).toISOString(),
+      },
+    ] as any)
+    vi.mocked(examsLib.cooldownRemainingMs).mockReturnValue(12 * 3600e3)
+
+    renderExam()
+
+    await waitFor(() => {
+      expect(screen.getByText('Too soon to retake')).toBeInTheDocument()
+    })
+    expect(screen.getByText(/about 12 hours/)).toBeInTheDocument()
+    expect(vi.mocked(examsLib.startAttempt)).not.toHaveBeenCalled()
   })
 })

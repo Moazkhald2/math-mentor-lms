@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { fetchExamQuestions, fetchVariantPool, startAttempt, submitAnswer, completeAttempt, saveAnswer } from '../lib/exams'
+import { fetchExamQuestions, fetchVariantPool, startAttempt, submitAnswer, completeAttempt, saveAnswer, fetchStudentAttempts, cooldownRemainingMs, getBestScore } from '../lib/exams'
 import { supabase } from '../lib/supabase'
 import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
 import { resolveVariant } from '../lib/variants'
@@ -22,6 +22,7 @@ export default function Exam() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { log } = useActivityLogger(id)
+  const queryClient = useQueryClient()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [attemptId, setAttemptId] = useState<string | null>(null)
@@ -69,15 +70,30 @@ export default function Exam() {
     enabled: !!rawQuestions,
   })
 
+  const { data: pastAttempts = [], isPending: attemptsLoading } = useQuery({
+    queryKey: ['my-exam-attempts', id],
+    queryFn: () => user ? fetchStudentAttempts(id!, user.id) : Promise.resolve([]),
+    enabled: !!id && !!user,
+  })
+  const completedCount = pastAttempts.filter(a => a.status === 'completed').length
+  const cd = exam ? cooldownRemainingMs(exam, pastAttempts) : 0
+  const gate = exam
+    ? (completedCount >= (exam.max_attempts ?? 3) ? 'no_attempts' : (cd > 0 ? 'cooldown' : null))
+    : null
+
   useEffect(() => {
-    if (!user || !id || startedRef.current || !exam) return
+    if (!user || !id || startedRef.current || !exam || attemptsLoading) return
+    if (gate) {
+      startedRef.current = true
+      return
+    }
     startedRef.current = true
     log('exam_started', { exam_id: id })
     startAttempt(id, user.id).then(a => {
       setAttemptId(a.id)
       setAttemptSeed(a.seed ?? null)
     }).catch(e => setError(e.message))
-  }, [user, id, exam, log])
+  }, [user, id, exam, gate, attemptsLoading, log])
 
   const questions = useMemo<ShuffledQuestion[] | undefined>(() => {
     if (!rawQuestions) return undefined
@@ -146,12 +162,13 @@ export default function Exam() {
       const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0
       await completeAttempt(attemptId, score, totalPoints)
       log('exam_submitted', { score, correct, total: questions.length })
+      queryClient.invalidateQueries({ queryKey: ['my-exam-attempts', user?.id] })
       navigate(`/results/${attemptId}`, { replace: true })
     } catch (e: any) {
       setError(e.message)
       setSubmitting(false)
     }
-  }, [attemptId, questions, answers, submitting, navigate, log])
+  }, [attemptId, questions, answers, submitting, navigate, log, queryClient, user?.id])
 
   const handleTimeUp = useCallback(() => {
     if (!submitting) handleSubmit()
@@ -165,6 +182,26 @@ export default function Exam() {
     } else {
       handleSubmit()
     }
+  }
+
+  if (exam && gate === 'no_attempts') {
+    return (
+      <div className="mx-auto mt-16 max-w-md text-center">
+        <p className="text-lg font-bold text-text">No attempts left</p>
+        <p className="mt-2 text-text-muted">Your best score: {getBestScore(pastAttempts)}%</p>
+        <button onClick={() => navigate('/exams')} className="mt-4 rounded-lg bg-brand px-6 py-2 text-white">Back to Exams</button>
+      </div>
+    )
+  }
+  if (exam && gate === 'cooldown') {
+    const ms = cooldownRemainingMs(exam, pastAttempts)
+    return (
+      <div className="mx-auto mt-16 max-w-md text-center">
+        <p className="text-lg font-bold text-text">Too soon to retake</p>
+        <p className="mt-2 text-text-muted">Next attempt available in about {Math.ceil(ms / 3.6e6)} hours.</p>
+        <button onClick={() => navigate('/exams')} className="mt-4 rounded-lg bg-brand px-6 py-2 text-white">Back to Exams</button>
+      </div>
+    )
   }
 
   if (isLoading) {
