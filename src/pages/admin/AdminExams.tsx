@@ -98,7 +98,7 @@ export default function AdminExams() {
       <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full text-left text-sm">
           <thead className="bg-surface text-text-muted"><tr>
-            <th className="px-4 py-3">Title</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Schedule</th><th className="px-4 py-3">Time</th><th className="px-4 py-3">Published</th><th className="px-4 py-3">Actions</th>
+            <th className="px-4 py-3">Title</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Schedule</th><th className="px-4 py-3">Time</th><th className="px-4 py-3">Attempts</th><th className="px-4 py-3">Published</th><th className="px-4 py-3">Actions</th>
           </tr></thead>
           <tbody className="divide-y divide-border">
             {filtered.map(e => (
@@ -109,6 +109,7 @@ export default function AdminExams() {
                   {e.starts_at ? `${new Date(e.starts_at).toLocaleDateString()} → ${e.ends_at ? new Date(e.ends_at).toLocaleDateString() : '∞'}` : 'Always'}
                 </td>
                 <td className="px-4 py-3">{e.type === 'exam' ? `${e.time_limit_minutes} min` : '-'}</td>
+                <td className="px-4 py-3">{e.type === 'exam' ? e.max_attempts ?? 3 : '-'}</td>
                 <td className="px-4 py-3">
                   {!e.is_template && <input type="checkbox" checked={e.is_published} onChange={() => togglePublished.mutate({ id: e.id, is_published: !e.is_published })} className="h-4 w-4 accent-brand" />}
                 </td>
@@ -142,6 +143,8 @@ function ExamEditModal({ exam, onSave, onClose, saving }: {
   const [timeLimit, setTimeLimit] = useState(exam.time_limit_minutes)
   const [passingScore, setPassingScore] = useState(exam.passing_score)
   const [grade, setGrade] = useState<number | ''>(exam.grade ?? '')
+  const [maxAttempts, setMaxAttempts] = useState(exam.max_attempts ?? 3)
+  const [cooldownHours, setCooldownHours] = useState(exam.cooldown_hours ?? 0)
   const [startsAt, setStartsAt] = useState(exam.starts_at ? exam.starts_at.slice(0, 16) : '')
   const [endsAt, setEndsAt] = useState(exam.ends_at ? exam.ends_at.slice(0, 16) : '')
   const [questionFilter, setQuestionFilter] = useState('')
@@ -185,6 +188,8 @@ function ExamEditModal({ exam, onSave, onClose, saving }: {
     if (grade !== '') data.grade = Number(grade); else data.grade = null
     data.starts_at = startsAt ? new Date(startsAt).toISOString() : null
     data.ends_at = endsAt ? new Date(endsAt).toISOString() : null
+    data.max_attempts = Math.max(1, Math.min(5, maxAttempts || 3))
+    data.cooldown_hours = Math.max(0, cooldownHours || 0)
     onSave(data)
   }
 
@@ -259,6 +264,10 @@ function ExamEditModal({ exam, onSave, onClose, saving }: {
               <option value="">All grades</option>
               {Array.from({ length: 10 }, (_, i) => i + 3).map(g => <option key={g} value={g}>Grade {g}</option>)}
             </select></div>
+          <div><label className="mb-1 block text-sm text-text-muted">Max Attempts</label>
+            <input type="number" min={1} max={5} value={maxAttempts} onChange={e => setMaxAttempts(Number(e.target.value))} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" /></div>
+          <div><label className="mb-1 block text-sm text-text-muted">Cooldown (hours)</label>
+            <input type="number" min={0} max={72} value={cooldownHours} onChange={e => setCooldownHours(Number(e.target.value))} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" /></div>
           <div className="sm:col-span-2"><label className="mb-1 block text-sm text-text-muted">Schedule</label>
             <div className="flex gap-2"><input type="datetime-local" value={startsAt} onChange={e => setStartsAt(e.target.value)} className="flex-1 rounded-lg border border-border bg-white px-4 py-2 text-ink text-sm" />
               <span className="self-center text-text-muted">→</span>
