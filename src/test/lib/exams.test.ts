@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 function createQueryBuilder(returnData: any[] = []) {
   const resolveValue = { data: returnData, error: null }
@@ -248,6 +248,15 @@ describe('exams lib', () => {
   })
 
   describe('cooldownRemainingMs', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-01-15T12:00:00Z'))
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
     it('returns > 0 when the last completed attempt is within the cooldown window', () => {
       const within = new Date(Date.now() - 3600e3).toISOString()
       const attempts = [{ id: 'a1', status: 'completed', completed_at: within }] as any

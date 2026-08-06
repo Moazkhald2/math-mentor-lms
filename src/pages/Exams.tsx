@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchExams, getBestScore } from '../lib/exams'
+import { fetchExams, getBestScore, cooldownRemainingMs } from '../lib/exams'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import type { ExamAttempt } from '../types'
@@ -71,10 +71,7 @@ export default function Exams() {
           const examAttempts = myAttempts.filter(a => a.exam_id === exam.id)
           const used = examAttempts.filter(a => a.status === 'completed').length
           const best = getBestScore(examAttempts)
-          const lastCompleted = examAttempts.find(a => a.status === 'completed')
-          const cooldownMs = lastCompleted && exam.cooldown_hours > 0
-            ? (new Date(lastCompleted.completed_at!).getTime() + exam.cooldown_hours * 3600e3) - Date.now()
-            : 0
+          const cooldownMs = cooldownRemainingMs(exam, examAttempts)
           const locked = exam.type === 'exam' && (used >= (exam.max_attempts ?? 3) || cooldownMs > 0)
           return (
           <a

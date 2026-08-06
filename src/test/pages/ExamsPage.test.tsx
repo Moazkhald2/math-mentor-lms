@@ -157,6 +157,52 @@ describe('ExamsPage', () => {
     expect(within(algebraCard!).getByText('Best: 85%')).toBeInTheDocument()
   })
 
+  it('uses the newest completed attempt for cooldown even when attempts are unsorted', () => {
+    vi.mocked(useQuery).mockImplementation((options: any) => {
+      if (options.queryKey[0] === 'exams') {
+        return {
+          data: [createExam({ id: '1', title: 'Algebra Exam', grade: 10, cooldown_hours: 24 })],
+          isLoading: false,
+        } as any
+      }
+      if (options.queryKey[0] === 'my-grade') {
+        return { data: { grade: 10 } } as any
+      }
+      if (options.queryKey[0] === 'my-exam-attempts') {
+        return {
+          data: [
+            {
+              id: 'a1',
+              user_id: 'user-1',
+              exam_id: '1',
+              status: 'completed',
+              score: 50,
+              total_points: 100,
+              completed_at: new Date(Date.now() - 30 * 3600e3).toISOString(),
+            },
+            {
+              id: 'a2',
+              user_id: 'user-1',
+              exam_id: '1',
+              status: 'completed',
+              score: 85,
+              total_points: 100,
+              completed_at: new Date(Date.now() - 2 * 3600e3).toISOString(),
+            },
+          ],
+          isLoading: false,
+        } as any
+      }
+      return { data: undefined, isLoading: false } as any
+    })
+
+    render(<Exams />)
+
+    const algebraCard = screen.getByText('Algebra Exam').closest('a') as HTMLElement
+    expect(within(algebraCard).queryByText('Start Exam')).not.toBeInTheDocument()
+    expect(within(algebraCard).getByText(/Next attempt in \d+h/)).toBeInTheDocument()
+  })
+
   it('shows an enabled Start Exam when below attempts limit and no cooldown', () => {
     vi.mocked(useQuery).mockImplementation((options: any) => {
       if (options.queryKey[0] === 'exams') {

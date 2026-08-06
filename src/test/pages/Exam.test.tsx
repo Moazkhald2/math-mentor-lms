@@ -212,4 +212,19 @@ describe('Exam Save and Submit Buttons', () => {
     expect(screen.getByText(/about 12 hours/)).toBeInTheDocument()
     expect(vi.mocked(examsLib.startAttempt)).not.toHaveBeenCalled()
   })
+
+  it('does not start or render exam content while attempts are still loading', async () => {
+    const examsLib = await import('../../lib/exams')
+    vi.mocked(examsLib.startAttempt).mockClear()
+    vi.mocked(examsLib.fetchStudentAttempts).mockReturnValue(new Promise(() => {}))
+    vi.mocked(examsLib.cooldownRemainingMs).mockReturnValue(0)
+
+    renderExam()
+
+    await new Promise(resolve => setTimeout(resolve, 80))
+    expect(vi.mocked(examsLib.startAttempt)).not.toHaveBeenCalled()
+    expect(screen.queryByText(/Loading exam/)).toBeInTheDocument()
+    expect(screen.queryAllByText(/@test\.com/).length).toBe(0)
+    expect(screen.queryByText(/Q1 \/ 1/)).not.toBeInTheDocument()
+  })
 })

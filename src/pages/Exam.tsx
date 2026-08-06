@@ -204,7 +204,7 @@ export default function Exam() {
     )
   }
 
-  if (isLoading) {
+  if (isLoading || (attemptsLoading && !!user)) {
     return <p className="mt-16 text-center text-text-muted">Loading exam...</p>
   }
 
