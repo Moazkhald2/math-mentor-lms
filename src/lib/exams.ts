@@ -41,6 +41,7 @@ export async function fetchVariantPool(groupIds: string[]) {
     .from('questions')
     .select('*')
     .in('variant_group_id', groupIds)
+    .order('id', { ascending: true })
 
   if (error) throw error
   return data as Question[]

@@ -140,6 +140,7 @@ describe('exams lib', () => {
       expect(supabase.from).toHaveBeenCalledWith('questions')
       expect(qb.select).toHaveBeenCalledWith('*')
       expect(qb.in).toHaveBeenCalledWith('variant_group_id', ['g1', 'g2'])
+      expect(qb.order).toHaveBeenCalledWith('id', { ascending: true })
     })
 
     it('returns data as Question[]', async () => {
@@ -152,7 +153,7 @@ describe('exams lib', () => {
 
     it('throws on error', async () => {
       const qb = createQueryBuilder([])
-      qb.in = vi.fn(() => Promise.resolve({ data: null, error: new Error('DB error') }))
+      qb.order = vi.fn(() => Promise.resolve({ data: null, error: new Error('DB error') }))
       vi.mocked(supabase.from).mockReturnValue(qb)
       await expect(fetchVariantPool(['g1'])).rejects.toThrow('DB error')
     })
