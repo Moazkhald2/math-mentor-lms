@@ -236,7 +236,7 @@ export default function Exam() {
       onViolation={(type) => log('violation', { type })}
     >
       <div className="mx-auto max-w-3xl">
-        <Watermark label={`${user?.user_metadata?.full_name ?? user?.email ?? 'Student'}${user?.user_metadata?.grade ? ` — Grade ${user.user_metadata.grade}` : ''}`} />
+        <Watermark label={user?.user_metadata?.full_name ?? user?.email ?? 'Student'} />
         <div className="mb-6 flex items-center justify-between">
           <span className="text-sm text-text-muted">
             {answered}/{total} answered
