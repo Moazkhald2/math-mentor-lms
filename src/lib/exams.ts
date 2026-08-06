@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Exam, ExamQuestion, ExamAttempt, Answer } from '../types'
+import type { Exam, ExamQuestion, ExamAttempt, Answer, Question } from '../types'
 
 type ExamInput = Omit<Exam, 'id' | 'created_at' | 'created_by'>
 
@@ -35,6 +35,18 @@ export async function fetchExamQuestions(examId: string) {
   return data as (ExamQuestion & { question: import('../types').Question })[]
 }
 
+export async function fetchVariantPool(groupIds: string[]) {
+  if (groupIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('questions')
+    .select('*')
+    .in('variant_group_id', groupIds)
+    .order('id', { ascending: true })
+
+  if (error) throw error
+  return data as Question[]
+}
+
 export async function addQuestionToExam(examId: string, questionId: string, orderIndex: number, points = 1) {
   const { data, error } = await supabase
     .from('exam_questions')
@@ -47,19 +59,37 @@ export async function addQuestionToExam(examId: string, questionId: string, orde
 }
 
 export async function startAttempt(examId: string, userId: string) {
-  const { data, error } = await supabase
-    .from('exam_attempts')
-    .insert({
-      exam_id: examId,
-      user_id: userId,
-      started_at: new Date().toISOString(),
-      status: 'in_progress',
-    })
-    .select()
-    .single()
-
+  const { data, error } = await supabase.rpc('start_exam_attempt', {
+    p_exam_id: examId,
+    p_user_id: userId,
+  })
   if (error) throw error
   return data as ExamAttempt
+}
+
+export async function fetchStudentAttempts(examId: string, userId: string) {
+  const { data, error } = await supabase
+    .from('exam_attempts')
+    .select('*')
+    .eq('exam_id', examId)
+    .eq('user_id', userId)
+    .order('started_at', { ascending: false })
+  if (error) throw error
+  return data as ExamAttempt[]
+}
+
+export function getBestScore(attempts: ExamAttempt[]): number {
+  return attempts
+    .filter(a => a.status === 'completed')
+    .reduce((best, a) => Math.max(best, a.score ?? 0), 0)
+}
+
+export function cooldownRemainingMs(exam: Pick<Exam, 'cooldown_hours'>, attempts: ExamAttempt[]): number {
+  const last = attempts.filter(a => a.status === 'completed')
+    .sort((a, b) => new Date(b.completed_at!).getTime() - new Date(a.completed_at!).getTime())[0]
+  if (!last || !exam.cooldown_hours) return 0
+  return Math.max(0, new Date(last.completed_at!).getTime()
+    + exam.cooldown_hours * 3600e3 - Date.now())
 }
 
 export async function submitAnswer(attemptId: string, questionId: string, answer: string, isCorrect = false, pointsEarned = 0) {

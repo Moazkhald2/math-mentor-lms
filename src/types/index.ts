@@ -31,6 +31,7 @@ export interface Question {
   explanation: string
   image_url: string
   common_mistakes: { mistake: string; why: string; correct: string }[]
+  variant_group_id: string | null
   created_by: string
   created_at: string
 }
@@ -50,6 +51,8 @@ export interface Exam {
   grade?: number
   starts_at?: string | null
   ends_at?: string | null
+  max_attempts: number
+  cooldown_hours: number
 }
 
 export interface ExamQuestion {
@@ -69,6 +72,8 @@ export interface ExamAttempt {
   score?: number
   total_points: number
   status: 'in_progress' | 'completed' | 'abandoned'
+  seed?: string | null
+  attempt_number?: number
 }
 
 export interface Answer {
@@ -78,6 +83,7 @@ export interface Answer {
   answer: string
   is_correct: boolean
   points_earned: number
+  variant_group_id?: string | null
 }
 
 export interface ExamWithQuestions extends Exam {

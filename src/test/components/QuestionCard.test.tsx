@@ -17,6 +17,7 @@ const mcQuestion: Question = {
   common_mistakes: [],
   created_by: 'admin',
   created_at: '2024-01-01',
+  variant_group_id: null,
 }
 
 const tfQuestion: Question = {

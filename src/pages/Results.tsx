@@ -1,8 +1,9 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { ExamAttempt, Answer, Question } from '../types'
 import { useAuth } from '../hooks/useAuth'
+import { useBestScore } from '../hooks/useBestScore'
 import LatexRenderer from '../components/LatexRenderer'
 import BookmarkButton from '../components/BookmarkButton'
 import FeedbackButton from '../components/FeedbackButton'
@@ -33,7 +34,7 @@ export default function Results() {
         .single()
 
       if (error) throw error
-      return data as ExamAttempt & { exam: { title: string; passing_score: number } }
+      return data as ExamAttempt & { exam: { title: string; passing_score: number; max_attempts: number } }
     },
     enabled: !!attemptId,
   })
@@ -51,6 +52,10 @@ export default function Results() {
     },
     enabled: !!attemptId,
   })
+
+  const bestScore = useBestScore(attempt?.exam_id, attempt?.exam?.max_attempts)
+  const best = bestScore.data?.best ?? 0
+  const left = bestScore.data?.left ?? 0
 
   if (!user) {
     return (
@@ -101,6 +106,23 @@ export default function Results() {
             ? '✓ Exam Passed!'
             : '✗ Keep Practicing'
           }
+        </div>
+      )}
+
+      {bestScore.data && (
+        <div className="mb-8 rounded-lg border border-brand/30 bg-surface p-4 text-center">
+          <span className="text-sm text-text-muted">Best score across attempts: </span>
+          <span className="font-bold text-brand">{best}%</span>
+          {left > 0 && (
+            <span className="ml-3 text-sm text-text-muted">
+              ({left} attempt{left === 1 ? '' : 's'} left)
+            </span>
+          )}
+          {left === 0 && (
+            <p className="mt-2 text-sm font-semibold text-danger">
+              You've reached the maximum of {attempt.exam.max_attempts} attempts; your best score is {best}%
+            </p>
+          )}
         </div>
       )}
 
@@ -198,6 +220,14 @@ export default function Results() {
       </div>
 
       <div className="mt-8 flex gap-4">
+        {left > 0 && (
+          <Link
+            to={`/exam/${attempt.exam_id}`}
+            className="rounded-lg bg-brand px-6 py-2 font-semibold text-white hover:bg-brand-light"
+          >
+            Take another attempt
+          </Link>
+        )}
         <button
           onClick={() => navigate('/dashboard')}
           className="rounded-lg bg-brand px-6 py-2 font-semibold text-white hover:bg-brand-light"

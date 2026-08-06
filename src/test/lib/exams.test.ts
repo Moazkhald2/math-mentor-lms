@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 function createQueryBuilder(returnData: any[] = []) {
   const resolveValue = { data: returnData, error: null }
   const chain: any = {
     eq: vi.fn(() => chain),
+    in: vi.fn(() => chain),
     order: vi.fn(() => chain),
     select: vi.fn(() => chain),
     single: vi.fn(() => Promise.resolve({ data: returnData[0], error: null })),
@@ -21,6 +22,7 @@ vi.mock('../../lib/supabase', () => {
   return {
     supabase: {
       from: vi.fn(() => mockQuery),
+      rpc: vi.fn(() => Promise.resolve({ data: null, error: null })),
     },
   }
 })
@@ -30,11 +32,15 @@ import {
   fetchExams,
   createExam,
   fetchExamQuestions,
+  fetchVariantPool,
   addQuestionToExam,
   startAttempt,
   submitAnswer,
   completeAttempt,
   saveAnswer,
+  fetchStudentAttempts,
+  getBestScore,
+  cooldownRemainingMs,
 } from '../../lib/exams'
 
 describe('exams lib', () => {
@@ -123,6 +129,37 @@ describe('exams lib', () => {
     })
   })
 
+  describe('fetchVariantPool', () => {
+    it('returns [] when no group ids', async () => {
+      await expect(fetchVariantPool([])).resolves.toEqual([])
+    })
+
+    it('selects questions where variant_group_id in groups', async () => {
+      const qb = createQueryBuilder([{ id: 'v1' }])
+      vi.mocked(supabase.from).mockReturnValue(qb)
+      await fetchVariantPool(['g1', 'g2'])
+      expect(supabase.from).toHaveBeenCalledWith('questions')
+      expect(qb.select).toHaveBeenCalledWith('*')
+      expect(qb.in).toHaveBeenCalledWith('variant_group_id', ['g1', 'g2'])
+      expect(qb.order).toHaveBeenCalledWith('id', { ascending: true })
+    })
+
+    it('returns data as Question[]', async () => {
+      const mockData = [{ id: 'v1', variant_group_id: 'g1' }]
+      const qb = createQueryBuilder(mockData)
+      vi.mocked(supabase.from).mockReturnValue(qb)
+      const result = await fetchVariantPool(['g1'])
+      expect(result).toEqual(mockData)
+    })
+
+    it('throws on error', async () => {
+      const qb = createQueryBuilder([])
+      qb.order = vi.fn(() => Promise.resolve({ data: null, error: new Error('DB error') }))
+      vi.mocked(supabase.from).mockReturnValue(qb)
+      await expect(fetchVariantPool(['g1'])).rejects.toThrow('DB error')
+    })
+  })
+
   describe('addQuestionToExam', () => {
     it('calls insert with exam_id, question_id, order_index, and default points', async () => {
       const qb = createQueryBuilder([])
@@ -167,37 +204,91 @@ describe('exams lib', () => {
     })
   })
 
-  describe('startAttempt', () => {
-    it('calls insert with exam_id, user_id, started_at, and status in_progress', async () => {
-      const qb = createQueryBuilder([])
-      vi.mocked(supabase.from).mockReturnValue(qb)
-      await startAttempt('exam-1', 'user-1')
-      expect(supabase.from).toHaveBeenCalledWith('exam_attempts')
-      expect(qb.insert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          exam_id: 'exam-1',
-          user_id: 'user-1',
-          status: 'in_progress',
-          started_at: expect.any(String),
-        })
-      )
-      expect(qb.select).toHaveBeenCalled()
-      expect(qb.single).toHaveBeenCalled()
-    })
-
-    it('returns the created attempt', async () => {
-      const mockData = { id: '1', exam_id: 'exam-1', status: 'in_progress' }
-      const qb = createQueryBuilder([mockData])
-      vi.mocked(supabase.from).mockReturnValue(qb)
+  describe('startAttempt via RPC', () => {
+    it('calls supabase.rpc start_exam_attempt with p_exam_id and p_user_id', async () => {
+      const attempt = { id: 'a1', seed: 'abc', attempt_number: 1, status: 'in_progress' }
+      const spy = vi.fn().mockResolvedValue({ data: attempt, error: null })
+      vi.mocked(supabase as any).rpc = spy
       const result = await startAttempt('exam-1', 'user-1')
-      expect(result).toEqual(mockData)
+      expect(spy).toHaveBeenCalledWith('start_exam_attempt', { p_exam_id: 'exam-1', p_user_id: 'user-1' })
+      expect(result).toEqual(attempt)
     })
 
-    it('throws on error', async () => {
-      const qb = createQueryBuilder([])
-      qb.single = vi.fn(() => Promise.resolve({ data: null, error: new Error('Insert failed') }))
+    it('throws when rpc returns an error', async () => {
+      vi.mocked(supabase as any).rpc = vi.fn().mockResolvedValue({ data: null, error: new Error('exam_no_attempts_left') })
+      await expect(startAttempt('exam-1', 'user-1')).rejects.toThrow('exam_no_attempts_left')
+    })
+  })
+
+  describe('fetchStudentAttempts', () => {
+    it('queries exam_attempts filtered by exam and user, ordered recent first', async () => {
+      const qb = createQueryBuilder([{ id: 'a2' }, { id: 'a1' }])
       vi.mocked(supabase.from).mockReturnValue(qb)
-      await expect(startAttempt('exam-1', 'user-1')).rejects.toThrow('Insert failed')
+      await fetchStudentAttempts('exam-1', 'user-1')
+      expect(supabase.from).toHaveBeenCalledWith('exam_attempts')
+      expect(qb.eq).toHaveBeenCalledWith('exam_id', 'exam-1')
+      expect(qb.eq).toHaveBeenCalledWith('user_id', 'user-1')
+      expect(qb.order).toHaveBeenCalledWith('started_at', { ascending: false })
+    })
+  })
+
+  describe('getBestScore', () => {
+    it('returns the max score among completed attempts', () => {
+      const attempts = [
+        { id: 'a1', status: 'completed', score: 70 } as any,
+        { id: 'a2', status: 'completed', score: 85 } as any,
+        { id: 'a3', status: 'in_progress' } as any,
+      ]
+      expect(getBestScore(attempts)).toBe(85)
+    })
+
+    it('returns 0 when no completed attempts', () => {
+      expect(getBestScore([{ id: 'a1', status: 'in_progress' } as any])).toBe(0)
+    })
+  })
+
+  describe('cooldownRemainingMs', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-01-15T12:00:00Z'))
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('returns > 0 when the last completed attempt is within the cooldown window', () => {
+      const within = new Date(Date.now() - 3600e3).toISOString()
+      const attempts = [{ id: 'a1', status: 'completed', completed_at: within }] as any
+      expect(cooldownRemainingMs({ cooldown_hours: 24 }, attempts)).toBeGreaterThan(0)
+    })
+
+    it('returns 0 when the last completed attempt is older than the cooldown window', () => {
+      const old = new Date(Date.now() - 48 * 3600e3).toISOString()
+      const attempts = [{ id: 'a1', status: 'completed', completed_at: old }] as any
+      expect(cooldownRemainingMs({ cooldown_hours: 24 }, attempts)).toBe(0)
+    })
+
+    it('returns 0 when there are no completed attempts', () => {
+      const attempts = [{ id: 'a1', status: 'in_progress' }] as any
+      expect(cooldownRemainingMs({ cooldown_hours: 24 }, attempts)).toBe(0)
+    })
+
+    it('returns 0 when cooldown_hours is 0', () => {
+      const recent = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+      const attempts = [{ id: 'a1', status: 'completed', completed_at: recent }] as any
+      expect(cooldownRemainingMs({ cooldown_hours: 0 }, attempts)).toBe(0)
+    })
+
+    it('uses the most recent completed attempt when several exist', () => {
+      const older = new Date(Date.now() - 20 * 3600e3).toISOString()
+      const newer = new Date(Date.now() - 2 * 3600e3).toISOString()
+      const oldAttempt = { id: 'a1', status: 'completed', completed_at: older } as any
+      const newAttempt = { id: 'a2', status: 'completed', completed_at: newer } as any
+      const withOldOnly = cooldownRemainingMs({ cooldown_hours: 24 }, [oldAttempt])
+      const withBoth = cooldownRemainingMs({ cooldown_hours: 24 }, [newAttempt, oldAttempt])
+      expect(withBoth).toBeGreaterThan(withOldOnly)
+      expect(withBoth).toBe(cooldownRemainingMs({ cooldown_hours: 24 }, [newAttempt]))
     })
   })
 
