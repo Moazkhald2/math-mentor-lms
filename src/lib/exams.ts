@@ -47,19 +47,29 @@ export async function addQuestionToExam(examId: string, questionId: string, orde
 }
 
 export async function startAttempt(examId: string, userId: string) {
-  const { data, error } = await supabase
-    .from('exam_attempts')
-    .insert({
-      exam_id: examId,
-      user_id: userId,
-      started_at: new Date().toISOString(),
-      status: 'in_progress',
-    })
-    .select()
-    .single()
-
+  const { data, error } = await supabase.rpc('start_exam_attempt', {
+    p_exam_id: examId,
+    p_user_id: userId,
+  })
   if (error) throw error
   return data as ExamAttempt
+}
+
+export async function fetchStudentAttempts(examId: string, userId: string) {
+  const { data, error } = await supabase
+    .from('exam_attempts')
+    .select('*')
+    .eq('exam_id', examId)
+    .eq('user_id', userId)
+    .order('started_at', { ascending: false })
+  if (error) throw error
+  return data as ExamAttempt[]
+}
+
+export function getBestScore(attempts: ExamAttempt[]): number {
+  return attempts
+    .filter(a => a.status === 'completed')
+    .reduce((best, a) => Math.max(best, a.score ?? 0), 0)
 }
 
 export async function submitAnswer(attemptId: string, questionId: string, answer: string, isCorrect = false, pointsEarned = 0) {

@@ -21,6 +21,7 @@ vi.mock('../../lib/supabase', () => {
   return {
     supabase: {
       from: vi.fn(() => mockQuery),
+      rpc: vi.fn(() => Promise.resolve({ data: null, error: null })),
     },
   }
 })
@@ -35,6 +36,8 @@ import {
   submitAnswer,
   completeAttempt,
   saveAnswer,
+  fetchStudentAttempts,
+  getBestScore,
 } from '../../lib/exams'
 
 describe('exams lib', () => {
@@ -167,37 +170,46 @@ describe('exams lib', () => {
     })
   })
 
-  describe('startAttempt', () => {
-    it('calls insert with exam_id, user_id, started_at, and status in_progress', async () => {
-      const qb = createQueryBuilder([])
-      vi.mocked(supabase.from).mockReturnValue(qb)
-      await startAttempt('exam-1', 'user-1')
-      expect(supabase.from).toHaveBeenCalledWith('exam_attempts')
-      expect(qb.insert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          exam_id: 'exam-1',
-          user_id: 'user-1',
-          status: 'in_progress',
-          started_at: expect.any(String),
-        })
-      )
-      expect(qb.select).toHaveBeenCalled()
-      expect(qb.single).toHaveBeenCalled()
-    })
-
-    it('returns the created attempt', async () => {
-      const mockData = { id: '1', exam_id: 'exam-1', status: 'in_progress' }
-      const qb = createQueryBuilder([mockData])
-      vi.mocked(supabase.from).mockReturnValue(qb)
+  describe('startAttempt via RPC', () => {
+    it('calls supabase.rpc start_exam_attempt with p_exam_id and p_user_id', async () => {
+      const attempt = { id: 'a1', seed: 'abc', attempt_number: 1, status: 'in_progress' }
+      const spy = vi.fn().mockResolvedValue({ data: attempt, error: null })
+      vi.mocked(supabase as any).rpc = spy
       const result = await startAttempt('exam-1', 'user-1')
-      expect(result).toEqual(mockData)
+      expect(spy).toHaveBeenCalledWith('start_exam_attempt', { p_exam_id: 'exam-1', p_user_id: 'user-1' })
+      expect(result).toEqual(attempt)
     })
 
-    it('throws on error', async () => {
-      const qb = createQueryBuilder([])
-      qb.single = vi.fn(() => Promise.resolve({ data: null, error: new Error('Insert failed') }))
+    it('throws when rpc returns an error', async () => {
+      vi.mocked(supabase as any).rpc = vi.fn().mockResolvedValue({ data: null, error: new Error('exam_no_attempts_left') })
+      await expect(startAttempt('exam-1', 'user-1')).rejects.toThrow('exam_no_attempts_left')
+    })
+  })
+
+  describe('fetchStudentAttempts', () => {
+    it('queries exam_attempts filtered by exam and user, ordered recent first', async () => {
+      const qb = createQueryBuilder([{ id: 'a2' }, { id: 'a1' }])
       vi.mocked(supabase.from).mockReturnValue(qb)
-      await expect(startAttempt('exam-1', 'user-1')).rejects.toThrow('Insert failed')
+      await fetchStudentAttempts('exam-1', 'user-1')
+      expect(supabase.from).toHaveBeenCalledWith('exam_attempts')
+      expect(qb.eq).toHaveBeenCalledWith('exam_id', 'exam-1')
+      expect(qb.eq).toHaveBeenCalledWith('user_id', 'user-1')
+      expect(qb.order).toHaveBeenCalledWith('started_at', { ascending: false })
+    })
+  })
+
+  describe('getBestScore', () => {
+    it('returns the max score among completed attempts', () => {
+      const attempts = [
+        { id: 'a1', status: 'completed', score: 70 } as any,
+        { id: 'a2', status: 'completed', score: 85 } as any,
+        { id: 'a3', status: 'in_progress' } as any,
+      ]
+      expect(getBestScore(attempts)).toBe(85)
+    })
+
+    it('returns 0 when no completed attempts', () => {
+      expect(getBestScore([{ id: 'a1', status: 'in_progress' } as any])).toBe(0)
     })
   })
 
