@@ -61,7 +61,7 @@ export default function QuestionCard({ question }: { question: Question }) {
           <summary className="cursor-pointer text-sm font-semibold text-brand hover:text-brand-secondary">
             Explanation
           </summary>
-          <p className="mt-2 rounded-lg bg-tertiary p-4 text-sm leading-relaxed text-secondary">
+          <p className="mt-2 rounded-lg bg-ink p-4 text-sm leading-relaxed text-white">
             {question.explanation}
           </p>
         </details>

@@ -191,7 +191,7 @@ export default function Results() {
                 <summary className="cursor-pointer text-sm font-semibold text-brand">
                   Explanation
                 </summary>
-                <div className="mt-2 rounded bg-ink/50 p-3 text-sm leading-relaxed text-text-muted">
+                <div className="mt-2 rounded bg-ink/50 p-3 text-sm leading-relaxed text-white">
                   <LatexRenderer content={a.question.explanation} />
                 </div>
               </details>
