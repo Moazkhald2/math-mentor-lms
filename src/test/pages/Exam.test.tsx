@@ -161,4 +161,11 @@ describe('Exam Save and Submit Buttons', () => {
     })
     expect(vi.mocked(examsLib.fetchVariantPool)).toHaveBeenCalled()
   })
+
+  it('shows watermark during the exam', async () => {
+    renderExam()
+    await waitFor(() => {
+      expect(screen.getAllByText(/@test\.com/).length).toBeGreaterThan(0)
+    })
+  })
 })

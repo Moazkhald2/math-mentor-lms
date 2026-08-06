@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
 import { resolveVariant } from '../lib/variants'
 import AntiCheatGuard from '../components/AntiCheatGuard'
+import Watermark from '../components/Watermark'
 import DifficultyBadge from '../components/DifficultyBadge'
 import { useActivityLogger } from '../hooks/useActivityLogger'
 import LatexRenderer from '../components/LatexRenderer'
@@ -198,6 +199,7 @@ export default function Exam() {
       onViolation={(type) => log('violation', { type })}
     >
       <div className="mx-auto max-w-3xl">
+        <Watermark label={`${user?.user_metadata?.full_name ?? user?.email ?? 'Student'}${user?.user_metadata?.grade ? ` — Grade ${user.user_metadata.grade}` : ''}`} />
         <div className="mb-6 flex items-center justify-between">
           <span className="text-sm text-text-muted">
             {answered}/{total} answered
