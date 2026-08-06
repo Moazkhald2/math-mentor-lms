@@ -189,7 +189,7 @@ function ExamEditModal({ exam, onSave, onClose, saving }: {
     data.starts_at = startsAt ? new Date(startsAt).toISOString() : null
     data.ends_at = endsAt ? new Date(endsAt).toISOString() : null
     data.max_attempts = Math.max(1, Math.min(5, maxAttempts || 3))
-    data.cooldown_hours = Math.max(0, cooldownHours || 0)
+    data.cooldown_hours = Math.max(0, Math.min(72, cooldownHours || 0))
     onSave(data)
   }
 
