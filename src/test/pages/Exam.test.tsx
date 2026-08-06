@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Exam from '../../pages/Exam'
 
@@ -9,7 +9,7 @@ vi.mock('../../hooks/useAuth', () => ({
 }))
 
 vi.mock('../../lib/exams', () => ({
-  fetchExamQuestions: async () => [
+  fetchExamQuestions: vi.fn(async () => [
     {
       id: '1',
       question_id: 'q1',
@@ -26,49 +26,56 @@ vi.mock('../../lib/exams', () => ({
         image_url: null,
         options: [],
         grade: 10,
+        variant_group_id: null,
       },
     },
-  ],
-  startAttempt: async (..._args: any[]) => ({ id: 'attempt-1' }),
-  saveAnswer: async (..._args: any[]) => ({ id: 'answer-1' }),
-  submitAnswer: async (..._args: any[]) => ({ id: 'answer-1' }),
-  completeAttempt: async (..._args: any[]) => ({ id: 'attempt-1' }),
+  ]),
+  fetchVariantPool: vi.fn(async () => []),
+  startAttempt: vi.fn(async (..._args: any[]) => ({ id: 'attempt-1', seed: 'seed-1', attempt_number: 1 })),
+  saveAnswer: vi.fn(async (..._args: any[]) => ({ id: 'answer-1' })),
+  submitAnswer: vi.fn(async (..._args: any[]) => ({ id: 'answer-1' })),
+  completeAttempt: vi.fn(async (..._args: any[]) => ({ id: 'attempt-1' })),
 }))
 
 vi.mock('../../lib/supabase', () => ({
-  from: (table: string) => {
-    const chain = {
-      select: () => {
-        const eqChain = {
-          single: () => {
-            if (table === 'exams') {
-              return Promise.resolve({ 
-                data: { 
-                  id: '1', 
-                  is_published: true, 
-                  shuffle_questions: false,
-                  grade: 10,
-                  type: 'exam',
-                  time_limit_minutes: 60,
-                  passing_score: 70,
-                  created_by: 'admin',
-                  created_at: '2024-01-01T00:00:00Z',
-                  description: 'Test exam',
-                  starts_at: null,
-                  ends_at: null,
-                } 
-              });
-            } else if (table === 'profiles') {
-              return Promise.resolve({ data: { grade: 10 } });
-            }
-            return Promise.resolve({ data: null });
-          },
-        };
-        const eq = () => eqChain;
-        return { eq };
-      },
-    };
-    return chain;
+  supabase: {
+    from: (table: string) => {
+      const chain = {
+        select: () => {
+          const eqChain = {
+            single: () => {
+              if (table === 'exams') {
+                return Promise.resolve({
+                  data: {
+                    id: '1',
+                    is_published: true,
+                    shuffle_questions: false,
+                    grade: 10,
+                    type: 'exam',
+                    time_limit_minutes: 60,
+                    passing_score: 70,
+                    created_by: 'admin',
+                    created_at: '2024-01-01T00:00:00Z',
+                    description: 'Test exam',
+                    starts_at: null,
+                    ends_at: null,
+                    max_attempts: 3,
+                    cooldown_hours: 0,
+                  },
+                })
+              } else if (table === 'profiles') {
+                return Promise.resolve({ data: { grade: 10 } })
+              }
+              return Promise.resolve({ data: null })
+            },
+          }
+          const eq = () => eqChain
+          return { eq }
+        },
+        insert: () => Promise.resolve({ data: null, error: null }),
+      }
+      return chain
+    },
   },
 }))
 
@@ -81,7 +88,9 @@ const renderExam = () => {
   return render(
     <MemoryRouter initialEntries={['/exam/1']}>
       <QueryClientProvider client={queryClient}>
-        <Exam />
+        <Routes>
+          <Route path="/exam/:id" element={<Exam />} />
+        </Routes>
       </QueryClientProvider>
     </MemoryRouter>
   )
@@ -104,6 +113,10 @@ describe('Exam Save and Submit Buttons', () => {
 
     renderExam()
     await waitFor(() => {
+      const input = screen.getByPlaceholderText('Type your answer...')
+      fireEvent.change(input, { target: { value: '4' } })
+    })
+    await waitFor(() => {
       const saveButton = screen.getByText('Save').closest('button')
       fireEvent.click(saveButton!)
     })
@@ -116,6 +129,10 @@ describe('Exam Save and Submit Buttons', () => {
     vi.mocked(examsLib.submitAnswer).mockImplementation(async (..._args: any[]): Promise<any> => ({ id: 'answer-1' }))
 
     renderExam()
+    await waitFor(() => {
+      const input = screen.getByPlaceholderText('Type your answer...')
+      fireEvent.change(input, { target: { value: '4' } })
+    })
     await waitFor(() => {
       const submitButton = screen.getByText('Submit').closest('button')
       fireEvent.click(submitButton!)
@@ -134,5 +151,14 @@ describe('Exam Save and Submit Buttons', () => {
     await waitFor(() => {
       expect(screen.getByText('Submit Exam?')).toBeInTheDocument()
     })
+  })
+
+  it('fetches the variant pool with the group ids present in the exam', async () => {
+    const examsLib = await import('../../lib/exams')
+    renderExam()
+    await waitFor(() => {
+      expect(screen.getByText('Submit')).toBeInTheDocument()
+    })
+    expect(vi.mocked(examsLib.fetchVariantPool)).toHaveBeenCalled()
   })
 })

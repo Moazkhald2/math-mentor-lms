@@ -4,6 +4,7 @@ function createQueryBuilder(returnData: any[] = []) {
   const resolveValue = { data: returnData, error: null }
   const chain: any = {
     eq: vi.fn(() => chain),
+    in: vi.fn(() => chain),
     order: vi.fn(() => chain),
     select: vi.fn(() => chain),
     single: vi.fn(() => Promise.resolve({ data: returnData[0], error: null })),
@@ -31,6 +32,7 @@ import {
   fetchExams,
   createExam,
   fetchExamQuestions,
+  fetchVariantPool,
   addQuestionToExam,
   startAttempt,
   submitAnswer,
@@ -123,6 +125,36 @@ describe('exams lib', () => {
       qb.order = vi.fn(() => Promise.resolve({ data: null, error: new Error('DB error') }))
       vi.mocked(supabase.from).mockReturnValue(qb)
       await expect(fetchExamQuestions('exam-1')).rejects.toThrow('DB error')
+    })
+  })
+
+  describe('fetchVariantPool', () => {
+    it('returns [] when no group ids', async () => {
+      await expect(fetchVariantPool([])).resolves.toEqual([])
+    })
+
+    it('selects questions where variant_group_id in groups', async () => {
+      const qb = createQueryBuilder([{ id: 'v1' }])
+      vi.mocked(supabase.from).mockReturnValue(qb)
+      await fetchVariantPool(['g1', 'g2'])
+      expect(supabase.from).toHaveBeenCalledWith('questions')
+      expect(qb.select).toHaveBeenCalledWith('*')
+      expect(qb.in).toHaveBeenCalledWith('variant_group_id', ['g1', 'g2'])
+    })
+
+    it('returns data as Question[]', async () => {
+      const mockData = [{ id: 'v1', variant_group_id: 'g1' }]
+      const qb = createQueryBuilder(mockData)
+      vi.mocked(supabase.from).mockReturnValue(qb)
+      const result = await fetchVariantPool(['g1'])
+      expect(result).toEqual(mockData)
+    })
+
+    it('throws on error', async () => {
+      const qb = createQueryBuilder([])
+      qb.in = vi.fn(() => Promise.resolve({ data: null, error: new Error('DB error') }))
+      vi.mocked(supabase.from).mockReturnValue(qb)
+      await expect(fetchVariantPool(['g1'])).rejects.toThrow('DB error')
     })
   })
 

@@ -2,9 +2,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { fetchExamQuestions, startAttempt, submitAnswer, completeAttempt, saveAnswer } from '../lib/exams'
+import { fetchExamQuestions, fetchVariantPool, startAttempt, submitAnswer, completeAttempt, saveAnswer } from '../lib/exams'
 import { supabase } from '../lib/supabase'
 import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
+import { resolveVariant } from '../lib/variants'
 import AntiCheatGuard from '../components/AntiCheatGuard'
 import DifficultyBadge from '../components/DifficultyBadge'
 import { useActivityLogger } from '../hooks/useActivityLogger'
@@ -23,6 +24,7 @@ export default function Exam() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [attemptId, setAttemptId] = useState<string | null>(null)
+  const [attemptSeed, setAttemptSeed] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -55,30 +57,47 @@ export default function Exam() {
     enabled: !!id,
   })
 
+  const { data: variantPool = [] } = useQuery({
+    queryKey: ['exam-variant-pool', id],
+    queryFn: () => {
+      const groupIds = [...new Set((rawQuestions ?? [])
+        .map(eq => eq.question.variant_group_id)
+        .filter((g): g is string => !!g))]
+      return fetchVariantPool(groupIds)
+    },
+    enabled: !!rawQuestions,
+  })
+
   useEffect(() => {
     if (!user || !id || startedRef.current || !exam) return
     startedRef.current = true
     log('exam_started', { exam_id: id })
-    startAttempt(id, user.id).then(a => setAttemptId(a.id)).catch(e => setError(e.message))
+    startAttempt(id, user.id).then(a => {
+      setAttemptId(a.id)
+      setAttemptSeed(a.seed ?? null)
+    }).catch(e => setError(e.message))
   }, [user, id, exam, log])
 
   const questions = useMemo<ShuffledQuestion[] | undefined>(() => {
     if (!rawQuestions) return undefined
-    const seed = id || 'default'
-    let shuffled = exam?.shuffle_questions
+    const seed = (attemptSeed ?? id) || 'default'
+    const baseShuffle = exam?.shuffle_questions
       ? seededShuffle(rawQuestions, seed + '_questions')
       : [...rawQuestions]
-    shuffled = shuffled.map(eq => {
-      if (eq.question.type === 'multiple_choice' && eq.question.options.length > 0) {
+    const resolved = baseShuffle.map(eq => {
+      const variant = resolveVariant(eq.question, seed, variantPool)
+      const question = { ...variant }
+      if (question.type === 'multiple_choice' && question.options.length > 0) {
         const { options, correctAnswer } = shuffleMultipleChoice(
-          eq.question.options, eq.question.correct_answer, seed + eq.question.id
+          question.options, question.correct_answer, seed + question.id
         )
-        return { ...eq, question: { ...eq.question, options, correct_answer: correctAnswer } }
+        question.options = options
+        question.correct_answer = correctAnswer
       }
-      return eq
+      return { ...eq, question }
     })
-    return shuffled
-  }, [rawQuestions, id, exam?.shuffle_questions])
+    return resolved
+  }, [rawQuestions, id, attemptSeed, exam?.shuffle_questions, variantPool])
 
   const current = questions?.[currentIndex]
   const total = questions?.length ?? 0

@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Exam, ExamQuestion, ExamAttempt, Answer } from '../types'
+import type { Exam, ExamQuestion, ExamAttempt, Answer, Question } from '../types'
 
 type ExamInput = Omit<Exam, 'id' | 'created_at' | 'created_by'>
 
@@ -33,6 +33,17 @@ export async function fetchExamQuestions(examId: string) {
 
   if (error) throw error
   return data as (ExamQuestion & { question: import('../types').Question })[]
+}
+
+export async function fetchVariantPool(groupIds: string[]) {
+  if (groupIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('questions')
+    .select('*')
+    .in('variant_group_id', groupIds)
+
+  if (error) throw error
+  return data as Question[]
 }
 
 export async function addQuestionToExam(examId: string, questionId: string, orderIndex: number, points = 1) {
