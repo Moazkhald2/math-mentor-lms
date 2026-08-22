@@ -1,6 +1,8 @@
-﻿export default function Home() {
+﻿import InstagramBanner from '../components/InstagramBanner'
+
+export default function Home() {
   return (
-    <div className="flex flex-col items-center pt-24 text-center">
+    <div className="flex flex-col items-center pt-12 md:pt-24 text-center">
       <div className="mb-6 inline-block rounded-full border border-accent-gold/30 bg-accent-gold/10 px-4 py-1 text-sm text-accent-gold">
         Personalized Guidance — Effort Leads to Excellence
       </div>
@@ -63,6 +65,7 @@
           </div>
         ))}
       </div>
+      <InstagramBanner />
     </div>
   )
 }

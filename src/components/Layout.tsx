@@ -20,8 +20,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       })
   }, [user, loading, location.pathname])
 
+  const instaUrl = import.meta.env.VITE_INSTAGRAM_URL ?? 'https://instagram.com/themathmentor'
+
   return (
-    <div className="min-h-screen bg-primary text-primary">
+    <div className="flex min-h-screen flex-col bg-primary text-primary">
       <header className="border-b border-border shadow-[inset_0_-2px_0_theme(colors.brand)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-6">
@@ -35,6 +37,19 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <a
+              href={instaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              className="hidden md:inline-flex rounded-full border border-border p-2 text-text-muted hover:border-brand hover:text-brand"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="5" />
+                <circle cx="12" cy="12" r="5" />
+                <circle cx="18" cy="6" r="1.2" fill="currentColor" stroke="none" />
+              </svg>
+            </a>
             <div className="hidden items-center gap-4 md:flex">
               {loading ? null : user ? (
                 <>
@@ -89,7 +104,24 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         )}
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-8">{children}</main>
+      <main className="mx-auto max-w-6xl flex-1 px-4 py-6 md:px-6 md:py-8">{children}</main>
+      <footer className="border-t border-border bg-surface">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-sm text-text-muted md:flex-row md:px-6">
+          <span>© {new Date().getFullYear()} The Math Mentor — Master Math with Confidence</span>
+          <div className="flex items-center gap-4">
+            <a href={instaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-brand">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="5" />
+                <circle cx="12" cy="12" r="5" />
+                <circle cx="18" cy="6" r="1.2" fill="currentColor" stroke="none" />
+              </svg>
+              Instagram
+            </a>
+            <a href="/exams" className="hover:text-brand">Exams</a>
+            <a href="/dashboard" className="hover:text-brand">Dashboard</a>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

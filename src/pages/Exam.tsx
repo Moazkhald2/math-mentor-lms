@@ -31,7 +31,34 @@ export default function Exam() {
   const [saving, setSaving] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
+  const [offlineNotice, setOfflineNotice] = useState<string | null>(null)
   const startedRef = useRef(false)
+
+  const offlineKey = id ? `mm_answers_${id}_${user?.id ?? 'guest'}` : ''
+
+  useEffect(() => {
+    const onOnline = () => { setIsOnline(true); setOfflineNotice(null) }
+    const onOffline = () => { setIsOnline(false); setOfflineNotice('Offline - answers saved on device, will sync when back online') }
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => { window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline) }
+  }, [])
+
+  useEffect(() => {
+    if (!offlineKey) return
+    try {
+      const raw = localStorage.getItem(offlineKey)
+      if (raw) setAnswers(JSON.parse(raw))
+    } catch {}
+  }, [offlineKey])
+
+  useEffect(() => {
+    if (!offlineKey || Object.keys(answers).length === 0) return
+    try { localStorage.setItem(offlineKey, JSON.stringify(answers)) } catch {}
+  }, [answers, offlineKey])
+
+  // auto-sync moved after handleSave definition
 
   const { data: exam } = useQuery({
     queryKey: ['exam', id, user?.id],
@@ -126,18 +153,25 @@ export default function Exam() {
 
   const handleSave = useCallback(async () => {
     if (!attemptId || saving || answered === 0) return
+    if (!navigator.onLine) {
+      setOfflineNotice('Offline - saved on device, will sync when online')
+      return
+    }
     setSaving(true)
     try {
       for (const [qid, ans] of Object.entries(answers)) {
         await saveAnswer(attemptId, qid, ans)
       }
       log('exam_saved', { answered })
+      if (offlineKey) localStorage.removeItem(offlineKey)
     } catch (e: any) {
+      try { localStorage.setItem(offlineKey, JSON.stringify(answers)) } catch {}
       setError(e.message)
+      setOfflineNotice('Save failed - kept on device')
     } finally {
       setSaving(false)
     }
-  }, [attemptId, saving, answered, answers, log])
+  }, [attemptId, saving, answered, answers, log, offlineKey])
 
   const handleSubmit = useCallback(async () => {
     if (!attemptId || !questions || submitting) return
@@ -173,6 +207,12 @@ export default function Exam() {
   const handleTimeUp = useCallback(() => {
     if (!submitting) handleSubmit()
   }, [submitting, handleSubmit])
+
+  useEffect(() => {
+    if (!isOnline || !attemptId || Object.keys(answers).length === 0) return
+    const t = setTimeout(() => { handleSave() }, 3000)
+    return () => clearTimeout(t)
+  }, [isOnline, attemptId, handleSave])
 
   const handleSubmitClick = () => {
     if (!questions) return
@@ -235,9 +275,19 @@ export default function Exam() {
       onDisqualified={handleTimeUp}
       onViolation={(type) => log('violation', { type })}
     >
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-3xl px-2 md:px-0">
         <Watermark label={user?.user_metadata?.full_name ?? user?.email ?? 'Student'} />
-        <div className="mb-6 flex items-center justify-between">
+        {!isOnline && (
+          <div className="mb-4 rounded-lg border border-warning bg-warning/10 px-4 py-2 text-sm text-warning">
+            Offline - exam paused, answers saved on device. Will sync when back online.
+          </div>
+        )}
+        {offlineNotice && isOnline && (
+          <div className="mb-4 rounded-lg border border-warning/30 bg-warning/5 px-4 py-2 text-sm text-warning">
+            {offlineNotice}
+          </div>
+        )}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm text-text-muted">
             {answered}/{total} answered
           </span>
@@ -313,7 +363,7 @@ function QuestionView({
   onAnswer: (answer: string) => void; onNext: () => void; onPrev: () => void
 }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-8">
+    <div className="rounded-xl border border-border bg-surface p-4 md:p-8">
       <div className="mb-4 flex items-center gap-3">
         <span className="text-sm font-semibold text-brand">Q{index + 1} / {total}</span>
         <DifficultyBadge level={question.difficulty} />
@@ -325,7 +375,7 @@ function QuestionView({
         </div>
       )}
 
-      <div className="mb-8 text-lg font-medium leading-relaxed text-text">
+      <div className="mb-6 md:mb-8 text-base md:text-lg font-medium leading-relaxed text-text">
         <LatexRenderer content={question.question_text} />
       </div>
 

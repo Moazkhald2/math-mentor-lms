@@ -19,13 +19,16 @@ function storageKey(examId: string) { return `math_mentor_violations_${examId}` 
 
 function loadPersistedViolations(examId: string): { type: string; timestamp: number }[] {
   try {
-    const raw = sessionStorage.getItem(storageKey(examId))
+    const raw = localStorage.getItem(storageKey(examId)) ?? sessionStorage.getItem(storageKey(examId))
     return raw ? JSON.parse(raw) : []
   } catch { return [] }
 }
 
 function persistViolations(examId: string, v: { type: string; timestamp: number }[]) {
-  try { sessionStorage.setItem(storageKey(examId), JSON.stringify(v)) } catch {}
+  try {
+    localStorage.setItem(storageKey(examId), JSON.stringify(v))
+    sessionStorage.setItem(storageKey(examId), JSON.stringify(v))
+  } catch {}
 }
 
 export function useAntiCheat(config: AntiCheatConfig) {
@@ -123,23 +126,18 @@ export function useAntiCheat(config: AntiCheatConfig) {
       if (w > 200 || h > 200) addViolation('suspicious_resize')
     }
 
-    // DevTools detection via element trick (works in Chrome/Edge)
-    const devtoolsElement = new Image()
-    Object.defineProperty(devtoolsElement, 'id', {
-      get: () => { addViolation('devtools_open'); return '' }
-    })
+    // DevTools detection - lightweight, no console spam
     let devtoolsInterval: ReturnType<typeof setInterval>
     const isFirefox = navigator.userAgent.toLowerCase().includes('firefox')
     if (!isFirefox) {
       devtoolsInterval = setInterval(() => {
-        console.log(devtoolsElement)
         const threshold = 160
         const widthDiff = window.outerWidth - window.innerWidth
         const heightDiff = window.outerHeight - window.innerHeight
         if (widthDiff > threshold || heightDiff > threshold) {
           addViolation('devtools_open')
         }
-      }, 1000)
+      }, 3000)
     }
 
     document.addEventListener('visibilitychange', handleVisibility)
