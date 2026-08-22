@@ -20,14 +20,18 @@ on:
 jobs:
   send-reports:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v4.2.0
+      - uses: actions/setup-node@v4.2.0
         with:
-          node-version: 22
-      - run: npm install @supabase/supabase-js
-      - run: node scripts/send-reports.mjs ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.period || (github.event.schedule == '0 8 1 * *' && 'monthly' || 'weekly') }}
+          node-version: 24
+          cache: npm
+      - run: npm ci --omit=dev
+      - name: Send reports
+        run: node scripts/send-reports.mjs ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.period || (github.event.schedule == '0 8 1 * *' && 'monthly' || 'weekly') }}
         env:
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        continue-on-error: true

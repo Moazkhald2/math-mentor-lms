@@ -34,6 +34,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <a href="/questions" className="text-sm text-muted hover:text-primary">Questions</a>
               <a href="/exams" className="text-sm text-muted hover:text-primary">Exams</a>
               <a href="/dashboard" className="text-sm text-muted hover:text-primary">Dashboard</a>
+              <a href="/connect" className="text-sm text-muted hover:text-primary">Connect</a>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -89,6 +90,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <a href="/questions" className="text-sm text-muted hover:text-primary" onClick={() => setMenuOpen(false)}>Questions</a>
               <a href="/exams" className="text-sm text-muted hover:text-primary" onClick={() => setMenuOpen(false)}>Exams</a>
               <a href="/dashboard" className="text-sm text-muted hover:text-primary" onClick={() => setMenuOpen(false)}>Dashboard</a>
+              <a href="/connect" className="text-sm text-muted hover:text-primary" onClick={() => setMenuOpen(false)}>Connect</a>
               {loading ? null : user ? (
                 <>
                   <span className="text-sm text-muted">Signed in as {user.user_metadata.full_name}</span>
@@ -109,6 +111,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-sm text-text-muted md:flex-row md:px-6">
           <span>© {new Date().getFullYear()} The Math Mentor — Master Math with Confidence</span>
           <div className="flex items-center gap-4">
+            <a href="/connect" className="hover:text-brand">Connect</a>
             <a href={instaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-brand">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="2" width="20" height="20" rx="5" />
@@ -118,7 +121,6 @@ export default function Layout({ children }: { children: ReactNode }) {
               Instagram
             </a>
             <a href="/exams" className="hover:text-brand">Exams</a>
-            <a href="/dashboard" className="hover:text-brand">Dashboard</a>
           </div>
         </div>
       </footer>

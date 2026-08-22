@@ -19,13 +19,21 @@ const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOK
 const CUTOFF_DAYS = PERIOD === 'weekly' ? 7 : 30
 
 async function sendTelegram(chatId, text) {
-  const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
-  })
-  if (!res.ok) console.error(`  ❌ Failed to send to ${chatId}: ${await res.text()}`)
-  else console.log(`  ✅ Sent to ${chatId}`)
+  if (!process.env.TELEGRAM_BOT_TOKEN) {
+    console.error('Missing TELEGRAM_BOT_TOKEN')
+    return
+  }
+  try {
+    const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+    })
+    if (!res.ok) console.error(`  Failed to send to ${chatId}: ${await res.text()}`)
+    else console.log(`  Sent to ${chatId}`)
+  } catch (e) {
+    console.error(`  Network error to ${chatId}:`, e.message)
+  }
 }
 
 async function main() {
@@ -38,7 +46,15 @@ async function main() {
     .not('telegram_chat_id', 'eq', '')
     .eq('role', 'student')
 
-  if (error) { console.error('Query failed:', error); process.exit(1) }
+  if (error) {
+    console.error('Query failed:', error)
+    if (error.message?.includes('ENOTFOUND') || error.message?.includes('fetch failed')) {
+      console.error('Supabase URL unreachable - check VITE_SUPABASE_URL secret')
+      console.log('No reports sent - Supabase unreachable, job will retry next schedule')
+      return
+    }
+    process.exit(1)
+  }
   if (!students?.length) { console.log('No students with Telegram chat IDs'); return }
 
   console.log(`Found ${students.length} students with Telegram. Sending ${PERIOD} reports...`)

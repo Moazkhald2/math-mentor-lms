@@ -24,6 +24,7 @@ import Admin from './pages/Admin'
 import Practice from './pages/Practice'
 import WeakPoints from './pages/WeakPoints'
 import Bookmarks from './pages/Bookmarks'
+import Connect from './pages/Connect'
 
 const queryClient = new QueryClient()
 
@@ -59,6 +60,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/complete-profile" element={<AppLayout><CompleteProfile /></AppLayout>} />
+          <Route path="/connect" element={<AppLayout><Connect /></AppLayout>} />
           <Route path="/admin" element={<AppLayout><Admin /></AppLayout>} />
           <Route path="/admin/:section" element={<AppLayout><Admin /></AppLayout>} />
           <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
