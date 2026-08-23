@@ -24,8 +24,12 @@ export default function Login() {
     setSubmitting(true)
     setError(null)
     const err = await signIn(email, password)
-    if (err) setError(err)
-    else {
+    if (err) {
+      const friendly = err.includes('fetch failed') || err.includes('ENOTFOUND') || err.includes('Failed to fetch')
+        ? 'Sign-in server is updating - please try again in 2 minutes or contact support on Telegram. (Supabase connection)'
+        : err
+      setError(friendly)
+    } else {
       toast('Welcome back! You are signed in.')
       setTimeout(() => navigate('/exams'), 1500)
     }

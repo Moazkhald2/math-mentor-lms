@@ -5,6 +5,7 @@ import { useAntiCheat } from '../../hooks/useAntiCheat'
 describe('useAntiCheat', () => {
   afterEach(() => {
     sessionStorage.clear()
+    localStorage.clear()
   })
 
   it('returns initial state', () => {

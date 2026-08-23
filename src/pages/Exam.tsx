@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { fetchExamQuestions, fetchVariantPool, startAttempt, submitAnswer, completeAttempt, saveAnswer, fetchStudentAttempts, cooldownRemainingMs, getBestScore } from '../lib/exams'
 import { supabase } from '../lib/supabase'
-import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
+import { seededShuffle, shuffleMultipleChoice, jitterQuestion } from '../lib/shuffle'
 import { resolveVariant } from '../lib/variants'
 import AntiCheatGuard from '../components/AntiCheatGuard'
 import Watermark from '../components/Watermark'
@@ -125,19 +125,26 @@ export default function Exam() {
   const questions = useMemo<ShuffledQuestion[] | undefined>(() => {
     if (!rawQuestions) return undefined
     const seed = (attemptSeed ?? id) || 'default'
+    const dateSeed = new Date().toISOString().slice(0, 10) // YYYY-MM-DD for time-seeded anti-cheat
+    const fullSeed = seed + '::' + dateSeed
     const baseShuffle = exam?.shuffle_questions
-      ? seededShuffle(rawQuestions, seed + '_questions')
+      ? seededShuffle(rawQuestions, fullSeed + '_questions')
       : [...rawQuestions]
     const resolved = baseShuffle.map(eq => {
-      const variant = resolveVariant(eq.question, seed, variantPool)
+      const variant = resolveVariant(eq.question, fullSeed, variantPool)
       const question = { ...variant }
       if (question.type === 'multiple_choice' && question.options.length > 0) {
         const { options, correctAnswer } = shuffleMultipleChoice(
-          question.options, question.correct_answer, seed + question.id
+          question.options, question.correct_answer, fullSeed + question.id
         )
         question.options = options
         question.correct_answer = correctAnswer
       }
+      // Numeric jitter per attempt + date to prevent sharing (softcute: keep numbers fresh)
+      const jittered = jitterQuestion(question as any, fullSeed + question.id)
+      question.question_text = jittered.question_text
+      question.options = jittered.options
+      if (question.type === 'short_answer') question.correct_answer = jittered.correct_answer
       return { ...eq, question }
     })
     return resolved

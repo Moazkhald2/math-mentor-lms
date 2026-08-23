@@ -40,3 +40,30 @@ export function shuffleMultipleChoice(
     correctAnswer: String(newIdx),
   }
 }
+
+// Numeric jitter: change numbers inside text using date+seed for anti-cheat
+// Only jitters small integers 2-99, delta -2..+2, keeps LaTeX valid
+export function jitterNumbers(text: string, seed: string): string {
+  const rng = mulberry32(hashString(seed + '_jitter'))
+  return text.replace(/\b(\d{1,2})\b/g, (m, nStr) => {
+    const n = parseInt(nStr, 10)
+    if (n < 2 || n > 99) return m
+    const delta = Math.floor(rng() * 5) - 2
+    if (delta === 0) return m
+    const next = n + delta
+    if (next < 2) return m
+    return String(next)
+  })
+}
+
+// Apply jitter to whole question (text + options + correct_answer if numeric short answer)
+export function jitterQuestion(q: { question_text: string; options: string[]; correct_answer: string; type: string }, seed: string) {
+  const text = jitterNumbers(q.question_text, seed)
+  const options = q.options.map(o => jitterNumbers(o, seed + '_opt'))
+  let correct = q.correct_answer
+  if (q.type === 'short_answer' && /^\d+$/.test(correct.trim())) {
+    correct = jitterNumbers(correct, seed)
+  }
+  // For MCQ, correct_answer is index, not jittered
+  return { question_text: text, options, correct_answer: correct }
+}

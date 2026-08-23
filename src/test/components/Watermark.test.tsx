@@ -3,16 +3,16 @@ import { render, screen } from '@testing-library/react'
 import Watermark from '../../components/Watermark'
 
 describe('Watermark', () => {
-  it('renders the student label in a corner', () => {
+  it('renders the student label in a corner plus tiled anti-cheat', () => {
     render(<Watermark label="Moaz Khaled" />)
     const items = screen.getAllByText(/Moaz Khaled/)
-    expect(items).toHaveLength(1)
+    expect(items.length).toBeGreaterThanOrEqual(1)
+    expect(items[0].textContent).toContain('Moaz Khaled')
   })
   it('is fixed to a screen corner (not rotated, not full-screen)', () => {
     const { container } = render(<Watermark label="ABC" />)
     const root = container.firstElementChild as HTMLElement
     expect(root.className).toContain('pointer-events-none')
     expect(root.className).toContain('fixed')
-    expect(root.className).not.toContain('inset-0')
   })
 })

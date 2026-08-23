@@ -154,26 +154,67 @@ export default function Dashboard() {
           ✓ Signed in as {user.email}
         </div>
         <h1 className="text-3xl font-black text-text">Welcome back, {user.user_metadata.full_name}!</h1>
-        <p className="mt-1 text-text-muted">Here's your learning overview</p>
+        <p className="mt-1 text-text-muted">Here's your learning overview - soft & cute, just like Khan</p>
+      </div>
+
+      {/* Khan-style Learner Queue - What to do next */}
+      <div className="mb-8 rounded-2xl border border-hairline bg-surface p-6 shadow-[rgba(0,0,0,0.04)_0px_4px_20px]">
+        <h2 className="mb-1 text-lg font-bold text-text">What to do next</h2>
+        <p className="mb-4 text-sm text-text-muted">Your focused path - finish these and earn gems</p>
+        <div className="grid gap-3 md:grid-cols-3">
+          <a href="/exams" className="rounded-2xl bg-brand p-4 text-white hover:bg-brand-light">
+            <div className="text-2xl">🎯</div>
+            <p className="mt-2 font-bold">Take next exam</p>
+            <p className="text-sm text-white/80">{completedAttempts.length === 0 ? 'Start your first mission' : `${completedAttempts.length} done, next awaits`}</p>
+          </a>
+          <a href="/practice/1" className="rounded-2xl border border-border bg-tertiary p-4 hover:bg-surface">
+            <div className="text-2xl">✨</div>
+            <p className="mt-2 font-bold text-text">Practice weak spots</p>
+            <p className="text-sm text-text-muted">Feedback after each question</p>
+          </a>
+          <a href="/connect" className="rounded-2xl border border-accent-gold/30 bg-accent-gold/10 p-4 hover:bg-accent-gold/20">
+            <div className="text-2xl">💬</div>
+            <p className="mt-2 font-bold text-text">Daily tip</p>
+            <p className="text-sm text-text-muted">Follow on Instagram</p>
+          </a>
+        </div>
+      </div>
+
+      {/* Khan-style Mastery squares - each square = skill */}
+      <div className="mb-8 rounded-2xl border border-hairline bg-surface p-6 shadow-[rgba(0,0,0,0.04)_0px_4px_20px]">
+        <h2 className="mb-1 text-lg font-bold text-text">Mastery overview</h2>
+        <p className="mb-4 text-sm text-text-muted">Each square is a skill - green mastered, gold practicing, red needs work (cute like Khan)</p>
+        <div className="grid grid-cols-8 gap-2 md:grid-cols-12">
+          {(completedAttempts.length > 0 ? completedAttempts.slice(0, 24) : Array.from({length:12}, (_,i)=>({score: null as number|null, id:i})) ).map((a: any, i:number) => {
+            const score = a.score ?? null
+            const bg = score === null ? 'bg-tertiary border-border' : score >= 80 ? 'bg-accent-green text-white border-accent-green' : score >= 60 ? 'bg-accent-gold text-white border-accent-gold' : 'bg-danger text-white border-danger'
+            return <div key={a.id ?? i} className={`mastery-square ${bg}`} title={score !== null ? `${score}%` : 'Not started'}>{score !== null ? `${score}%` : '○'}</div>
+          })}
+        </div>
+        <div className="mt-3 flex gap-4 text-xs text-text-muted">
+          <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-accent-green inline-block"/> Mastered 80%+</span>
+          <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-accent-gold inline-block"/> Practicing</span>
+          <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-danger inline-block"/> Needs work</span>
+        </div>
       </div>
 
       <div className="mb-8 grid gap-6 md:grid-cols-4">
-        <div className="rounded-xl border border-brand/40 bg-surface p-6">
-          <span className="inline-block rounded bg-brand/20 px-2 py-0.5 text-xs font-semibold text-brand">Exams Taken</span>
+        <div className="rounded-2xl border border-brand/20 bg-surface p-6 shadow-[rgba(0,0,0,0.04)_0px_4px_20px]">
+          <span className="inline-block rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand">Exams Taken</span>
           <p className="mt-2 text-3xl font-black text-text">{completedAttempts.length}</p>
         </div>
-        <div className="rounded-xl border border-accent-green/40 bg-surface p-6">
-          <span className="inline-block rounded bg-accent-green/20 px-2 py-0.5 text-xs font-semibold text-accent-green">Practice Completed</span>
+        <div className="rounded-2xl border border-accent-green/20 bg-surface p-6 shadow-[rgba(0,0,0,0.04)_0px_4px_20px]">
+          <span className="inline-block rounded-full bg-accent-green/10 px-3 py-1 text-xs font-semibold text-accent-green">Practice Completed</span>
           <p className="mt-2 text-3xl font-black text-text">
             {attempts?.filter(a => a.status === 'completed' && a.exam.type === 'practice').length ?? 0}
           </p>
         </div>
-        <div className="rounded-xl border border-accent-green/40 bg-surface p-6">
-          <span className="inline-block rounded bg-accent-green/20 px-2 py-0.5 text-xs font-semibold text-accent-green">Average Score</span>
+        <div className="rounded-2xl border border-accent-green/20 bg-surface p-6 shadow-[rgba(0,0,0,0.04)_0px_4px_20px]">
+          <span className="inline-block rounded-full bg-accent-green/10 px-3 py-1 text-xs font-semibold text-accent-green">Average Score</span>
           <p className="mt-2 text-3xl font-black text-text">{avgScore}%</p>
         </div>
-        <div className="rounded-xl border border-accent-gold/40 bg-surface p-6">
-          <span className="inline-block rounded bg-accent-gold/20 px-2 py-0.5 text-xs font-semibold text-accent-gold">In Progress</span>
+        <div className="rounded-2xl border border-accent-gold/20 bg-surface p-6 shadow-[rgba(0,0,0,0.04)_0px_4px_20px]">
+          <span className="inline-block rounded-full bg-accent-gold/10 px-3 py-1 text-xs font-semibold text-accent-gold">In Progress</span>
           <p className="mt-2 text-3xl font-black text-text">
             {attempts?.filter((a) => a.status === 'in_progress').length ?? 0}
           </p>

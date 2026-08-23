@@ -37,27 +37,27 @@ export default function Home() {
       <div className="grid w-full gap-6 sm:grid-cols-3">
         {[
           {
-            icon: '♠',
+            icon: '🎯',
             title: 'Practice Exams',
             desc: 'Timed questions with difficulty from Easy → Expert',
             color: 'border-brand text-brand',
           },
           {
-            icon: '♣',
+            icon: '✨',
             title: 'Step-by-Step',
-            desc: 'Full solutions with common-mistake breakdowns',
+            desc: 'Full solutions with common-mistake breakdowns - cute & clear',
             color: 'border-accent-green text-accent-green',
           },
           {
-            icon: '△',
+            icon: '📊',
             title: 'Smart Tracking',
-            desc: 'Progress analytics to target your weak spots',
+            desc: 'Mastery squares + streaks like Khan, feedback after each exam',
             color: 'border-accent-gold text-accent-gold',
           },
         ].map((card) => (
           <div
             key={card.title}
-            className={`rounded-xl border-l-4 bg-surface p-6 text-left ${card.color}`}
+            className={`rounded-2xl border bg-surface p-6 text-left shadow-[rgba(0,0,0,0.04)_0px_4px_20px] hover:shadow-[rgba(0,0,0,0.06)_0px_8px_24px] transition ${card.color}`}
           >
             <div className="mb-2 text-2xl">{card.icon}</div>
             <h3 className="mb-2 font-bold text-text">{card.title}</h3>
