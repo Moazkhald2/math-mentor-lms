@@ -17,6 +17,9 @@ on:
           - weekly
           - monthly
 
+permissions:
+  contents: read
+
 jobs:
   send-reports:
     runs-on: ubuntu-latest
