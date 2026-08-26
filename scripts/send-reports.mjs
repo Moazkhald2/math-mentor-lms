@@ -122,3 +122,70 @@ Practice sessions: ${practices.length}
 }
 
 main()
+sendTeacherDigest(process.env.TELEGRAM_BOT_TOKEN).catch(e =>
+  console.error('Teacher digest failed:', e.message)
+)
+
+// -- Teacher daily digest: everything worth knowing, in one message --
+async function sendTeacherDigest(botToken) {
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString()
+  const { data: attempts } = await supabase
+    .from('exam_attempts')
+    .select('score, total_points, status, started_at, user_id, exam_id, profiles(full_name), exams(title)')
+    .gte('started_at', since)
+    .order('started_at', { ascending: false })
+    .limit(200)
+  const { data: logs } = await supabase
+    .from('activity_logs')
+    .select('user_id, created_at, profiles(full_name)')
+    .ilike('action', '%violat%')
+    .gte('created_at', since)
+    .limit(200)
+  const { data: newStudents } = await supabase
+    .from('profiles')
+    .select('full_name, created_at')
+    .eq('role', 'student')
+    .gte('created_at', since)
+
+  const { data: teachers } = await supabase
+    .from('profiles')
+    .select('full_name, telegram_chat_id')
+    .in('role', ['teacher', 'admin'])
+    .not('telegram_chat_id', 'eq', '')
+    .limit(1)
+
+  const chatId = teachers?.[0]?.telegram_chat_id
+  if (!chatId) {
+    console.log('Teacher digest skipped: no teacher telegram_chat_id set')
+    return
+  }
+
+  const completed = (attempts ?? []).filter(a => a.status === 'completed' && a.score != null)
+  const avg = completed.length
+    ? Math.round(completed.reduce((s, a) => s + ((a.score ?? 0) / (a.total_points || 1)) * 100, 0) / completed.length)
+    : null
+  const lines = []
+  lines.push('?? Daily Teacher Digest � ' + new Date().toLocaleDateString())
+  lines.push('')
+  lines.push(`?? Attempts (24h): ${attempts?.length ?? 0} � graded ${completed.length}${avg != null ? ` � avg ${avg}%` : ''}`)
+  if (newStudents?.length) {
+    lines.push(`?? New students: ${newStudents.map(s => s.full_name).join(', ')}`)
+  }
+  if (logs?.length) {
+    const names = [...new Set(logs.map(l => l.profiles?.full_name ?? 'Unknown'))]
+    lines.push(`?? Violations: ${logs.length} � ${names.join(', ')}`)
+  }
+  if (completed.length) {
+    lines.push('')
+    lines.push('Latest results:')
+    for (const a of completed.slice(0, 8)) {
+      const pct = Math.round(((a.score ?? 0) / (a.total_points || 1)) * 100)
+      lines.push(`� ${a.profiles?.full_name ?? '?'} � ${a.exams?.title ?? '?'}: ${pct}%`)
+    }
+  }
+  if (!attempts?.length && !logs?.length && !newStudents?.length) {
+    lines.push('Quiet day � no activity in the last 24h.')
+  }
+  await sendTelegram(botToken, chatId, lines.join('\n'))
+  console.log('Teacher digest sent')
+}

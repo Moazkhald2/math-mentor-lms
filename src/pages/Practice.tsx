@@ -235,7 +235,10 @@ export default function Practice() {
               ? selectedAnswer.trim().toLowerCase() === activeQuestion.correct_answer.trim().toLowerCase()
               : selectedAnswer === activeQuestion.correct_answer
           ) && <p className="text-sm text-accent-green mt-1">Correct answer: {activeQuestion.type === 'multiple_choice' ? activeQuestion.options[parseInt(activeQuestion.correct_answer)] || activeQuestion.correct_answer : activeQuestion.correct_answer}</p>}
-          <p className="mt-1 text-sm text-text-muted"><LatexRenderer content={activeQuestion.explanation} /></p>
+          <div className="mt-3 space-y-2 leading-relaxed border-t border-border/60 pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">How to solve</p>
+            <LatexRenderer content={activeQuestion.explanation} />
+          </div>
         </div>
       )}
 
