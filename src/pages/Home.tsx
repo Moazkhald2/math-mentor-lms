@@ -20,7 +20,7 @@ export default function Home() {
       <div className="mb-16 flex flex-col gap-4 sm:flex-row">
         <a
           href="/register"
-          className="hover-lift rounded-lg bg-brand px-8 py-3 font-semibold text-white shadow-lg shadow-brand/30 transition-transform hover:bg-brand-light"
+          className="hover-lift rounded-lg bg-cta px-9 py-3.5 text-lg font-extrabold tracking-wide text-white shadow-lg shadow-brand/30 transition-colors hover:bg-cta-hover"
         >
           Get Started Free
         </a>

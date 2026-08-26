@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { Mail, Send, Phone } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 
@@ -56,8 +57,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </>
               ) : (
                 <>
-                  <a href="/login" className="btn btn-outline px-4 py-1.5 text-sm font-semibold">Sign In</a>
-                  <a href="/register" className="btn btn-primary hover-lift px-5 py-2 text-sm font-bold">Sign Up</a>
+                  <a href="/login" className="btn btn-outline px-5 py-2.5 text-base font-semibold">Sign In</a>
+                  <a href="/register" className="btn btn-primary hover-lift px-6 py-2.5 text-base font-extrabold">Sign Up</a>
                 </>
               )}
             </div>
@@ -103,12 +104,27 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="flex flex-col justify-between gap-6 md:flex-row">
             <div>
               <p className="font-display text-base font-semibold text-ink">Contact</p>
-              <ul className="mt-2 space-y-1.5">
+              <ul className="mt-2 space-y-2">
                 {CONTACT_WHATSAPP && (
-                  <li><a href={`https://wa.me/${CONTACT_WHATSAPP.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="hover:text-brand">WhatsApp: {CONTACT_WHATSAPP}</a></li>
+                  <li>
+                    <a href={`https://wa.me/${CONTACT_WHATSAPP.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 transition-colors hover:text-brand">
+                      <Phone className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+                      WhatsApp: {CONTACT_WHATSAPP}
+                    </a>
+                  </li>
                 )}
-                <li><a href={CONTACT_TELEGRAM} target="_blank" rel="noopener noreferrer" className="hover:text-brand">Telegram: @themathmentor</a></li>
-                <li><a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-brand">{CONTACT_EMAIL}</a></li>
+                <li>
+                  <a href={CONTACT_TELEGRAM} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 transition-colors hover:text-brand">
+                    <Send className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+                    Telegram: @themathmentor
+                  </a>
+                </li>
+                <li>
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="inline-flex items-center gap-2 transition-colors hover:text-brand">
+                    <Mail className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+                    {CONTACT_EMAIL}
+                  </a>
+                </li>
               </ul>
             </div>
             <div className="flex items-end">

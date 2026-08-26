@@ -45,6 +45,10 @@
   /* On-brand foreground (text on colored backgrounds) */
   --color-brand-foreground: #ffffff;
   --color-on-brand: #ffffff;
+
+  /* High-contrast CTA pair — guaranteed white-on-color in every context */
+  --color-cta: #0A9396;
+  --color-cta-hover: #0A6F72;
 }
 
 /* Base styles using semantic tokens - soft cute */
