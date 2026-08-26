@@ -63,20 +63,21 @@ export default function AdminSidebar() {
           })}
         </div>
       </nav>
-      <nav className="-mx-4 mb-6 overflow-x-auto px-4 md:hidden">
-        <div className="flex gap-2">
-          {links.map((link) => {
+      <nav className="mb-6 md:hidden">
+        <div className="space-y-1">
+          {[...links, ...toolLinks].map((link) => {
             const active = location.pathname === link.href
             return (
               <a
                 key={link.href}
                 href={link.href}
-                className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   active
                     ? 'bg-brand text-brand-foreground'
                     : 'border border-border text-muted hover:border-brand hover:text-primary'
                 }`}
               >
+                <span>{link.icon}</span>
                 {link.label}
               </a>
             )
