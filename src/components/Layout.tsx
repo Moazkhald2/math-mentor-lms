@@ -54,8 +54,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             <div className="hidden items-center gap-3 md:flex">
               {loading ? null : user ? (
                 <>
-                  <a href="/profile" className={navLink}>{user.user_metadata.full_name}</a>
-                  <button onClick={signOut} className="btn btn-outline px-4 py-1.5 text-sm">Sign Out</button>
+                  <a href="/profile" className="text-base font-semibold text-text-muted transition-colors duration-150 hover:text-brand">{user.user_metadata.full_name}</a>
+                  <button onClick={signOut} className="btn btn-outline px-5 py-2.5 text-base font-semibold">Sign Out</button>
                 </>
               ) : (
                 <>
