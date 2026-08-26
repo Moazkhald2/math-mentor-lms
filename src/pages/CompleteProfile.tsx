@@ -53,13 +53,13 @@ export default function CompleteProfile() {
         <div>
           <label className="mb-1 block text-sm text-text-muted">Full Name</label>
           <input value={fullName} onChange={e => setFullName(e.target.value)} required
-            className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+            className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
         </div>
 
         <div>
           <label className="mb-1 block text-sm text-text-muted">Grade <span className="text-danger">*</span></label>
           <select value={grade} onChange={e => setGrade(e.target.value ? Number(e.target.value) : '')} required
-            className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink">
+            className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink">
             <option value="">Select your grade</option>
             {Array.from({ length: 10 }, (_, i) => i + 3).map(g => <option key={g} value={g}>Grade {g}</option>)}
           </select>
@@ -68,7 +68,7 @@ export default function CompleteProfile() {
         <div>
           <label className="mb-1 block text-sm text-text-muted">Parent Phone <span className="text-text-muted/60">(optional, for progress reports)</span></label>
           <input value={parentPhone} onChange={e => setParentPhone(e.target.value)} placeholder="+1234567890"
-            className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+            className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
         </div>
 
         <button type="submit" disabled={saving}

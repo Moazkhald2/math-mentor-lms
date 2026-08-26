@@ -73,7 +73,7 @@ export default function AdminUsers() {
             placeholder="Search by name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink"
+            className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink"
           />
           {search && (
             <button
@@ -84,7 +84,7 @@ export default function AdminUsers() {
             </button>
           )}
         </div>
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-ink">
+        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="rounded-lg border border-border bg-surface px-4 py-2 text-ink">
           <option value="">All roles</option>
           <option value="student">Student</option>
           <option value="teacher">Teacher</option>
@@ -144,7 +144,7 @@ export default function AdminUsers() {
                     value={u.role}
                     onChange={(e) => updateRole.mutate({ id: u.id, role: e.target.value })}
                     disabled={updateRole.isPending}
-                    className="rounded border border-border bg-white px-2 py-1 text-xs text-ink"
+                    className="rounded border border-border bg-surface px-2 py-1 text-xs text-ink"
                   >
                     <option value="student">Student</option>
                     <option value="teacher">Teacher</option>

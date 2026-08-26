@@ -68,7 +68,7 @@ export default function AdminAttempts() {
       <h1 className="mb-6 text-2xl font-black text-text">Attempts</h1>
       <FilterBar filters={filters} onChange={setFilters} showStatus />
       <div className="mb-4 flex gap-3">
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-ink">
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="rounded-lg border border-border bg-surface px-4 py-2 text-ink">
           <option value="">All status</option>
           <option value="completed">Completed</option>
           <option value="in_progress">In Progress</option>

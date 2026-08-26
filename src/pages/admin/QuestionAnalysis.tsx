@@ -74,19 +74,19 @@ export default function QuestionAnalysis() {
       <h1 className="mb-6 text-2xl font-black text-text">Question Analysis</h1>
 
       <div className="mb-6 flex flex-wrap gap-3">
-        <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-ink">
+        <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)} className="rounded-lg border border-border bg-surface px-4 py-2 text-ink">
           <option value="">All subjects</option>
           {(subjects ?? []).map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select value={topicFilter} onChange={e => setTopicFilter(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-ink">
+        <select value={topicFilter} onChange={e => setTopicFilter(e.target.value)} className="rounded-lg border border-border bg-surface px-4 py-2 text-ink">
           <option value="">All topics</option>
           {(topics ?? []).map(t => <option key={t} value={t}>{t}</option>)}
         </select>
         <div className="flex items-center gap-2">
           <label className="text-sm text-text-muted">Min attempts:</label>
-          <input type="number" value={minAttempts} onChange={e => setMinAttempts(Number(e.target.value))} min={1} className="w-20 rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink" />
+          <input type="number" value={minAttempts} onChange={e => setMinAttempts(Number(e.target.value))} min={1} className="w-20 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink" />
         </div>
-        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="rounded-lg border border-border bg-white px-4 py-2 text-ink text-sm">
+        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="rounded-lg border border-border bg-surface px-4 py-2 text-ink text-sm">
           <option value="accuracy">Sort by accuracy (lowest)</option>
           <option value="attempts">Sort by attempts (most)</option>
         </select>
