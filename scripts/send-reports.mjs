@@ -121,9 +121,8 @@ Practice sessions: ${practices.length}
   console.log('\n✅ All reports sent')
 }
 
-main()
-sendTeacherDigest(process.env.TELEGRAM_BOT_TOKEN).catch(e =>
-  console.error('Teacher digest failed:', e.message)
+main().then(() => sendTeacherDigest(process.env.TELEGRAM_BOT_TOKEN)).catch(e =>
+  console.error('Reports failed:', e.message)
 )
 
 // -- Teacher daily digest: everything worth knowing, in one message --
@@ -165,26 +164,26 @@ async function sendTeacherDigest(botToken) {
     ? Math.round(completed.reduce((s, a) => s + ((a.score ?? 0) / (a.total_points || 1)) * 100, 0) / completed.length)
     : null
   const lines = []
-  lines.push('?? Daily Teacher Digest � ' + new Date().toLocaleDateString())
+  lines.push('📊 Daily Teacher Digest — ' + new Date().toLocaleDateString())
   lines.push('')
-  lines.push(`?? Attempts (24h): ${attempts?.length ?? 0} � graded ${completed.length}${avg != null ? ` � avg ${avg}%` : ''}`)
+  lines.push(`📝 Attempts (24h): ${attempts?.length ?? 0} • graded ${completed.length}${avg != null ? ` • avg ${avg}%` : ''}`)
   if (newStudents?.length) {
-    lines.push(`?? New students: ${newStudents.map(s => s.full_name).join(', ')}`)
+    lines.push(`🎉 New students: ${newStudents.map(s => s.full_name).join(', ')}`)
   }
   if (logs?.length) {
     const names = [...new Set(logs.map(l => l.profiles?.full_name ?? 'Unknown'))]
-    lines.push(`?? Violations: ${logs.length} � ${names.join(', ')}`)
+    lines.push(`🚨 Violations: ${logs.length} • ${names.join(', ')}`)
   }
   if (completed.length) {
     lines.push('')
     lines.push('Latest results:')
     for (const a of completed.slice(0, 8)) {
       const pct = Math.round(((a.score ?? 0) / (a.total_points || 1)) * 100)
-      lines.push(`� ${a.profiles?.full_name ?? '?'} � ${a.exams?.title ?? '?'}: ${pct}%`)
+      lines.push(`• ${a.profiles?.full_name ?? '?'} — ${a.exams?.title ?? '?'}: ${pct}%`)
     }
   }
   if (!attempts?.length && !logs?.length && !newStudents?.length) {
-    lines.push('Quiet day � no activity in the last 24h.')
+    lines.push('Quiet day — no activity in the last 24h.')
   }
   await sendTelegram(botToken, chatId, lines.join('\n'))
   console.log('Teacher digest sent')
