@@ -98,16 +98,16 @@ export default function AdminBulkExams() {
           <div className="sm:col-span-2">
             <label className="mb-1 block text-sm text-text-muted">Exam Names <span className="text-danger">*</span></label>
             <textarea value={names} onChange={e => setNames(e.target.value)} placeholder="Week 1 - Algebra&#10;Week 2 - Geometry&#10;Week 3 - Trigonometry" rows={5}
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink text-sm" />
+              className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink text-sm" />
           </div>
           <div className="sm:col-span-2">
             <label className="mb-1 block text-sm text-text-muted">Description (shared)</label>
             <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Weekly exam"
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+              className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
           </div>
           <div>
             <label className="mb-1 block text-sm text-text-muted">Type</label>
-            <select value={type} onChange={e => setType(e.target.value as any)} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink">
+            <select value={type} onChange={e => setType(e.target.value as any)} className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink">
               <option value="exam">Exam</option>
               <option value="practice">Practice</option>
             </select>
@@ -115,11 +115,11 @@ export default function AdminBulkExams() {
           <div>
             <label className="mb-1 block text-sm text-text-muted">Time Limit (min)</label>
             <input type="number" value={timeLimit} onChange={e => setTimeLimit(Number(e.target.value))} min={1}
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+              className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
           </div>
           <div>
             <label className="mb-1 block text-sm text-text-muted">Grade</label>
-            <select value={grade} onChange={e => setGrade(e.target.value ? Number(e.target.value) : '')} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink">
+            <select value={grade} onChange={e => setGrade(e.target.value ? Number(e.target.value) : '')} className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink">
               <option value="">All grades</option>
               {Array.from({ length: 10 }, (_, i) => i + 3).map(g => <option key={g} value={g}>Grade {g}</option>)}
             </select>
@@ -127,21 +127,21 @@ export default function AdminBulkExams() {
           <div>
             <label className="mb-1 block text-sm text-text-muted">Questions per Exam</label>
             <input type="number" value={questionCount} onChange={e => setQuestionCount(Number(e.target.value))} min={1} max={100}
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+              className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
           </div>
           <div>
             <label className="mb-1 block text-sm text-text-muted">Subject</label>
             <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Any"
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+              className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
           </div>
           <div>
             <label className="mb-1 block text-sm text-text-muted">Topic</label>
             <input value={topic} onChange={e => setTopic(e.target.value)} placeholder="Any"
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+              className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
           </div>
           <div>
             <label className="mb-1 block text-sm text-text-muted">Difficulty</label>
-            <select value={difficulty} onChange={e => setDifficulty(e.target.value ? Number(e.target.value) : '')} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink">
+            <select value={difficulty} onChange={e => setDifficulty(e.target.value ? Number(e.target.value) : '')} className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink">
               <option value="">Any</option>
               {[1, 2, 3, 4].map(d => <option key={d} value={d}>{['Easy', 'Medium', 'Hard', 'Expert'][d - 1]}</option>)}
             </select>

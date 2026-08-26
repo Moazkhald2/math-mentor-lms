@@ -91,7 +91,7 @@ export default function AdminExams() {
       </div>
       <FilterBar filters={filters} onChange={setFilters} />
       <div className="mb-4 flex flex-wrap gap-3">
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-ink">
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-lg border border-border bg-surface px-4 py-2 text-ink">
           <option value="">All types</option>
           <option value="exam">Exam</option>
           <option value="practice">Practice</option>
@@ -255,29 +255,29 @@ function ExamEditModal({ exam, onSave, onClose, saving }: {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className="mb-1 block text-sm text-text-muted">Title</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+            <input value={title} onChange={e => setTitle(e.target.value)} className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
           </div>
           <div className="sm:col-span-2">
             <label className="mb-1 block text-sm text-text-muted">Description</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" rows={2} />
+            <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" rows={2} />
           </div>
           <div><label className="mb-1 block text-sm text-text-muted">Time Limit (min)</label>
-            <input type="number" value={timeLimit} onChange={e => setTimeLimit(Number(e.target.value))} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" /></div>
+            <input type="number" value={timeLimit} onChange={e => setTimeLimit(Number(e.target.value))} className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" /></div>
           <div><label className="mb-1 block text-sm text-text-muted">Passing Score %</label>
-            <input type="number" value={passingScore} onChange={e => setPassingScore(Number(e.target.value))} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" /></div>
+            <input type="number" value={passingScore} onChange={e => setPassingScore(Number(e.target.value))} className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" /></div>
           <div><label className="mb-1 block text-sm text-text-muted">Grade</label>
-            <select value={grade} onChange={e => setGrade(e.target.value ? Number(e.target.value) : '')} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink">
+            <select value={grade} onChange={e => setGrade(e.target.value ? Number(e.target.value) : '')} className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink">
               <option value="">All grades</option>
               {Array.from({ length: 10 }, (_, i) => i + 3).map(g => <option key={g} value={g}>Grade {g}</option>)}
             </select></div>
           <div><label className="mb-1 block text-sm text-text-muted">Max Attempts</label>
-            <input type="number" min={1} max={5} value={maxAttempts} onChange={e => setMaxAttempts(Number(e.target.value))} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" /></div>
+            <input type="number" min={1} max={5} value={maxAttempts} onChange={e => setMaxAttempts(Number(e.target.value))} className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" /></div>
           <div><label className="mb-1 block text-sm text-text-muted">Cooldown (hours)</label>
-            <input type="number" min={0} max={72} value={cooldownHours} onChange={e => setCooldownHours(Number(e.target.value))} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" /></div>
+            <input type="number" min={0} max={72} value={cooldownHours} onChange={e => setCooldownHours(Number(e.target.value))} className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" /></div>
           <div className="sm:col-span-2"><label className="mb-1 block text-sm text-text-muted">Schedule</label>
-            <div className="flex gap-2"><input type="datetime-local" value={startsAt} onChange={e => setStartsAt(e.target.value)} className="flex-1 rounded-lg border border-border bg-white px-4 py-2 text-ink text-sm" />
+            <div className="flex gap-2"><input type="datetime-local" value={startsAt} onChange={e => setStartsAt(e.target.value)} className="flex-1 rounded-lg border border-border bg-surface px-4 py-2 text-ink text-sm" />
               <span className="self-center text-text-muted">→</span>
-              <input type="datetime-local" value={endsAt} onChange={e => setEndsAt(e.target.value)} className="flex-1 rounded-lg border border-border bg-white px-4 py-2 text-ink text-sm" /></div></div>
+              <input type="datetime-local" value={endsAt} onChange={e => setEndsAt(e.target.value)} className="flex-1 rounded-lg border border-border bg-surface px-4 py-2 text-ink text-sm" /></div></div>
         </div>
 
         {!exam.is_template && <>
@@ -302,13 +302,13 @@ function ExamEditModal({ exam, onSave, onClose, saving }: {
             <h3 className="mb-3 font-bold text-text">Auto-fill Questions</h3>
             <div className="grid gap-3 sm:grid-cols-4">
               <div><label className="mb-1 block text-xs text-text-muted">Count</label>
-                <input type="number" value={autoCount} onChange={e => setAutoCount(Number(e.target.value))} min={1} max={100} className="w-full rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-ink" /></div>
+                <input type="number" value={autoCount} onChange={e => setAutoCount(Number(e.target.value))} min={1} max={100} className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink" /></div>
               <div><label className="mb-1 block text-xs text-text-muted">Subject</label>
-                <input value={autoSubject} onChange={e => setAutoSubject(e.target.value)} placeholder="Any" className="w-full rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-ink" /></div>
+                <input value={autoSubject} onChange={e => setAutoSubject(e.target.value)} placeholder="Any" className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink" /></div>
               <div><label className="mb-1 block text-xs text-text-muted">Topic</label>
-                <input value={autoTopic} onChange={e => setAutoTopic(e.target.value)} placeholder="Any" className="w-full rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-ink" /></div>
+                <input value={autoTopic} onChange={e => setAutoTopic(e.target.value)} placeholder="Any" className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink" /></div>
               <div><label className="mb-1 block text-xs text-text-muted">Difficulty</label>
-                <select value={autoDifficulty} onChange={e => setAutoDifficulty(e.target.value ? Number(e.target.value) : '')} className="w-full rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-ink">
+                <select value={autoDifficulty} onChange={e => setAutoDifficulty(e.target.value ? Number(e.target.value) : '')} className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink">
                   <option value="">Any</option>
                   {[1, 2, 3, 4].map(d => <option key={d} value={d}>{['Easy', 'Medium', 'Hard', 'Expert'][d - 1]}</option>)}
                 </select></div>
@@ -321,7 +321,7 @@ function ExamEditModal({ exam, onSave, onClose, saving }: {
 
           <div className="mt-4 border-t border-border pt-4">
             <h3 className="mb-3 font-bold text-text">Add Manually</h3>
-            <input value={questionFilter} onChange={e => setQuestionFilter(e.target.value)} placeholder="Search..." className="mb-3 w-full rounded-lg border border-border bg-white px-4 py-2 text-ink text-sm" />
+            <input value={questionFilter} onChange={e => setQuestionFilter(e.target.value)} placeholder="Search..." className="mb-3 w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink text-sm" />
             <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-border bg-bg p-2">
               {availableQuestions.length === 0 && <p className="p-2 text-sm text-text-muted">No more questions.</p>}
               {availableQuestions.slice(0, 40).map((q: any) => (
@@ -437,7 +437,7 @@ function BulkScheduleModal({ onClose }: { onClose: () => void }) {
         <div className="space-y-4">
           <div>
             <label className="mb-1 block text-sm text-text-muted">Template or Base Exam</label>
-            <select value={templateId} onChange={e => setTemplateId(e.target.value)} className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink">
+            <select value={templateId} onChange={e => setTemplateId(e.target.value)} className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink">
               <option value="">Pick from existing exams...</option>
               <optgroup label="Templates">
                 {(templates ?? []).map((t: any) => <option key={t.id} value={t.id}>{t.title}</option>)}
@@ -452,13 +452,13 @@ function BulkScheduleModal({ onClose }: { onClose: () => void }) {
             <div>
               <label className="mb-1 block text-sm text-text-muted">Name pattern</label>
               <input value={namePattern} onChange={e => setNamePattern(e.target.value)} placeholder='Quiz Week {n}'
-                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink text-sm" />
+                className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink text-sm" />
               <p className="mt-0.5 text-xs text-text-muted">{'{n}'} becomes 1, 2, 3…</p>
             </div>
             <div>
               <label className="mb-1 block text-sm text-text-muted">Count</label>
               <input type="number" value={count} onChange={e => setCount(Number(e.target.value))} min={1} max={52}
-                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+                className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
             </div>
           </div>
 
@@ -466,19 +466,19 @@ function BulkScheduleModal({ onClose }: { onClose: () => void }) {
             <div>
               <label className="mb-1 block text-sm text-text-muted">Start date</label>
               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink text-sm" />
+                className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink text-sm" />
             </div>
             <div>
               <label className="mb-1 block text-sm text-text-muted">Interval (days)</label>
               <input type="number" value={intervalDays} onChange={e => setIntervalDays(Number(e.target.value))} min={1}
-                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+                className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
             </div>
           </div>
 
           <div>
             <label className="mb-1 block text-sm text-text-muted">Auto-fill questions per exam</label>
             <input type="number" value={autoFillCount} onChange={e => setAutoFillCount(Number(e.target.value))} min={0} max={100}
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+              className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
             <p className="mt-0.5 text-xs text-text-muted">Set 0 to skip (fill manually later)</p>
           </div>
 

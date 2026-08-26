@@ -91,7 +91,7 @@ export default function AdminCsvExport() {
       <div className="mb-6 rounded-xl border border-border bg-surface p-6">
         <h2 className="mb-4 text-lg font-bold text-text">Export Attempts</h2>
         <select value={period} onChange={e => setPeriod(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-border bg-white px-4 py-2 text-ink">
+          className="mb-4 w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink">
           <option value="all">All time</option>
           <option value="30d">Last 30 days</option>
           <option value="7d">Last 7 days</option>
@@ -109,7 +109,7 @@ export default function AdminCsvExport() {
           <div>
             <label className="mb-1 block text-sm text-text-muted">Grade</label>
             <select value={gradeFilter} onChange={e => setGradeFilter(e.target.value ? Number(e.target.value) : '')}
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink">
+              className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink">
               <option value="">All grades</option>
               {Array.from({ length: 10 }, (_, i) => i + 3).map(g => <option key={g} value={g}>Grade {g}</option>)}
             </select>
@@ -117,7 +117,7 @@ export default function AdminCsvExport() {
           <div>
             <label className="mb-1 block text-sm text-text-muted">Class Code</label>
             <input value={classFilter} onChange={e => setClassFilter(e.target.value)} placeholder="Filter by class code"
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+              className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
           </div>
         </div>
         <button onClick={handleExportStudents} disabled={loaders.students}

@@ -64,24 +64,24 @@ export default function Settings() {
 
         <label className="mb-1 block text-sm text-text-muted">Full Name</label>
         <input value={fullName} onChange={e => setFullName(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+          className="mb-4 w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
 
         <label className="mb-1 block text-sm text-text-muted">Grade</label>
         <select value={grade} onChange={e => setGrade(e.target.value ? Number(e.target.value) : '')}
-          className="mb-4 w-full rounded-lg border border-border bg-white px-4 py-2 text-ink">
+          className="mb-4 w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink">
           <option value="">Select grade</option>
           {Array.from({ length: 10 }, (_, i) => i + 3).map(g => <option key={g} value={g}>Grade {g}</option>)}
         </select>
 
         <label className="mb-1 block text-sm text-text-muted">Parent Phone <span className="text-text-muted/60">(for progress reports)</span></label>
         <input value={parentPhone} onChange={e => setParentPhone(e.target.value)} placeholder="+1234567890"
-          className="mb-4 w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+          className="mb-4 w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
 
         <div className="mb-4 rounded-lg border border-accent-gold/20 bg-accent-gold/5 p-3">
           <label className="mb-1 block text-sm font-semibold text-accent-gold">📱 Telegram Reports</label>
           <p className="mb-2 text-xs text-text-muted">Get weekly & monthly progress reports sent to your Telegram. Get your chat ID by messaging <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">@userinfobot</a>.</p>
           <input value={telegramChatId} onChange={e => setTelegramChatId(e.target.value)} placeholder="Paste your Telegram chat ID"
-            className="w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+            className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
         </div>
 
         <button type="submit" className="rounded-lg bg-brand px-6 py-2 font-semibold text-white hover:bg-brand-light">Save</button>
@@ -91,7 +91,7 @@ export default function Settings() {
         <h2 className="mb-4 text-xl font-bold text-text">Change Password</h2>
         <label className="mb-1 block text-sm text-text-muted">New Password</label>
         <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-border bg-white px-4 py-2 text-ink" />
+          className="mb-4 w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
         <button type="submit" className="rounded-lg bg-brand px-6 py-2 font-semibold text-white hover:bg-brand-light">Update Password</button>
       </form>
     </div>

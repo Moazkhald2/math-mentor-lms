@@ -5,30 +5,6 @@
    THEME VARIANTS
    ============================================ */
 
-/* Light theme */
-[data-theme="light"] {
-  --color-bg: #f8fafc;
-  --color-surface: #ffffff;
-  --color-tertiary: #f1f5f9;
-  --color-text: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #64748b;
-  --color-border: #e2e8f0;
-  --color-ink: #0f172a;
-}
-
-/* Dark theme (default) */
-[data-theme="dark"] {
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --color-tertiary: #334155;
-  --color-text: #f1f5f9;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #94a3b8;
-  --color-border: #334155;
-  --color-ink: #222C31;
-}
-
 /* ============================================
    GRADE-SPECIFIC THEMES
    ============================================ */

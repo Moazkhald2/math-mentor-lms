@@ -120,7 +120,7 @@ export default function Dashboard() {
                 <button
                   key={g}
                   onClick={() => setSelectedGrade(g)}
-                  className="rounded-lg border border-border bg-white px-4 py-3 text-center font-bold text-ink transition hover:border-brand hover:text-brand"
+                  className="rounded-lg border border-border bg-surface px-4 py-3 text-center font-bold text-ink transition hover:border-brand hover:text-brand"
                 >
                   Grade {g}
                 </button>
@@ -391,7 +391,7 @@ function JoinClass() {
   return (
     <div className="flex gap-2">
       <input value={code} onChange={e => setCode(e.target.value)} placeholder="Enter class code"
-        className="flex-1 rounded-lg border border-border bg-white px-4 py-2 text-sm text-ink" />
+        className="flex-1 rounded-lg border border-border bg-surface px-4 py-2 text-sm text-ink" />
       <button onClick={handleJoin} disabled={joining || !code.trim()}
         className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-light disabled:opacity-50">
         {joining ? 'Joining...' : 'Join'}

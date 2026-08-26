@@ -416,7 +416,7 @@ function QuestionView({
         {question.type === 'short_answer' && (
           <input type="text" value={selected ?? ''} onChange={e => onAnswer(e.target.value)}
             placeholder="Type your answer..."
-            className="w-full rounded-lg border border-border bg-white px-5 py-3 text-ink outline-none focus:border-brand"
+            className="w-full rounded-lg border border-border bg-surface px-5 py-3 text-ink outline-none focus:border-brand"
           />
         )}
       </div>

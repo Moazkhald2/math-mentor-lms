@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Mail, Send, Phone } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import ThemeToggle from './ThemeToggle'
 
 // Owner fills these later (contact placeholders)
 const CONTACT_WHATSAPP: string = '' // e.g. '+201000000000'
@@ -40,7 +41,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-6">
             <button onClick={handleLogo} className="flex cursor-pointer items-center gap-2" aria-label="Go to dashboard">
-              <img src="/logo-main.png" alt="The Math Mentor" className="h-8 w-auto transition-transform duration-150 hover:scale-105" />
+              <img src="/logo-main.png" alt="The Math Mentor" className="h-8 w-auto rounded-lg p-0.5 transition-transform duration-150 hover:scale-105 dark:bg-white" />
             </button>
             <div className="hidden gap-6 md:flex">
               <a href="/questions" className={navLink}>Questions</a>
@@ -49,6 +50,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <div className="hidden items-center gap-3 md:flex">
               {loading ? null : user ? (
                 <>

@@ -99,16 +99,30 @@ body {
   color: var(--color-brand-foreground);
 }
 
-/* Dark theme (optional — remove if fully dropping dark mode) */
+/* Enable class/attribute-based dark: utilities (data-theme driven) */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ============================================================
+   DARK MODE — House v2 Night
+   Limited palette first: bg / surface / tertiary / text trio /
+   border. Brand + accents stay identical (teal/gold read well on
+   both). Expand only after component-by-component audit.
+   ============================================================ */
 [data-theme="dark"] {
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --color-tertiary: #334155;
-  --color-text: #f1f5f9;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #94a3b8;
-  --color-border: #334155;
-  --color-ink: #2C3840;
+  --color-bg: #14161f;            /* navy-black, House family */
+  --color-surface: #1c1f2b;
+  --color-tertiary: #242837;
+  --color-canvas-soft: #181b26;
+  --color-text: #edeef2;
+  --color-text-secondary: #c6cad6;
+  --color-text-muted: #9aa0ae;
+  --color-border: #2a2e3d;
+  --color-hairline: #2f3444;
+  --color-ink: #edeef2;
+}
+
+body {
+  transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
 /* Animations */
