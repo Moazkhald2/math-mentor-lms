@@ -1,4 +1,5 @@
 -- migration-006: parameterized question templates
+-- Applied automatically by .github/workflows/migrate.yml (push-triggered on this file).
 ALTER TABLE public.questions
   ADD COLUMN IF NOT EXISTS params JSONB;
 

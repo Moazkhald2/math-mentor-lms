@@ -2,6 +2,9 @@ name: Apply DB Migrations
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'supabase/migration-006-question-params.sql'
 
 jobs:
   migrate:
