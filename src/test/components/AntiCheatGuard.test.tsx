@@ -85,7 +85,8 @@ describe('AntiCheatGuard', () => {
         <div>content</div>
       </AntiCheatGuard>,
     )
-    expect(screen.getByText(/⏰/)).toBeInTheDocument()
+    expect(screen.getByText('Time left')).toBeInTheDocument()
+    expect(screen.getByText('3:00')).toBeInTheDocument()
   })
 
   it('calls onTimeUp when time exceeds duration', async () => {
