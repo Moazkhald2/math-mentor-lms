@@ -32,12 +32,14 @@ jobs:
           node -e "
           const { createClient } = require('@supabase/supabase-js');
           const s = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-          const tables = ['profiles','students','questions','exams','exam_questions','exam_attempts','answers','classes','class_members','activity_logs'];
+          const tables = ['profiles','questions','exams','exam_attempts','classes','class_members'];
           (async () => {
             for (const t of tables) {
               const { count, error } = await s.from(t).select('*', { count: 'exact', head: true });
-              console.log(error ? t + ': ERROR ' + error.message : t + ': ' + count + ' rows');
+              console.log(error ? t + ': ERROR-JSON ' + JSON.stringify(error).slice(0,200) : t + ': ' + count + ' rows');
             }
+            const probe = await s.from('classes').select('id').limit(1);
+            console.log('probe.classes:', probe.error ? 'ERR ' + JSON.stringify(probe.error).slice(0,300) : 'OK rows=' + (probe.data?.length ?? 0));
           })();
           "
 
