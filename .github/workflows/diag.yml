@@ -1,6 +1,6 @@
 name: DB Diagnostic
 
-# Re-run 2026-08-26 after owner executed HAND-RUN-2026-08-26.sql
+# Re-run 2026-08-26 after owner executed HAND-RUN-2 recursion fix
 
 on:
   workflow_dispatch:
@@ -56,4 +56,4 @@ jobs:
             else console.log('params column: EXISTS');
           });
           "
-(re-trigger after HAND-RUN-2)
+
