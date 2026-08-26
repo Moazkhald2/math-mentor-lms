@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Mail, Send, Phone } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
@@ -44,7 +44,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <img src="/logo-main.png" alt="The Math Mentor" className="h-9 w-auto rounded-lg p-0.5 transition-transform duration-150 hover:scale-105 dark:bg-white" />
             </button>
             <div className="hidden gap-6 md:flex">
-              <a href="/questions" className={navLink}>Questions</a>
+              <a href="/sheets" className={navLink}>Sheets</a>
               <a href="/exams" className={navLink}>Exams</a>
               <a href="/dashboard" className={navLink}>Dashboard</a>
             </div>
@@ -55,7 +55,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               {loading ? null : user ? (
                 <>
                   <a href="/profile" className="text-base font-semibold text-text-muted transition-colors duration-150 hover:text-brand">{user.user_metadata.full_name}</a>
-                  <button onClick={signOut} className="btn btn-outline px-5 py-2.5 text-base font-semibold">Sign Out</button>
+                  <button onClick={signOut} className="btn btn-outline px-5 py-2.5 text-base font-bold">Sign Out</button>
                 </>
               ) : (
                 <>
@@ -82,7 +82,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         {menuOpen && (
           <div className="border-t border-border bg-secondary px-4 py-4 md:hidden">
             <div className="flex flex-col gap-3">
-              <a href="/questions" className={navLink} onClick={() => setMenuOpen(false)}>Questions</a>
+              <a href="/sheets" className={navLink} onClick={() => setMenuOpen(false)}>Sheets</a>
               <a href="/exams" className={navLink} onClick={() => setMenuOpen(false)}>Exams</a>
               <a href="/dashboard" className={navLink} onClick={() => setMenuOpen(false)}>Dashboard</a>
               {loading ? null : user ? (
@@ -130,7 +130,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               </ul>
             </div>
             <div className="flex items-end">
-              <span>© {new Date().getFullYear()} The Math Mentor — Master Math with Confidence</span>
+              <span>� {new Date().getFullYear()} The Math Mentor � Master Math with Confidence</span>
             </div>
           </div>
         </div>

@@ -77,7 +77,7 @@ export default function Exams() {
           <a
             key={exam.id}
             href={user ? (exam.type === 'practice' ? `/practice/${exam.id}` : `/exam/${exam.id}`) : '/login'}
-            className="block rounded-xl border border-border bg-surface p-6 transition hover:border-brand/50 hover:no-underline"
+            className="hover-lift block rounded-xl border border-border bg-surface p-6 transition hover:border-brand/50 hover:no-underline"
           >
             <div className="mb-2 flex items-center gap-2">
               <span className={`rounded px-2 py-0.5 text-xs ${exam.type === 'exam' ? 'bg-accent-gold/10 text-accent-gold' : 'bg-accent-green/10 text-accent-green'}`}>

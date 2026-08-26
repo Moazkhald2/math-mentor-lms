@@ -28,11 +28,16 @@ export default function ThemeToggle({ className = '' }: { className?: string }) 
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
-      className={`inline-flex items-center justify-center rounded-full border border-border p-2 text-text-muted transition-colors duration-150 hover:border-brand hover:text-brand ${className}`}
+      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-visible rounded-full border border-border bg-surface text-ink shadow-sm transition-all duration-300 hover:border-brand hover:text-brand dark:text-white ${className}`}
     >
-      {theme === 'dark'
-        ? <Sun className="h-4 w-4" aria-hidden="true" />
-        : <Moon className="h-4 w-4" aria-hidden="true" />}
+      <span
+        className="inline-flex transition-transform duration-500 ease-out"
+        style={{ transform: theme === 'dark' ? 'rotate(-180deg) scale(1.05)' : 'rotate(0deg) scale(1)' }}
+      >
+        {theme === 'dark'
+          ? <Sun className="h-[18px] w-[18px]" aria-hidden="true" />
+          : <Moon className="h-[18px] w-[18px]" aria-hidden="true" />}
+      </span>
     </button>
   )
 }

@@ -4,9 +4,9 @@ import type { ReactNode } from 'react'
 import { AuthProvider } from './hooks/useAuth'
 import { ToastProvider } from './hooks/useToast'
 import Home from './pages/Home'
+import Sheets from './pages/Sheets'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import Questions from './pages/Questions'
 import Exams from './pages/Exams'
 import Exam from './pages/Exam'
 import Dashboard from './pages/Dashboard'
@@ -44,7 +44,7 @@ function App() {
           <Route path="/" element={<AppLayout><Home /></AppLayout>} />
           <Route path="/login" element={<AppLayout><Login /></AppLayout>} />
           <Route path="/register" element={<AppLayout><Register /></AppLayout>} />
-          <Route path="/questions" element={<AppLayout><Questions /></AppLayout>} />
+          <Route path="/sheets" element={<AppLayout><Sheets /></AppLayout>} />
           <Route path="/exams" element={<AppLayout><Exams /></AppLayout>} />
           <Route path="/exam/:id" element={<AuthProvider><Exam /></AuthProvider>} />
           <Route path="/practice/:id" element={<AuthProvider><Practice /></AuthProvider>} />
