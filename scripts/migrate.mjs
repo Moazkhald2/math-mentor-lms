@@ -32,6 +32,7 @@ const migrationFiles = [
   'supabase/migration-2026-07-29-geometry-exam.sql',
   'supabase/migration-2026-07-29-image-url.sql',
   'supabase/migration-2026-07-29-parent-telegram.sql',
+  'supabase/migration-006-question-params.sql',
 ]
 
 async function runMigrations() {
