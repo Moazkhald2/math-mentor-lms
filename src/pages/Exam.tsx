@@ -4,7 +4,8 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { fetchExamQuestions, fetchVariantPool, startAttempt, submitAnswer, completeAttempt, saveAnswer, fetchStudentAttempts, cooldownRemainingMs, getBestScore } from '../lib/exams'
 import { supabase } from '../lib/supabase'
-import { seededShuffle, shuffleMultipleChoice, jitterQuestion } from '../lib/shuffle'
+import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
+import { applyTemplate } from '../lib/params'
 import { resolveVariant } from '../lib/variants'
 import AntiCheatGuard from '../components/AntiCheatGuard'
 import Watermark from '../components/Watermark'
@@ -140,11 +141,11 @@ export default function Exam() {
         question.options = options
         question.correct_answer = correctAnswer
       }
-      // Numeric jitter per attempt + date to prevent sharing (softcute: keep numbers fresh)
-      const jittered = jitterQuestion(question as any, fullSeed + question.id)
-      question.question_text = jittered.question_text
-      question.options = jittered.options
-      if (question.type === 'short_answer') question.correct_answer = jittered.correct_answer
+      // Param templates (consistent seeded numbers) with legacy jitter fallback
+      const templated = applyTemplate(question as any, fullSeed + question.id)
+      question.question_text = templated.question_text
+      question.options = templated.options
+      if (question.type === 'short_answer') question.correct_answer = templated.correct_answer
       return { ...eq, question }
     })
     return resolved
