@@ -16,7 +16,7 @@ interface AttemptMini {
   status: string
 }
 
-export default function StudentsView() {
+export default function StudentsView({ grade }: { grade?: number }) {
   const [search, setSearch] = useState('')
 
   const studentsQ = useQuery({
@@ -56,7 +56,9 @@ export default function StudentsView() {
     return byUser
   }, [attemptsQ.data])
 
-  const students = (studentsQ.data ?? []).filter((s) =>
+  const students = (studentsQ.data ?? [])
+    .filter((s) => !grade || s.grade === grade)
+    .filter((s) =>
     s.full_name.toLowerCase().includes(search.trim().toLowerCase()),
   )
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 export default function TeacherDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [gradeFilter, setGradeFilter] = useState<number | undefined>(undefined)
 
   const roleQ = useQuery({
     queryKey: ['td-role', user?.id],
@@ -37,15 +38,33 @@ export default function TeacherDashboard() {
   return (
     <div className="mx-auto max-w-6xl p-4 sm:p-6">
       <header className="mb-6">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-ink">
-          Teacher Command Center
-        </h1>
-        <p className="mt-1 text-sm text-text-muted">
-          Live view of your exams, students and question bank.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="font-display text-3xl font-bold tracking-tight text-ink">
+              Teacher Command Center
+            </h1>
+            <p className="mt-1 text-sm text-text-muted">
+              Live view of your exams, students and question bank.
+            </p>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <span className="font-medium text-text-muted">Grade</span>
+            <select
+              aria-label="Filter command center by grade"
+              className="input rounded-lg border border-border bg-surface px-3 py-1.5"
+              value={gradeFilter ?? ''}
+              onChange={(e) => setGradeFilter(e.target.value ? Number(e.target.value) : undefined)}
+            >
+              <option value="">All grades</option>
+              {[4, 5, 6, 7, 8, 9, 10].map((g) => (
+                <option key={g} value={g}>Grade {g}</option>
+              ))}
+            </select>
+          </label>
+        </div>
       </header>
 
-      <Tabs defaultValue="overview">
+      <Tabs defaultValue="overview" key={gradeFilter ?? 'all'}>
         <TabsList aria-label="Teacher dashboard sections">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="students">Students</TabsTrigger>
@@ -53,13 +72,13 @@ export default function TeacherDashboard() {
           <TabsTrigger value="bank">Question Bank</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
-          <OverviewView userId={user.id} />
+          <OverviewView userId={user.id} grade={gradeFilter} />
         </TabsContent>
         <TabsContent value="students">
-          <StudentsView />
+          <StudentsView grade={gradeFilter} />
         </TabsContent>
         <TabsContent value="exams">
-          <ExamsView userId={user.id} />
+          <ExamsView userId={user.id} grade={gradeFilter} />
         </TabsContent>
         <TabsContent value="bank">
           <BankView />
