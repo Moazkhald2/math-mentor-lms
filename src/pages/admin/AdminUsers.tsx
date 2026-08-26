@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import { GRADES } from '../../components/ui/filters'
 
 export default function AdminUsers() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
+  const [gradeSel, setGradeSel] = useState<number | ''>('')
+  const [classSel, setClassSel] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
   useEffect(() => {
@@ -47,8 +50,18 @@ export default function AdminUsers() {
 
   const filtered = (users ?? []).filter(u => {
     if (roleFilter && u.role !== roleFilter) return false
+    if (gradeSel !== '' && u.grade !== gradeSel) return false
+    if (classSel && u.class_code !== classSel) return false
     return true
   })
+
+  const classOptions = useMemo(() => {
+    const codes = new Set<string>()
+    for (const u of users ?? []) {
+      if ((!gradeSel || u.grade === gradeSel) && u.class_code) codes.add(u.class_code)
+    }
+    return [...codes].sort()
+  }, [users, gradeSel])
 
   return (
     <div>
@@ -77,6 +90,32 @@ export default function AdminUsers() {
           <option value="teacher">Teacher</option>
           <option value="admin">Admin</option>
         </select>
+        <select
+          aria-label="Filter by grade"
+          className="input min-w-[130px]"
+          value={gradeSel}
+          onChange={(e) => { setGradeSel(e.target.value ? Number(e.target.value) : ''); setClassSel('') }}
+        >
+          <option value="">All grades</option>
+          {GRADES.map((g) => <option key={g} value={g}>Grade {g}</option>)}
+        </select>
+        <select
+          aria-label="Filter by class"
+          className="input min-w-[130px]"
+          value={classSel}
+          onChange={(e) => setClassSel(e.target.value)}
+        >
+          <option value="">All classes</option>
+          {classOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        {(gradeSel !== '' || classSel) && (
+          <button
+            onClick={() => { setGradeSel(''); setClassSel('') }}
+            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:border-brand hover:text-brand"
+          >
+            ✕ Clear filters
+          </button>
+        )}
       </div>
 
       {isLoading && <p className="text-text-muted">Loading...</p>}

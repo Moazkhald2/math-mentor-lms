@@ -2,6 +2,13 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import type { Question } from '../../types'
+import {
+  FilterBar,
+  attemptResult,
+  matchesStudentFilters,
+  useStudentGradeMap,
+  type FilterState,
+} from '../../components/ui/filters'
 
 function answerDisplay(answer: string, question: Question): string {
   if (!answer) return '(none)'
@@ -16,14 +23,16 @@ function answerDisplay(answer: string, question: Question): string {
 
 export default function AdminAttempts() {
   const [statusFilter, setStatusFilter] = useState('')
+  const [filters, setFilters] = useState<FilterState>({})
   const [expanded, setExpanded] = useState<string | null>(null)
+  const { byUser } = useStudentGradeMap()
 
   const { data: attempts } = useQuery({
     queryKey: ['admin-attempts'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('exam_attempts')
-        .select('*, profiles!inner(email, full_name, grade), exams!inner(title, type)')
+        .select('*, profiles!inner(email, full_name, grade), exams!inner(title, type, passing_score)')
         .order('started_at', { ascending: false })
         .limit(100)
       if (error) throw error
@@ -44,11 +53,20 @@ export default function AdminAttempts() {
     enabled: !!expanded,
   })
 
-  const filtered = (attempts ?? []).filter((a: any) => !statusFilter || a.status === statusFilter)
+  const filtered = (attempts ?? []).filter((a: any) => {
+    if (statusFilter && a.status !== statusFilter) return false
+    if (!matchesStudentFilters(a.user_id, filters, byUser)) return false
+    if (filters.status) {
+      const result = attemptResult(a.score, a.total_points || 100, a.exams?.passing_score ?? 60)
+      if (result !== filters.status) return false
+    }
+    return true
+  })
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-black text-text">Attempts</h1>
+      <FilterBar filters={filters} onChange={setFilters} showStatus />
       <div className="mb-4 flex gap-3">
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-ink">
           <option value="">All status</option>

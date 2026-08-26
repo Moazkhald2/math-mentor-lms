@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import { FilterBar, type FilterState } from '../../components/ui/filters'
 
 export default function AdminExams() {
   const queryClient = useQueryClient()
   const [typeFilter, setTypeFilter] = useState('')
+  const [filters, setFilters] = useState<FilterState>({})
   const [showTemplates, setShowTemplates] = useState(false)
   const [editingExam, setEditingExam] = useState<any>(null)
   const [showBulk, setShowBulk] = useState(false)
@@ -74,7 +76,10 @@ export default function AdminExams() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-exams'] }),
   })
 
-  const filtered = (exams ?? []).filter(e => !typeFilter || e.type === typeFilter)
+  const filtered = (exams ?? []).filter(e =>
+    (!typeFilter || e.type === typeFilter) &&
+    (!filters.grade || e.grade === filters.grade)
+  )
 
   return (
     <div>
@@ -84,6 +89,7 @@ export default function AdminExams() {
           <button onClick={() => setShowBulk(true)} className="rounded-lg border border-border px-4 py-2 text-sm text-text-muted hover:text-text">Bulk Schedule</button>
         </div>
       </div>
+      <FilterBar filters={filters} onChange={setFilters} />
       <div className="mb-4 flex flex-wrap gap-3">
         <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-ink">
           <option value="">All types</option>

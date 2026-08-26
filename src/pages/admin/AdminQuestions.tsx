@@ -1,12 +1,16 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import LatexRenderer from '../../components/LatexRenderer'
+import { GRADES } from '../../components/ui/filters'
 
 export default function AdminQuestions() {
   const queryClient = useQueryClient()
   const [typeFilter, setTypeFilter] = useState('')
   const [diffFilter, setDiffFilter] = useState<number | null>(null)
+  const [gradeSel, setGradeSel] = useState<number | ''>('')
+  const [subjectSel, setSubjectSel] = useState('')
+  const [topicSel, setTopicSel] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
 
   const { data: questions } = useQuery({
@@ -20,14 +24,72 @@ export default function AdminQuestions() {
 
   const filtered = (questions ?? []).filter(q =>
     (!typeFilter || q.type === typeFilter) &&
-    (!diffFilter || q.difficulty === diffFilter)
+    (!diffFilter || q.difficulty === diffFilter) &&
+    (!gradeSel || q.grade === gradeSel) &&
+    (!subjectSel || q.subject === subjectSel) &&
+    (!topicSel || q.topic === topicSel)
   )
+
+  const cascadeSubjects = useMemo(() => {
+    const subjects = new Set<string>()
+    for (const q of questions ?? []) {
+      if ((!gradeSel || q.grade === gradeSel) && q.subject) subjects.add(q.subject)
+    }
+    return [...subjects].sort()
+  }, [questions, gradeSel])
+
+  const cascadeTopics = useMemo(() => {
+    const topics = new Set<string>()
+    for (const q of questions ?? []) {
+      if ((!gradeSel || q.grade === gradeSel) && (!subjectSel || q.subject === subjectSel) && q.topic) topics.add(q.topic)
+    }
+    return [...topics].sort()
+  }, [questions, gradeSel, subjectSel])
+
+  const cascadeActive = gradeSel !== '' || subjectSel !== '' || topicSel !== ''
 
   const selectedQ = selected ? filtered.find(q => q.id === selected) : null
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-black text-text">Questions</h1>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <select
+          aria-label="Filter by grade"
+          className="input min-w-[130px]"
+          value={gradeSel}
+          onChange={e => { setGradeSel(e.target.value ? Number(e.target.value) : ''); setSubjectSel(''); setTopicSel('') }}
+        >
+          <option value="">All grades</option>
+          {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
+        </select>
+        <select
+          aria-label="Filter by subject"
+          className="input min-w-[130px]"
+          value={subjectSel}
+          onChange={e => { setSubjectSel(e.target.value); setTopicSel('') }}
+        >
+          <option value="">All subjects</option>
+          {cascadeSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select
+          aria-label="Filter by topic"
+          className="input min-w-[130px]"
+          value={topicSel}
+          onChange={e => setTopicSel(e.target.value)}
+        >
+          <option value="">All topics</option>
+          {cascadeTopics.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        {cascadeActive && (
+          <button
+            onClick={() => { setGradeSel(''); setSubjectSel(''); setTopicSel('') }}
+            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:border-brand hover:text-brand"
+          >
+            ✕ Clear filters
+          </button>
+        )}
+      </div>
       <div className="mb-4 flex gap-3">
         <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-lg border border-border bg-white px-4 py-2 text-ink">
           <option value="">All types</option>
