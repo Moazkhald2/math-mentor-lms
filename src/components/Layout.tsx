@@ -59,8 +59,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </>
               ) : (
                 <>
-                  <a href="/login" className="btn btn-outline px-6 py-3 text-lg font-semibold">Sign In</a>
-                  <a href="/register" className="btn btn-primary hover-lift px-7 py-3 text-lg font-extrabold">Sign Up</a>
+                  <a href="/login" className="btn btn-outline px-8 py-4 text-xl font-bold">Sign In</a>
+                  <a href="/register" className="btn btn-primary hover-lift px-9 py-4 text-xl font-extrabold">Sign Up</a>
                 </>
               )}
             </div>
