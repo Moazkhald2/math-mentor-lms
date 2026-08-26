@@ -12,8 +12,11 @@ export function getStoredTheme(): 'light' | 'dark' {
 }
 
 export function applyTheme(t: 'light' | 'dark') {
-  document.documentElement.dataset.theme = t
+  const root = document.documentElement
+  root.classList.add('theme-fading')
+  root.dataset.theme = t
   try { localStorage.setItem(KEY, t) } catch { /* ignore */ }
+  window.setTimeout(() => root.classList.remove('theme-fading'), 350)
 }
 
 export default function ThemeToggle({ className = '' }: { className?: string }) {
