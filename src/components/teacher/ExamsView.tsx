@@ -21,7 +21,7 @@ interface AttemptMini {
   status: string
 }
 
-function buildExamReport(exam: ExamRow, stats: { count: number; avg: number | null; best: number | null }) {
+export function buildExamReport(exam: ExamRow, stats: { count: number; avg: number | null; best: number | null }) {
   const lines = [
     `📘 ${exam.title}`,
     exam.grade ? `Grade ${exam.grade}` : 'All grades',

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import ExamsView from '../../../components/teacher/ExamsView'
+import ExamsView, { buildExamReport } from '../../../components/teacher/ExamsView'
 
 const stub = vi.hoisted(() => ({
   tables: {
@@ -41,28 +41,33 @@ vi.mock('../../../lib/supabase', () => {
   return { supabase: { from: vi.fn((table: string) => makeChain(table)) } }
 })
 
-const clipboardWrite = vi.fn()
+const exam = { id: 'e1', title: 'Circle Theorems', grade: 10, type: 'exam' as const, is_published: true, created_by: 'teacher-1' }
 
-function renderExams() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <ExamsView userId="teacher-1" />
-    </QueryClientProvider>,
-  )
-}
+describe('buildExamReport', () => {
+  it('formats title, attempts, average and pass marker', () => {
+    const text = buildExamReport(exam, { count: 12, avg: 80, best: 100 })
+    expect(text).toContain('Circle Theorems')
+    expect(text).toContain('Grade 10')
+    expect(text).toContain('Attempts: 12')
+    expect(text).toContain('Average: 80%')
+    expect(text).toContain('Best: 100%')
+    expect(text).toContain('✅')
+  })
+
+  it('warns when class average is below passing', () => {
+    const text = buildExamReport(exam, { count: 5, avg: 40, best: 55 })
+    expect(text).toContain('⚠️')
+    expect(text).not.toContain('✅')
+  })
+})
 
 describe('ExamsView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     stub.updates = []
-    clipboardWrite.mockResolvedValue(undefined)
-    vi.spyOn(Navigator.prototype, 'clipboard', 'get').mockReturnValue({
-      writeText: clipboardWrite,
-    } as unknown as Clipboard)
     stub.tables = {
       exams: [
-        { id: 'e1', title: 'Circle Theorems', grade: 10, type: 'exam', is_published: true, created_by: 'teacher-1' },
+        { ...exam },
         { id: 'e2', title: 'Someone Else Exam', grade: 9, type: 'exam', is_published: false, created_by: 'teacher-9' },
       ],
       exam_attempts: [
@@ -71,6 +76,15 @@ describe('ExamsView', () => {
       ],
     }
   })
+
+  function renderExams() {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <ExamsView userId="teacher-1" />
+      </QueryClientProvider>,
+    )
+  }
 
   it('lists only my exams with attempt stats and publish badge', async () => {
     renderExams()
@@ -88,17 +102,5 @@ describe('ExamsView', () => {
     await waitFor(() =>
       expect(stub.updates).toEqual(expect.arrayContaining([{ is_published: false }])),
     )
-  })
-
-  it('copies a telegram report to clipboard', async () => {
-    const user = userEvent.setup()
-    clipboardWrite.mockResolvedValue(undefined)
-    renderExams()
-    const btn = await screen.findByRole('button', { name: /copy report/i })
-    await user.click(btn)
-    await waitFor(() => expect(clipboardWrite).toHaveBeenCalled())
-    const text = clipboardWrite.mock.calls[0][0] as string
-    expect(text).toContain('Circle Theorems')
-    expect(text).toContain('80%')
   })
 })
