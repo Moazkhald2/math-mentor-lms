@@ -41,7 +41,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-6">
             <button onClick={handleLogo} className="flex cursor-pointer items-center gap-2" aria-label="Go to dashboard">
-              <img src="/logo-main.png" alt="The Math Mentor" className="h-10 w-auto rounded-xl bg-white p-1.5 shadow-sm transition-transform duration-150 hover:scale-105" />
+              <img src="/logo-main.png" alt="The Math Mentor" className="h-10 w-auto rounded-2xl bg-white p-2.5 shadow-sm transition-transform duration-150 hover:scale-105" />
             </button>
             <div className="hidden gap-6 md:flex">
               <a href="/sheets" className={navLink}>Sheets</a>
@@ -59,8 +59,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </>
               ) : (
                 <>
-                  <a href="/login" className="btn btn-outline px-8 py-4 text-xl font-bold">Sign In</a>
-                  <a href="/register" className="btn btn-primary hover-lift px-9 py-4 text-xl font-extrabold">Sign Up</a>
+                  <a href="/login" className="btn btn-outline px-5 py-2.5 text-base font-semibold">Sign In</a>
+                  <a href="/register" className="btn btn-primary hover-lift px-6 py-2.5 text-base font-bold">Sign Up</a>
                 </>
               )}
             </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { isValidEmailFormat } from '../lib/validation'
 import { useToast } from '../hooks/useToast'
 
 export default function Login() {
@@ -21,6 +22,10 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isValidEmailFormat(email)) {
+      setError('Please enter a valid email like name@example.com.')
+      return
+    }
     setSubmitting(true)
     setError(null)
     const err = await signIn(email, password)

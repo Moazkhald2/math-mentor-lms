@@ -19,3 +19,15 @@ export function isValidPassword(pw: string): boolean {
 export function isValidPhone(phone: string): boolean {
   return /^\+?\d{8,15}$/.test(phone.trim())
 }
+
+/** Strict email shape: local@domain.tld (2+ letter TLD), no spaces. */
+export function isValidEmailFormat(email: string): boolean {
+  const re = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+  return re.test(email.trim()) && !email.includes('..')
+}
+
+/** Names: letters (incl. Arabic ranges), spaces, hyphens, apostrophes; 2–40 chars. */
+export function isValidName(name: string): boolean {
+  const re = /^[\p{L}\p{M}' -]{2,40}$/u
+  return re.test(name.trim())
+}

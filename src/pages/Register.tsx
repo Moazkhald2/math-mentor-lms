@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { isDisposableEmail, isValidPassword, isValidPhone } from '../lib/validation'
+import { isDisposableEmail, isValidPassword, isValidPhone, isValidEmailFormat, isValidName } from '../lib/validation'
 
 export default function Register() {
   const { signUp } = useAuth()
@@ -19,7 +19,9 @@ export default function Register() {
     e.preventDefault()
     setError(null)
 
-    if (!firstName.trim() || !lastName.trim()) return setError('Please enter your first and last name.')
+    if (!isValidName(firstName) || !isValidName(lastName))
+      return setError('Names must be 2-40 letters (spaces/hyphens allowed).')
+    if (!isValidEmailFormat(email)) return setError('Please enter a valid email like name@example.com.')
     if (isDisposableEmail(email)) return setError('Please use a real email address � temporary emails are not allowed.')
     if (!isValidPassword(password)) return setError('Password must be at least 8 characters and include a letter and a number.')
     if (!isValidPhone(parentPhone)) return setError('Parent phone is required so we can send progress reports. Format: +201012345678')
@@ -53,24 +55,24 @@ export default function Register() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-first">First Name *</label>
-            <input id="reg-first" name="firstName" type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+            <input id="reg-first" name="firstName" type="text" maxLength={40} value={firstName} onChange={e => setFirstName(e.target.value)}
               className={inputCls} required autoComplete="given-name" />
           </div>
           <div>
             <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-last">Last Name *</label>
-            <input id="reg-last" name="lastName" type="text" value={lastName} onChange={e => setLastName(e.target.value)}
+            <input id="reg-last" name="lastName" type="text" maxLength={40} value={lastName} onChange={e => setLastName(e.target.value)}
               className={inputCls} required autoComplete="family-name" />
           </div>
         </div>
         <div>
           <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-email">Email *</label>
-          <input id="reg-email" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
+          <input id="reg-email" name="email" type="email" maxLength={254} value={email} onChange={e => setEmail(e.target.value)}
             className={inputCls} required autoComplete="email" />
           <p className="mt-1 text-xs text-text-muted">Must be a real email � you'll confirm it by clicking a link.</p>
         </div>
         <div>
           <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-password">Password *</label>
-          <input id="reg-password" name="password" type="password" value={password} onChange={e => setPassword(e.target.value)}
+          <input id="reg-password" name="password" type="password" maxLength={128} value={password} onChange={e => setPassword(e.target.value)}
             className={inputCls}
             minLength={8} required autoComplete="new-password" />
           <p className="mt-1 text-xs text-text-muted">At least 8 characters, with a letter and a number.</p>
@@ -99,7 +101,7 @@ export default function Register() {
 
         <div>
           <label htmlFor="reg-phone" className="mb-1 block text-sm text-text-muted">Parent Phone * <span className="text-xs">(for progress reports via Telegram)</span></label>
-          <input id="reg-phone" name="parentPhone" type="tel" value={parentPhone} onChange={e => setParentPhone(e.target.value)}
+          <input id="reg-phone" name="parentPhone" type="tel" maxLength={16} value={parentPhone} onChange={e => setParentPhone(e.target.value)}
             placeholder="+201012345678"
             className={inputCls} required autoComplete="tel" />
         </div>

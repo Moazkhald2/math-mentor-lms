@@ -17,10 +17,10 @@ export default function WeakPointsCard() {
   const weakSubjects = subjects.filter(s => s.accuracy < 70)
 
   return (
-    <div className="card border border-border">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="rounded-2xl border border-hairline bg-surface p-6 shadow-[rgba(0,0,0,0.04)_0px_4px_20px]">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-primary">Weak Points</h2>
-        <Link to="/weak-points" className="text-sm text-brand hover:underline">View Details →</Link>
+        <Link to="/weak-points" className="shrink-0 text-sm text-brand hover:underline">View Details →</Link>
       </div>
       <div className="space-y-3">
         {weakSubjects.length === 0 ? (
