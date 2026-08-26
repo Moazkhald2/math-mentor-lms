@@ -33,7 +33,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     setMenuOpen(false)
   }
 
-  const navLink = 'text-sm font-medium text-text-muted transition-colors duration-150 hover:text-brand'
+  const navLink = 'text-base font-medium text-text-muted transition-colors duration-150 hover:text-brand'
 
   return (
     <div className="flex min-h-screen flex-col bg-primary text-primary">
@@ -41,7 +41,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-6">
             <button onClick={handleLogo} className="flex cursor-pointer items-center gap-2" aria-label="Go to dashboard">
-              <img src="/logo-main.png" alt="The Math Mentor" className="h-8 w-auto rounded-lg p-0.5 transition-transform duration-150 hover:scale-105 dark:bg-white" />
+              <img src="/logo-main.png" alt="The Math Mentor" className="h-9 w-auto rounded-lg p-0.5 transition-transform duration-150 hover:scale-105 dark:bg-white" />
             </button>
             <div className="hidden gap-6 md:flex">
               <a href="/questions" className={navLink}>Questions</a>
