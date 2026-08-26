@@ -37,6 +37,8 @@ vi.mock('../../components/LatexRenderer', () => ({
 vi.mock('../../lib/shuffle', () => ({
   seededShuffle: (arr: any[]) => [...arr],
   shuffleMultipleChoice: (opts: string[], correct: string) => ({ options: opts, correctAnswer: correct }),
+  jitterQuestion: (q: any) => ({ question_text: q.question_text, options: q.options ?? [], correct_answer: q.correct_answer }),
+  hashString: (s: string) => s.length,
 }))
 
 import { supabase } from '../../lib/supabase'

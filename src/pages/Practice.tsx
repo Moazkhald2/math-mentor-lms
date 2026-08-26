@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useActivityLogger } from '../hooks/useActivityLogger'
 import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
+import { applyTemplate } from '../lib/params'
 import LatexRenderer from '../components/LatexRenderer'
 import type { Exam, ExamQuestion, Question, ExamAttempt } from '../types'
 
@@ -23,8 +24,14 @@ export default function Practice() {
   const [initError, setInitError] = useState<string | null>(null)
   const correctCountRef = useRef(0)
   const startedRef = useRef(false)
+  const [questionOverrides, setQuestionOverrides] = useState<Record<string, Question>>({})
+  const retryCountsRef = useRef<Record<string, number>>({})
+  const scoredQuestionsRef = useRef<Set<string>>(new Set())
 
-  type ExamWithQuestions = Exam & { questions: (ExamQuestion & { question: Question })[] }
+  type ExamWithQuestions = Exam & {
+    questions: (ExamQuestion & { question: Question })[]
+    bases: Record<string, Question>
+  }
 
   const { data: exam } = useQuery<ExamWithQuestions>({
     queryKey: ['practice', id],
@@ -38,16 +45,24 @@ export default function Practice() {
       const shuffled = examResult.data.shuffle_questions
         ? seededShuffle(rawQuestions, seed + '_questions')
         : [...rawQuestions]
+      const bases: Record<string, Question> = {}
+      for (const eq of shuffled) bases[eq.question.id] = eq.question
       const mapped = shuffled.map(eq => {
-        if (eq.question.type === 'multiple_choice' && eq.question.options.length > 0) {
+        // Resolve param templates first so substituted values feed option shuffling
+        const templated = applyTemplate(
+          eq.question as unknown as { question_text: string; options: string[]; correct_answer: string; type: string },
+          `${seed}::${eq.question.id}`,
+        ) as Partial<Question>
+        const question: Question = { ...eq.question, ...templated }
+        if (question.type === 'multiple_choice' && question.options.length > 0) {
           const { options, correctAnswer } = shuffleMultipleChoice(
-            eq.question.options, eq.question.correct_answer, seed + eq.question.id
+            question.options, question.correct_answer, seed + question.id
           )
-          return { ...eq, question: { ...eq.question, options, correct_answer: correctAnswer } }
+          return { ...eq, question: { ...question, options, correct_answer: correctAnswer } }
         }
-        return eq
+        return { ...eq, question }
       })
-      return { ...(examResult.data as Exam), questions: mapped }
+      return { ...(examResult.data as Exam), questions: mapped, bases }
     },
     enabled: !!id,
   })
@@ -83,18 +98,40 @@ export default function Practice() {
   const current = eqs[currentIndex]
   if (!current) return <p className="text-text-muted">Loading question...</p>
 
+  const activeQuestion = questionOverrides[current.question.id] ?? current.question
+
+  const isRetryable = !!activeQuestion.params && Object.keys(activeQuestion.params).length > 0
+
+  const handleRetry = () => {
+    const qid = current.question.id
+    const base = exam.bases[qid] ?? current.question
+    const n = (retryCountsRef.current[qid] ?? 0) + 1
+    retryCountsRef.current[qid] = n
+    const fresh = applyTemplate(
+      base as unknown as { question_text: string; options: string[]; correct_answer: string; type: string },
+      `${id ?? 'practice_default'}::${qid}::r${n}`,
+    ) as Partial<Question>
+    setQuestionOverrides(prev => ({ ...prev, [qid]: { ...current.question, ...fresh } }))
+    setSelectedAnswer(null)
+    setSubmitted(false)
+  }
+
   const handleSubmit = async () => {
     if (!selectedAnswer || !attemptRef.current) return
     setSaving(true)
     const ans = selectedAnswer ?? ''
-    const correct = current.question.type === 'short_answer'
-      ? ans.trim().toLowerCase() === current.question.correct_answer.trim().toLowerCase()
-      : ans === current.question.correct_answer
+    const correct = activeQuestion.type === 'short_answer'
+      ? ans.trim().toLowerCase() === activeQuestion.correct_answer.trim().toLowerCase()
+      : ans === activeQuestion.correct_answer
     try {
-      await upsertAnswer(attemptRef.current.id, current.question.id, ans, correct, correct ? 1 : 0)
-      if (correct) correctCountRef.current++
+      // First submission per question is scored; template retries are practice-only
+      if (!scoredQuestionsRef.current.has(activeQuestion.id)) {
+        scoredQuestionsRef.current.add(activeQuestion.id)
+        await upsertAnswer(attemptRef.current.id, activeQuestion.id, ans, correct, correct ? 1 : 0)
+        if (correct) correctCountRef.current++
+      }
       setSubmitted(true)
-      log('practice_answered', { question_id: current.question.id, correct, answer_given: selectedAnswer })
+      log('practice_answered', { question_id: activeQuestion.id, correct, answer_given: selectedAnswer })
     } catch (e) {
       console.error('Failed to save answer', e)
     } finally {
@@ -131,18 +168,18 @@ export default function Practice() {
       </div>
 
       <div className="mb-6 rounded-xl border border-border bg-surface p-6">
-        {current.question.image_url && (
+        {activeQuestion.image_url && (
           <div className="mb-4 flex justify-center">
-            <img src={current.question.image_url} alt="Diagram" className="max-h-48 rounded-lg" />
+            <img src={activeQuestion.image_url} alt="Diagram" className="max-h-48 rounded-lg" />
           </div>
         )}
-        <p className="mb-6 text-lg font-medium text-text"><LatexRenderer content={current.question.question_text} /></p>
+        <p className="mb-6 text-lg font-medium text-text"><LatexRenderer content={activeQuestion.question_text} /></p>
 
-        {current.question.type === 'multiple_choice' && current.question.options.map((opt, i) => (
+        {activeQuestion.type === 'multiple_choice' && activeQuestion.options.map((opt, i) => (
           <button key={i} onClick={() => !submitted && setSelectedAnswer(String(i))}
             className={`mb-2 block w-full rounded-lg border p-4 text-left transition ${
               submitted
-                ? String(i) === current.question.correct_answer ? 'border-accent-green bg-accent-green/5'
+                ? String(i) === activeQuestion.correct_answer ? 'border-accent-green bg-accent-green/5'
                   : selectedAnswer === String(i) ? 'border-danger bg-danger/5' : 'border-border'
                 : selectedAnswer === String(i) ? 'border-brand bg-brand/5' : 'border-border hover:border-brand/50'
             }`}
@@ -151,11 +188,11 @@ export default function Practice() {
           </button>
         ))}
 
-        {current.question.type === 'true_false' && ['true', 'false'].map(opt => (
+        {activeQuestion.type === 'true_false' && ['true', 'false'].map(opt => (
           <button key={opt} onClick={() => !submitted && setSelectedAnswer(opt)}
             className={`mb-2 block w-full rounded-lg border p-4 text-left transition ${
               submitted
-                ? opt === current.question.correct_answer ? 'border-accent-green bg-accent-green/5'
+                ? opt === activeQuestion.correct_answer ? 'border-accent-green bg-accent-green/5'
                   : selectedAnswer === opt ? 'border-danger bg-danger/5' : 'border-border'
                 : selectedAnswer === opt ? 'border-brand bg-brand/5' : 'border-border hover:border-brand/50'
             }`}
@@ -164,7 +201,7 @@ export default function Practice() {
           </button>
         ))}
 
-        {current.question.type === 'short_answer' && (
+        {activeQuestion.type === 'short_answer' && (
           <input value={selectedAnswer ?? ''} onChange={e => !submitted && setSelectedAnswer(e.target.value)}
             placeholder="Type your answer..." className="w-full rounded-lg border border-border bg-white px-4 py-3 text-ink"
             disabled={submitted}
@@ -175,43 +212,54 @@ export default function Practice() {
       {submitted && (
         <div className={`mb-6 rounded-xl border p-4 ${
           selectedAnswer !== null && (
-            current.question.type === 'short_answer'
-              ? selectedAnswer.trim().toLowerCase() === current.question.correct_answer.trim().toLowerCase()
-              : selectedAnswer === current.question.correct_answer
+            activeQuestion.type === 'short_answer'
+              ? selectedAnswer.trim().toLowerCase() === activeQuestion.correct_answer.trim().toLowerCase()
+              : selectedAnswer === activeQuestion.correct_answer
           ) ? 'border-accent-green bg-accent-green/5' : 'border-danger bg-danger/5'
         }`}>
           <p className={`font-bold ${
             selectedAnswer !== null && (
-              current.question.type === 'short_answer'
-                ? selectedAnswer.trim().toLowerCase() === current.question.correct_answer.trim().toLowerCase()
-                : selectedAnswer === current.question.correct_answer
+              activeQuestion.type === 'short_answer'
+                ? selectedAnswer.trim().toLowerCase() === activeQuestion.correct_answer.trim().toLowerCase()
+                : selectedAnswer === activeQuestion.correct_answer
             ) ? 'text-accent-green' : 'text-danger'
           }`}>
             {selectedAnswer !== null && (
-              current.question.type === 'short_answer'
-                ? selectedAnswer.trim().toLowerCase() === current.question.correct_answer.trim().toLowerCase()
-                : selectedAnswer === current.question.correct_answer
+              activeQuestion.type === 'short_answer'
+                ? selectedAnswer.trim().toLowerCase() === activeQuestion.correct_answer.trim().toLowerCase()
+                : selectedAnswer === activeQuestion.correct_answer
             ) ? 'Correct!' : 'Wrong'}
           </p>
           {selectedAnswer !== null && !(
-            current.question.type === 'short_answer'
-              ? selectedAnswer.trim().toLowerCase() === current.question.correct_answer.trim().toLowerCase()
-              : selectedAnswer === current.question.correct_answer
-          ) && <p className="text-sm text-accent-green mt-1">Correct answer: {current.question.type === 'multiple_choice' ? current.question.options[parseInt(current.question.correct_answer)] || current.question.correct_answer : current.question.correct_answer}</p>}
-          <p className="mt-1 text-sm text-text-muted"><LatexRenderer content={current.question.explanation} /></p>
+            activeQuestion.type === 'short_answer'
+              ? selectedAnswer.trim().toLowerCase() === activeQuestion.correct_answer.trim().toLowerCase()
+              : selectedAnswer === activeQuestion.correct_answer
+          ) && <p className="text-sm text-accent-green mt-1">Correct answer: {activeQuestion.type === 'multiple_choice' ? activeQuestion.options[parseInt(activeQuestion.correct_answer)] || activeQuestion.correct_answer : activeQuestion.correct_answer}</p>}
+          <p className="mt-1 text-sm text-text-muted"><LatexRenderer content={activeQuestion.explanation} /></p>
         </div>
       )}
 
-      <div className="flex justify-between">
-        {submitted
-          ? <button onClick={handleNext} className="rounded-lg bg-brand px-6 py-2 font-semibold text-white">
+      <div className="flex justify-between gap-2">
+        {submitted ? (
+          <>
+            {isRetryable && (
+              <button
+                onClick={handleRetry}
+                className="rounded-lg border border-brand bg-brand/5 px-4 py-2 font-medium text-ink hover:bg-brand/10"
+              >
+                ↻ Try new numbers (not scored)
+              </button>
+            )}
+            <button onClick={handleNext} className="ml-auto rounded-lg bg-brand px-6 py-2 font-semibold text-white">
               {currentIndex < eqs.length - 1 ? 'Next Question →' : 'See Results'}
             </button>
-          : <button onClick={handleSubmit} disabled={!selectedAnswer || saving}
-              className="rounded-lg bg-brand px-6 py-2 font-semibold text-white disabled:opacity-50">
+          </>
+        ) : (
+          <button onClick={handleSubmit} disabled={!selectedAnswer || saving}
+              className="ml-auto rounded-lg bg-brand px-6 py-2 font-semibold text-white disabled:opacity-50">
               {saving ? 'Saving...' : 'Submit Answer'}
             </button>
-        }
+        )}
       </div>
     </div>
   )
