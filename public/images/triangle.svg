@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 280" fill="none">
-  <style>text.l { font-family: 'Montserrat', sans-serif; fill: #f1f5f9; font-size: 16px; font-weight: bold; }
-        text.s { font-family: 'Montserrat', sans-serif; fill: #94a3b8; font-size: 13px; }</style>
-  <polygon points="40,240 280,240 40,40" stroke="#1982C4" stroke-width="2.5"/>
-  <rect x="40" y="220" width="20" height="20" stroke="#1982C4" stroke-width="1.5" fill="none"/>
+  <style>text.l { font-family: 'Lexend', sans-serif; fill: #f1f5f9; font-size: 16px; font-weight: bold; }
+        text.s { font-family: 'Lexend', sans-serif; fill: #94a3b8; font-size: 13px; }</style>
+  <polygon points="40,240 280,240 40,40" stroke="#0A9396" stroke-width="2.5"/>
+  <rect x="40" y="220" width="20" height="20" stroke="#0A9396" stroke-width="1.5" fill="none"/>
   <text x="155" y="235" class="l" text-anchor="middle">b</text>
   <text x="25" y="145" class="l" text-anchor="middle" transform="rotate(-90,25,145)">a</text>
-  <text x="175" y="130" class="l" fill="#E8BB1A" text-anchor="middle" transform="rotate(-53,175,130)">c</text>
+  <text x="175" y="130" class="l" fill="#D4A373" text-anchor="middle" transform="rotate(-53,175,130)">c</text>
   <text x="285" y="245" class="s">C</text>
   <text x="30" y="258" class="s">A</text>
   <text x="25" y="35" class="s">B</text>

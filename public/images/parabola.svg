@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" fill="none">
-  <style>text.s { font-family: 'Montserrat', sans-serif; fill: #94a3b8; font-size: 12px; }</style>
+  <style>text.s { font-family: 'Lexend', sans-serif; fill: #94a3b8; font-size: 12px; }</style>
   <line x1="20" y1="150" x2="280" y2="150" stroke="#334155" stroke-width="1.5"/>
   <line x1="150" y1="20" x2="150" y2="280" stroke="#334155" stroke-width="1.5"/>
   <polygon points="278,150 285,153 285,147" fill="#94a3b8"/>
@@ -7,5 +7,5 @@
   <text x="282" y="170" class="s">x</text>
   <text x="155" y="18" class="s">y</text>
   <text x="145" y="170" class="s">O</text>
-  <path d="M20,280 Q150,20 280,280" stroke="#1982C4" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M20,280 Q150,20 280,280" stroke="#0A9396" stroke-width="2.5" fill="none" stroke-linecap="round"/>
 </svg>
