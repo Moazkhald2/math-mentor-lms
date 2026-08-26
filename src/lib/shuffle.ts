@@ -7,7 +7,7 @@ export function hashString(str: string): number {
   return Math.abs(hash)
 }
 
-function mulberry32(seed: number): () => number {
+export function mulberry32(seed: number): () => number {
   let state = seed | 0
   return () => {
     state = state + 0x6D2B79F5 | 0
