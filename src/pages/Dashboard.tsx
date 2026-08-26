@@ -268,10 +268,12 @@ export default function Dashboard() {
       )}
 
       <details className="mb-8 rounded-xl border border-border bg-surface">
-        <summary className="flex cursor-pointer items-center justify-between px-6 py-4">
+        <summary className="cursor-pointer list-none px-6 py-4">
           <span className="text-lg font-bold text-text">Recent Attempts ({attempts?.length ?? 0})</span>
-          <a href="/exams" className="text-sm text-brand hover:underline" onClick={(e) => e.stopPropagation()}>Browse exams →</a>
         </summary>
+        <div className="flex justify-end px-6 pb-1">
+          <a href="/exams" className="text-sm text-brand hover:underline">Browse exams →</a>
+        </div>
         <div className="px-6 pb-5">
       {attempts && attempts.length === 0 && (
         <div className="rounded-xl border border-border bg-surface p-8 text-center">

@@ -1,3 +1,4 @@
+@layer components {
 /* ============================================
    BASE STYLES (used across all themes)
    Component styles (.btn, .card, .input, etc.)
@@ -165,3 +166,5 @@ a:not([class]):hover {
 .p-xl { padding: var(--spacing-xl); }
 .m-2xl { margin: var(--spacing-2xl); }
 .p-2xl { padding: var(--spacing-2xl); }
+
+}

@@ -1,3 +1,4 @@
+@layer components {
 /* Math Mentor LMS - Design System Tokens
    Values mirror src/index.css @theme → single source of truth for colors.
    These variables power the semantic CSS utility classes in themes.css. */
@@ -56,4 +57,6 @@
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 350ms ease;
+}
+
 }

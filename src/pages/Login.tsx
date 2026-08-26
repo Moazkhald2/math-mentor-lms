@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
@@ -48,15 +48,15 @@ export default function Login() {
 
         {resetSuccess && (
           <div className="mb-4 rounded-lg border border-accent-green/30 bg-accent-green/10 px-4 py-3 text-sm text-accent-green">
-            ✓ Password has been reset. Sign in with your new password.
+            ? Password has been reset. Sign in with your new password.
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-2 block text-base text-text-muted">Email</label>
+            <label className="mb-2 block text-base text-text-muted" htmlFor="login-email">Email</label>
             <input
-              type="email"
+              id="login-email" name="email" type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-text outline-none focus:border-brand"
@@ -64,9 +64,9 @@ export default function Login() {
             />
           </div>
           <div>
-            <label className="mb-2 block text-base text-text-muted">Password</label>
+            <label className="mb-2 block text-base text-text-muted" htmlFor="login-password">Password</label>
             <input
-              type="password"
+              id="login-password" name="password" type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-text outline-none focus:border-brand"
