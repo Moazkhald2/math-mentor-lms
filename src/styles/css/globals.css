@@ -4,21 +4,21 @@
 
 :root {
   /* Typography */
-  --font-body: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-heading: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Lexend', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Playfair Display', 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-math: 'KaTeX_Main', 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 
   /* Colors — mirror @theme in index.css */
-  --brand-primary: var(--color-brand, #112A43);
-  --brand-secondary: var(--color-brand-light, #1F4A73);
-  --brand-accent: var(--color-accent-gold, #E8BB1A);
+  --brand-primary: var(--color-brand, #0A9396);
+  --brand-secondary: var(--color-brand-light, #0A6F72);
+  --brand-accent: var(--color-accent-gold, #D4A373);
   --brand-foreground: var(--color-brand-foreground, #ffffff);
 
-  --success: var(--color-success, #00784A);
-  --accent-green: var(--color-accent-green, #00784A);
-  --warning: var(--color-warning, #E8BB1A);
-  --accent-gold: var(--color-accent-gold, #E8BB1A);
+  --success: var(--color-success, #84A98C);
+  --accent-green: var(--color-accent-green, #84A98C);
+  --warning: var(--color-warning, #D4A373);
+  --accent-gold: var(--color-accent-gold, #D4A373);
   --danger: var(--color-danger, #ef4444);
 
   /* Backgrounds */

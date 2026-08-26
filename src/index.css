@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
 @import "tailwindcss";
 
 /* ============================================
@@ -7,23 +7,24 @@
    bg-brand, text-accent-green, border-danger, etc.
    ============================================ */
 @theme {
-  --font-montserrat: 'Montserrat', sans-serif;
+  --font-display: 'Playfair Display', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'Lexend', 'Inter', system-ui, sans-serif;
 
   /* Core brand colors */
-  --color-brand: #112A43;
-  --color-brand-light: #1F4A73;
-  --color-brand-dark: #0D1F33;
+  --color-brand: #0A9396;
+  --color-brand-light: #0A6F72;
+  --color-brand-dark: #1A1A2E;
 
   --color-ink: #222C31;
   --color-ink-light: #2C3840;
 
   /* Accents (used heavily in components) */
-  --color-accent-green: #00784A;
-  --color-accent-gold: #E8BB1A;
+  --color-accent-green: #84A98C;
+  --color-accent-gold: #D4A373;
 
   /* Status colors */
-  --color-success: #00784A;
-  --color-warning: #E8BB1A;
+  --color-success: #84A98C;
+  --color-warning: #D4A373;
   --color-danger: #ef4444;
 
   /* Background tokens - Claude cream + Khan cute */
@@ -48,7 +49,7 @@
 
 /* Base styles using semantic tokens - soft cute */
 body {
-  font-family: var(--font-montserrat);
+  font-family: var(--font-body);
   background-color: var(--color-bg);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
