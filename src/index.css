@@ -63,6 +63,19 @@ body {
   background: var(--color-surface);
 }
 
+/* Unified hover system: gentle lift + shadow for cards/buttons */
+.hover-lift {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: rgba(10,147,150,0.10) 0px 6px 18px;
+}
+.card-cute.hover-lift:hover,
+.card-cute:hover.hover-lift {
+  border-color: var(--color-brand);
+}
+
 /* Khan mastery square */
 .mastery-square {
   aspect-ratio: 1;

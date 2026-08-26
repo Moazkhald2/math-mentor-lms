@@ -1,11 +1,17 @@
 ﻿import { useState, useEffect, type ReactNode } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+
+// Owner fills these later (contact placeholders)
+const CONTACT_WHATSAPP: string = '' // e.g. '+201000000000'
+const CONTACT_TELEGRAM: string = 'https://t.me/themathmentor'
+const CONTACT_EMAIL: string = 'support@themathmentor.com'
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, loading, signOut } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -20,52 +26,38 @@ export default function Layout({ children }: { children: ReactNode }) {
       })
   }, [user, loading, location.pathname])
 
-  const instaUrl = import.meta.env.VITE_INSTAGRAM_URL ?? 'https://instagram.com/themathmentor'
+  function handleLogo() {
+    navigate(user ? '/dashboard' : '/')
+    setMenuOpen(false)
+  }
+
+  const navLink = 'text-sm font-medium text-text-muted transition-colors duration-150 hover:text-brand'
 
   return (
     <div className="flex min-h-screen flex-col bg-primary text-primary">
       <header className="border-b border-border shadow-[inset_0_-2px_0_theme(colors.brand)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-6">
-            <a href="/" className="flex items-center gap-2">
-              <img src="/logo-main.png" alt="The Math Mentor" className="h-8 w-auto" />
-            </a>
+            <button onClick={handleLogo} className="flex cursor-pointer items-center gap-2" aria-label="Go to dashboard">
+              <img src="/logo-main.png" alt="The Math Mentor" className="h-8 w-auto transition-transform duration-150 hover:scale-105" />
+            </button>
             <div className="hidden gap-6 md:flex">
-              <a href="/questions" className="text-sm text-muted hover:text-primary">Questions</a>
-              <a href="/exams" className="text-sm text-muted hover:text-primary">Exams</a>
-              <a href="/dashboard" className="text-sm text-muted hover:text-primary">Dashboard</a>
-              <a href="/connect" className="text-sm text-muted hover:text-primary">Connect</a>
+              <a href="/questions" className={navLink}>Questions</a>
+              <a href="/exams" className={navLink}>Exams</a>
+              <a href="/dashboard" className={navLink}>Dashboard</a>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <a
-              href={instaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram"
-              className="hidden md:inline-flex rounded-full border border-border p-2 text-text-muted hover:border-brand hover:text-brand"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="2" width="20" height="20" rx="5" />
-                <circle cx="12" cy="12" r="5" />
-                <circle cx="18" cy="6" r="1.2" fill="currentColor" stroke="none" />
-              </svg>
-            </a>
-            <div className="hidden items-center gap-4 md:flex">
+          <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-3 md:flex">
               {loading ? null : user ? (
                 <>
-                  <a href="/profile" className="text-sm text-muted hover:text-primary">{user.user_metadata.full_name}</a>
-                  <button
-                    onClick={signOut}
-                    className="btn btn-outline"
-                  >
-                    Sign Out
-                  </button>
+                  <a href="/profile" className={navLink}>{user.user_metadata.full_name}</a>
+                  <button onClick={signOut} className="btn btn-outline">Sign Out</button>
                 </>
               ) : (
                 <>
-                  <a href="/login" className="text-sm text-muted hover:text-primary">Login</a>
-                  <a href="/register" className="btn btn-primary">Sign Up</a>
+                  <a href="/login" className="btn btn-outline px-4 py-1.5 text-sm font-semibold">Sign In</a>
+                  <a href="/register" className="btn btn-primary hover-lift px-5 py-2 text-sm font-bold">Sign Up</a>
                 </>
               )}
             </div>
@@ -87,10 +79,9 @@ export default function Layout({ children }: { children: ReactNode }) {
         {menuOpen && (
           <div className="border-t border-border bg-secondary px-4 py-4 md:hidden">
             <div className="flex flex-col gap-3">
-              <a href="/questions" className="text-sm text-muted hover:text-primary" onClick={() => setMenuOpen(false)}>Questions</a>
-              <a href="/exams" className="text-sm text-muted hover:text-primary" onClick={() => setMenuOpen(false)}>Exams</a>
-              <a href="/dashboard" className="text-sm text-muted hover:text-primary" onClick={() => setMenuOpen(false)}>Dashboard</a>
-              <a href="/connect" className="text-sm text-muted hover:text-primary" onClick={() => setMenuOpen(false)}>Connect</a>
+              <a href="/questions" className={navLink} onClick={() => setMenuOpen(false)}>Questions</a>
+              <a href="/exams" className={navLink} onClick={() => setMenuOpen(false)}>Exams</a>
+              <a href="/dashboard" className={navLink} onClick={() => setMenuOpen(false)}>Dashboard</a>
               {loading ? null : user ? (
                 <>
                   <span className="text-sm text-muted">Signed in as {user.user_metadata.full_name}</span>
@@ -98,8 +89,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </>
               ) : (
                 <>
-                  <a href="/login" className="text-sm text-muted hover:text-primary" onClick={() => setMenuOpen(false)}>Login</a>
-                  <a href="/register" className="btn btn-primary" onClick={() => setMenuOpen(false)}>Sign Up</a>
+                  <a href="/login" className="btn btn-outline w-full text-center" onClick={() => setMenuOpen(false)}>Sign In</a>
+                  <a href="/register" className="btn btn-primary w-full text-center font-bold" onClick={() => setMenuOpen(false)}>Sign Up</a>
                 </>
               )}
             </div>
@@ -107,20 +98,22 @@ export default function Layout({ children }: { children: ReactNode }) {
         )}
       </header>
       <main className="mx-auto max-w-6xl flex-1 px-4 py-6 md:px-6 md:py-8">{children}</main>
-      <footer className="border-t border-border bg-surface">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-sm text-text-muted md:flex-row md:px-6">
-          <span>© {new Date().getFullYear()} The Math Mentor — Master Math with Confidence</span>
-          <div className="flex items-center gap-4">
-            <a href="/connect" className="hover:text-brand">Connect</a>
-            <a href={instaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-brand">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="2" width="20" height="20" rx="5" />
-                <circle cx="12" cy="12" r="5" />
-                <circle cx="18" cy="6" r="1.2" fill="currentColor" stroke="none" />
-              </svg>
-              Instagram
-            </a>
-            <a href="/exams" className="hover:text-brand">Exams</a>
+      <footer id="contact" className="border-t border-border bg-surface">
+        <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-text-muted md:px-6">
+          <div className="flex flex-col justify-between gap-6 md:flex-row">
+            <div>
+              <p className="font-display text-base font-semibold text-ink">Contact</p>
+              <ul className="mt-2 space-y-1.5">
+                {CONTACT_WHATSAPP && (
+                  <li><a href={`https://wa.me/${CONTACT_WHATSAPP.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="hover:text-brand">WhatsApp: {CONTACT_WHATSAPP}</a></li>
+                )}
+                <li><a href={CONTACT_TELEGRAM} target="_blank" rel="noopener noreferrer" className="hover:text-brand">Telegram: @themathmentor</a></li>
+                <li><a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-brand">{CONTACT_EMAIL}</a></li>
+              </ul>
+            </div>
+            <div className="flex items-end">
+              <span>© {new Date().getFullYear()} The Math Mentor — Master Math with Confidence</span>
+            </div>
           </div>
         </div>
       </footer>
