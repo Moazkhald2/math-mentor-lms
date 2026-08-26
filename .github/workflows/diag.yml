@@ -1,5 +1,7 @@
 name: DB Diagnostic
 
+# Re-run 2026-08-26 after owner executed HAND-RUN-2026-08-26.sql
+
 on:
   workflow_dispatch:
   push:
