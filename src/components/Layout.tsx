@@ -55,12 +55,12 @@ export default function Layout({ children }: { children: ReactNode }) {
               {loading ? null : user ? (
                 <>
                   <a href="/profile" className={navLink}>{user.user_metadata.full_name}</a>
-                  <button onClick={signOut} className="btn btn-outline">Sign Out</button>
+                  <button onClick={signOut} className="btn btn-outline px-4 py-1.5 text-sm">Sign Out</button>
                 </>
               ) : (
                 <>
-                  <a href="/login" className="btn btn-outline px-5 py-2.5 text-base font-semibold">Sign In</a>
-                  <a href="/register" className="btn btn-primary hover-lift px-6 py-2.5 text-base font-extrabold">Sign Up</a>
+                  <a href="/login" className="btn btn-outline px-6 py-3 text-lg font-semibold">Sign In</a>
+                  <a href="/register" className="btn btn-primary hover-lift px-7 py-3 text-lg font-extrabold">Sign Up</a>
                 </>
               )}
             </div>
