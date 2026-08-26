@@ -197,13 +197,13 @@ export default function Results() {
               </details>
             )}
 
-            {a.question.common_mistakes.length > 0 && (
+            {(a.question.common_mistakes ?? []).length > 0 && (
               <details className="mt-2">
                 <summary className="cursor-pointer text-sm font-semibold text-accent-gold hover:text-warning">
                   Common Mistakes
                 </summary>
                 <div className="mt-2 space-y-3">
-                  {a.question.common_mistakes.map((cm, ci) => (
+                  {(a.question.common_mistakes ?? []).map((cm, ci) => (
                     <div key={ci} className="rounded-lg border border-accent-gold/20 bg-accent-gold/5 p-3">
                       <p className="mb-1 text-sm">
                         <span className="font-semibold text-danger">✗ <LatexRenderer content={cm.mistake} /></span>
