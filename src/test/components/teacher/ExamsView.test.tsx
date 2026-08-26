@@ -41,11 +41,7 @@ vi.mock('../../../lib/supabase', () => {
   return { supabase: { from: vi.fn((table: string) => makeChain(table)) } }
 })
 
-const clipboardWrite = vi.fn().mockResolvedValue(undefined)
-Object.defineProperty(navigator, 'clipboard', {
-  value: { writeText: clipboardWrite },
-  configurable: true,
-})
+const clipboardWrite = vi.fn()
 
 function renderExams() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -60,6 +56,10 @@ describe('ExamsView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     stub.updates = []
+    clipboardWrite.mockResolvedValue(undefined)
+    vi.spyOn(Navigator.prototype, 'clipboard', 'get').mockReturnValue({
+      writeText: clipboardWrite,
+    } as unknown as Clipboard)
     stub.tables = {
       exams: [
         { id: 'e1', title: 'Circle Theorems', grade: 10, type: 'exam', is_published: true, created_by: 'teacher-1' },
@@ -92,6 +92,7 @@ describe('ExamsView', () => {
 
   it('copies a telegram report to clipboard', async () => {
     const user = userEvent.setup()
+    clipboardWrite.mockResolvedValue(undefined)
     renderExams()
     const btn = await screen.findByRole('button', { name: /copy report/i })
     await user.click(btn)
