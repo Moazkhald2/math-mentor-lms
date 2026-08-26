@@ -1,4 +1,7 @@
-# Math Mentor — Brand Governance
+# Math Mentor — Brand Governance (House v2, canonical)
+
+> Source of truth: `SYSTEM_SPEC.md §2.2` + `DESIGN.md §2`. The 2024 blue palette
+> (#1982C4 / Montserrat era) is OBSOLETE. Never reintroduce it.
 
 ## Logo System
 
@@ -7,44 +10,32 @@
 | Primary | `/public/logo-main.png` | Navbar, landing page |
 | Symbol | `/public/logo-symbol.png` | Favicon, mobile, tight spaces |
 
-**Rules:**
-- No stretching or distortion
-- Minimum clear space = height of the logo
-- Don't recolor or add effects
-- Don't place on low-contrast backgrounds
+Rules: no stretch/distortion · clear space = logo height · no recolor/effects ·
+no low-contrast backgrounds.
 
-## Colors
+## Colors (House v2 — defined once in `src/index.css` @theme)
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `brand` | `#1982C4` | Primary links, buttons, header line |
-| `brand-light` | `#36A3DF` | Hover states |
-| `brand-dark` | `#13659C` | Active states |
-| `accent-green` | `#00784A` | Success |
-| `accent-gold` | `#E8BB1A` | Warning |
+| Token | Value | Role |
+|-------|-------|------|
+| `brand` | `#0A9396` | primary buttons, links, header accents (tmm-teal) |
+| `brand-light` | `#0A6F72` | accent text/borders/hover on light surfaces (tmm-teal-dark) |
+| `brand-dark` | `#1A1A2E` | dark callouts, closing sections (tmm-navy) |
+| `accent-green` / `success` | `#84A98C` | success (tmm-sage) |
+| `accent-gold` / `warning` | `#D4A373` | achievements, warnings (tmm-gold) |
+| danger | `#E76F51` | errors, common-mistakes (tmm-terra) |
+| ink `#2D3436` · muted `#636E72` · paper `#FAF9F6` | | text hierarchy + backgrounds |
 
-All defined once in `src/index.css` via `@theme`. Never hardcode hex values in components.
+Never hardcode hex values in components. Grade accents G4–G11: see DESIGN.md §2.2.
 
 ## Typography
 
 | Token | Font | Usage |
 |-------|------|-------|
-| `--font-montserrat` | Montserrat | All UI text |
-| Body inherit | system stack | Long-form reading |
+| `--font-heading` | Playfair Display | display headings, brand moments |
+| `--font-body` | Lexend | ALL UI text, minimum 10.5pt equivalent |
 
-Avoid importing additional fonts unless reviewed.
+No additional font imports without spec review.
 
 ## File Management
-
-**Downloads folder cleanup rules:**
-- Keep only working files (not duplicates)
-- Archive old explorations to `_archive/`
-- Never have 3 copies of the same file
-- Delete unused SVGs after logo finalised
-
-## Adding New Assets
-
-1. Place in `public/` or `src/assets/`
-2. Update this doc
-3. Remove any old versions
-4. Commit — never leave dead files
+Keep single copies · archive explorations to `_archive/` · update this doc when
+assets change · never leave dead files.
