@@ -6,6 +6,7 @@ on:
     paths:
       - 'content/bank-import/**'
       - 'scripts/import-bank.mjs'
+      - '.github/workflows/import-bank.yml'
 
 jobs:
   import:
