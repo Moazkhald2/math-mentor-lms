@@ -1,13 +1,19 @@
 {
-  "title": "Grade 10 Geometry Weekly — Circles & Triangles",
-  "description": "Weekly practice covering circle theorems, parallel lines, right-triangle trigonometry and similarity.",
-  "grade": 10,
-  "type": "exam",
-  "time_limit_minutes": 20,
-  "passing_score": 60,
-  "shuffle_questions": true,
-  "max_attempts": 1,
-  "cooldown_hours": 24,
-  "is_published": true,
-  "topics": ["circle_theorems", "parallel_lines", "right_triangle_trigonometry", "similar_triangles"]
+    "title":  "Grade 10 Geometry Weekly — Circles \u0026 Triangles",
+    "description":  "Weekly practice covering circle theorems, parallel lines, right-triangle trigonometry and similarity.",
+    "grade":  10,
+    "type":  "exam",
+    "time_limit_minutes":  20,
+    "passing_score":  60,
+    "shuffle_questions":  true,
+    "max_attempts":  1,
+    "cooldown_hours":  24,
+    "is_published":  true,
+    "topics":  [
+                   "circle_theorems",
+                   "parallel_lines",
+                   "right_triangle_trigonometry",
+                   "similar_triangles"
+               ],
+    "_run":  2
 }
