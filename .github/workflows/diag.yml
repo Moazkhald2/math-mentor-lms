@@ -1,0 +1,54 @@
+name: DB Diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/diag.yml'
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Row counts via service key (read-only)
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install @supabase/supabase-js@2 >/dev/null 2>&1
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          const s = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+          const tables = ['profiles','students','questions','exams','exam_questions','exam_attempts','answers','classes','class_members','activity_logs'];
+          (async () => {
+            for (const t of tables) {
+              const { count, error } = await s.from(t).select('*', { count: 'exact', head: true });
+              console.log(error ? t + ': ERROR ' + error.message : t + ': ' + count + ' rows');
+            }
+          })();
+          "
+
+      - name: Check params column via service-key SQL fallback
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          const s = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+          s.from('questions').select('params').limit(1).then(({ data, error }) => {
+            if (error) console.log('params column: MISSING (' + error.message + ')');
+            else console.log('params column: EXISTS');
+          });
+          "
