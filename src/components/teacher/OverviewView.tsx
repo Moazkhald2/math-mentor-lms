@@ -3,6 +3,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { supabase } from '../../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { matchesStudentFilters, useStudentGradeMap } from '../ui/filters'
 
 interface AttemptRow {
   score: number | null
@@ -21,9 +22,9 @@ function useTeacherExams(userId: string) {
     queryFn: async () => {
       const { data } = await supabase
         .from('exams')
-        .select('id,title,is_published')
+        .select('id,title,is_published,grade')
         .eq('created_by', userId)
-      return (data ?? []) as { id: string; title: string; is_published: boolean }[]
+      return (data ?? []) as { id: string; title: string; is_published: boolean; grade: number | null }[]
     },
     enabled: !!userId,
   })
@@ -68,13 +69,22 @@ const BUCKETS = [
   { label: '85-100', min: 85, max: 100 },
 ]
 
-export default function OverviewView({ userId }: { userId: string }) {
+export default function OverviewView({ userId, grade }: { userId: string; grade?: number }) {
   const examsQ = useTeacherExams(userId)
-  const exams = examsQ.data ?? []
+  const examsAll = examsQ.data ?? []
+  const exams = grade ? examsAll.filter((e) => e.grade === grade) : examsAll
   const attemptsQ = useAttempts(userId, exams.map((e) => e.id))
   const violationsQ = useViolations(userId)
+  const { byUser } = useStudentGradeMap()
 
-  const attempts = attemptsQ.data ?? []
+  // Exam-level grade filter, plus student-level filter for cross-grade classes
+  const attempts = (attemptsQ.data ?? []).filter((a) => {
+    if (!grade) return true
+    if ((a.exams as { grade?: number | null } | null)?.grade != null) {
+      return (a.exams as unknown as { grade: number }).grade === grade
+    }
+    return matchesStudentFilters(a.user_id, { grade }, byUser)
+  })
   const completed = attempts.filter((a) => a.status === 'completed' && a.score != null)
   const weekAgo = Date.now() - 7 * 864e5
   const weeklyCount = attempts.filter((a) => new Date(a.started_at).getTime() >= weekAgo).length

@@ -35,7 +35,7 @@ export function buildExamReport(exam: ExamRow, stats: { count: number; avg: numb
   return lines.join('\n')
 }
 
-export default function ExamsView({ userId }: { userId: string }) {
+export default function ExamsView({ userId, grade }: { userId: string; grade?: number }) {
   const queryClient = useQueryClient()
 
   const examsQ = useQuery({
@@ -90,7 +90,7 @@ export default function ExamsView({ userId }: { userId: string }) {
     return map
   }, [examsQ.data, attemptsQ.data])
 
-  const exams = examsQ.data ?? []
+  const exams = (examsQ.data ?? []).filter((e) => !grade || e.grade === grade)
 
   async function copyReport(exam: ExamRow) {
     const stats = statsByExam.get(exam.id) ?? { count: 0, avg: null, best: null }
