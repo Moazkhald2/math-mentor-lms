@@ -1,0 +1,29 @@
+name: Import Question Bank
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'content/bank-import/**'
+      - 'scripts/import-bank.mjs'
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Import questions + ensure exam
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/import-bank.mjs
