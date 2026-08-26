@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useAntiCheat, type AntiCheatConfig } from '../hooks/useAntiCheat'
 
 interface Props extends AntiCheatConfig {
@@ -10,6 +10,21 @@ interface Props extends AntiCheatConfig {
 export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ...config }: Props) {
   const { warningCount, isDisqualified, timeSpent, isFullscreen, requestFullscreen } =
     useAntiCheat(config)
+  const [blurred, setBlurred] = useState(false)
+
+  // Privacy screen: hide exam content when the tab/window loses focus.
+  // The underlying blur/focus events still feed the violation counter.
+  useEffect(() => {
+    const update = () => setBlurred(document.visibilityState === 'hidden' || !document.hasFocus())
+    document.addEventListener('visibilitychange', update)
+    window.addEventListener('blur', update)
+    window.addEventListener('focus', update)
+    return () => {
+      document.removeEventListener('visibilitychange', update)
+      window.removeEventListener('blur', update)
+      window.removeEventListener('focus', update)
+    }
+  }, [])
 
   useEffect(() => {
     if (durationMinutes && timeSpent >= durationMinutes * 60) {
@@ -54,18 +69,31 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
         </div>
 
         {durationMinutes && durationMinutes > 0 && (
-          <div className={`rounded-lg border px-3 py-1.5 text-sm font-bold ${
+          <div className={`flex items-baseline gap-2 rounded-xl border px-4 py-2 ${
             isLowTime
               ? 'border-danger bg-danger/10 text-danger animate-pulse'
               : 'border-border bg-secondary text-primary'
           }`}>
-            {isLowTime ? '⏰ ' : '⏱ '}
-            {remainingMin}:{String(remainingSec).padStart(2, '0')}
+            <span className="text-xs font-medium uppercase tracking-wide text-text-muted">Time left</span>
+            <span className="text-3xl font-extrabold tabular-nums tracking-tight" aria-live="off">
+              {remainingMin}:{String(remainingSec).padStart(2, '0')}
+            </span>
           </div>
         )}
       </div>
 
       {children}
+
+      {blurred && (
+        <button
+          onClick={() => setBlurred(false)}
+          className="fixed inset-0 z-[60] flex cursor-pointer flex-col items-center justify-center gap-2 bg-surface/95 backdrop-blur-sm"
+          aria-label="Return to exam"
+        >
+          <span className="font-display text-2xl font-bold text-ink">Screen paused</span>
+          <span className="text-sm text-text-muted">Click anywhere to continue your exam</span>
+        </button>
+      )}
     </div>
   )
 }

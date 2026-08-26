@@ -1,9 +1,11 @@
 ﻿import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { isDisposableEmail, isValidPassword, isValidPhone } from '../lib/validation'
 
 export default function Register() {
   const { signUp } = useAuth()
-  const [fullName, setFullName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [grade, setGrade] = useState<number | null>(null)
@@ -15,10 +17,17 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!grade) return
-    setLoading(true)
     setError(null)
-    const err = await signUp(email, password, fullName, grade, parentPhone || undefined)
+
+    if (!firstName.trim() || !lastName.trim()) return setError('Please enter your first and last name.')
+    if (isDisposableEmail(email)) return setError('Please use a real email address — temporary emails are not allowed.')
+    if (!isValidPassword(password)) return setError('Password must be at least 8 characters and include a letter and a number.')
+    if (!isValidPhone(parentPhone)) return setError('Parent phone is required so we can send progress reports. Format: +201012345678')
+    if (!grade) return
+
+    setLoading(true)
+    const fullName = `${firstName.trim()} ${lastName.trim()}`
+    const err = await signUp(email, password, fullName, grade, parentPhone)
     if (err) setError(err)
     else setSuccess(true)
     setLoading(false)
@@ -35,30 +44,41 @@ export default function Register() {
     )
   }
 
+  const inputCls = 'w-full rounded-lg border border-border bg-surface px-4 py-2 text-text outline-none focus:border-brand-light'
+
   return (
     <div className="mx-auto mt-16 max-w-md">
       <h1 className="mb-6 text-3xl font-bold text-text">Create Account</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="mb-1 block text-sm text-text-muted">Full Name</label>
-          <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-text outline-none focus:border-brand-light" required />
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-sm text-text-muted">First Name *</label>
+            <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+              className={inputCls} required autoComplete="given-name" />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-text-muted">Last Name *</label>
+            <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
+              className={inputCls} required autoComplete="family-name" />
+          </div>
         </div>
         <div>
-          <label className="mb-1 block text-sm text-text-muted">Email</label>
+          <label className="mb-1 block text-sm text-text-muted">Email *</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-text outline-none focus:border-brand-light" required />
+            className={inputCls} required autoComplete="email" />
+          <p className="mt-1 text-xs text-text-muted">Must be a real email — you'll confirm it by clicking a link.</p>
         </div>
         <div>
-          <label className="mb-1 block text-sm text-text-muted">Password</label>
+          <label className="mb-1 block text-sm text-text-muted">Password *</label>
           <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-text outline-none focus:border-brand-light"
-            minLength={6} required />
+            className={inputCls}
+            minLength={8} required autoComplete="new-password" />
+          <p className="mt-1 text-xs text-text-muted">At least 8 characters, with a letter and a number.</p>
         </div>
 
         {!confirmGrade ? (
           <div>
-            <label className="mb-1 block text-sm text-text-muted">Grade</label>
+            <label className="mb-1 block text-sm text-text-muted">Grade *</label>
             <div className="grid grid-cols-5 gap-2">
               {Array.from({ length: 10 }, (_, i) => i + 3).map(g => (
                 <button key={g} type="button" onClick={() => { setGrade(g); setConfirmGrade(true) }}
@@ -78,13 +98,13 @@ export default function Register() {
         )}
 
         <div>
-          <label className="mb-1 block text-sm text-text-muted">Parent Phone <span className="text-text-muted/60">(optional — for progress reports)</span></label>
+          <label className="mb-1 block text-sm text-text-muted">Parent Phone * <span className="text-xs">(for progress reports via Telegram)</span></label>
           <input type="tel" value={parentPhone} onChange={e => setParentPhone(e.target.value)}
-            placeholder="+1234567890"
-            className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-text outline-none focus:border-brand-light" />
+            placeholder="+201012345678"
+            className={inputCls} required autoComplete="tel" />
         </div>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <p className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">{error}</p>}
         <button type="submit" disabled={loading || !grade}
           className="w-full rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand-light disabled:opacity-50">
           {loading ? 'Creating account...' : 'Create Account'}

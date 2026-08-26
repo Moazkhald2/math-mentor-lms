@@ -45,6 +45,10 @@
   /* On-brand foreground (text on colored backgrounds) */
   --color-brand-foreground: #ffffff;
   --color-on-brand: #ffffff;
+
+  /* High-contrast CTA pair — guaranteed white-on-color in every context */
+  --color-cta: #0A9396;
+  --color-cta-hover: #0A6F72;
 }
 
 /* Base styles using semantic tokens - soft cute */
@@ -61,6 +65,19 @@ body {
   border: 1px solid var(--color-hairline);
   box-shadow: rgba(0,0,0,0.04) 0px 4px 20px;
   background: var(--color-surface);
+}
+
+/* Unified hover system: gentle lift + shadow for cards/buttons */
+.hover-lift {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: rgba(10,147,150,0.10) 0px 6px 18px;
+}
+.card-cute.hover-lift:hover,
+.card-cute:hover.hover-lift {
+  border-color: var(--color-brand);
 }
 
 /* Khan mastery square */

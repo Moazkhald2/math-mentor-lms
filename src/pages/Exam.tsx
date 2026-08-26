@@ -296,12 +296,13 @@ export default function Exam() {
           </div>
         )}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm text-text-muted">
-            {answered}/{total} answered
+          <span className="text-sm font-semibold text-ink">
+            Question {currentIndex + 1} <span className="font-normal text-text-muted">of {total}</span>
+            {answered > 0 && <span className="ml-2 text-xs text-text-muted">· {answered} answered</span>}
           </span>
-          <div className="mx-4 h-2 flex-1 rounded-full bg-surface-light">
+          <div className="mx-4 h-1.5 min-w-[120px] flex-1 rounded-full bg-surface-light">
             <div
-              className="h-2 rounded-full bg-brand transition-all"
+              className="h-1.5 rounded-full bg-brand transition-all duration-300"
               style={{ width: `${(answered / total) * 100}%` }}
             />
           </div>

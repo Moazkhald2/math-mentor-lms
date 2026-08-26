@@ -1,23 +1,25 @@
+// Print-only watermark: invisible during normal screen use.
+// Appears when the page is printed (Ctrl+P) to discourage unauthorized distribution.
+// Screenshot detection is not reliably possible in browsers; the anti-cheat
+// blur + violation system covers off-focus capture attempts during exams.
 export default function Watermark({ label }: { label: string }) {
   return (
     <>
-      <div
-        className="pointer-events-none fixed top-4 right-4 z-40 rounded bg-white/80 px-2 py-1 text-xs font-semibold text-ink/60 shadow-sm select-none backdrop-blur"
-        aria-hidden="true"
-      >
-        {label}
-      </div>
+      {/* Screen: fully hidden. Print: tiled diagonal overlay. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0 flex flex-wrap content-center justify-center gap-16 overflow-hidden opacity-[0.04] select-none"
+        className="pointer-events-none fixed inset-0 z-0 hidden select-none print:block print:opacity-[0.06]"
         style={{ transform: 'rotate(-28deg) scale(1.5)' }}
       >
-        {Array.from({ length: 12 }).map((_, i) => (
-          <span key={i} className="text-sm font-bold tracking-widest whitespace-nowrap">
-            {label} &middot; The Math Mentor
-          </span>
-        ))}
+        <div className="flex h-full w-full flex-wrap content-center justify-center gap-10 overflow-hidden">
+          {Array.from({ length: 24 }).map((_, i) => (
+            <span key={i} className="whitespace-nowrap text-sm font-bold tracking-widest text-ink">
+              © The Math Mentor · {label} · Unauthorized distribution prohibited
+            </span>
+          ))}
+        </div>
       </div>
+      <style>{`@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }`}</style>
     </>
   )
 }

@@ -4,14 +4,17 @@ const links = [
   { href: '/admin', label: 'Dashboard', icon: '📊' },
   { href: '/admin/users', label: 'Users', icon: '👥' },
   { href: '/admin/classes', label: 'Classes', icon: '🏫' },
-  { href: '/admin/questions', label: 'Questions', icon: '❓' },
   { href: '/admin/exams', label: 'Exams', icon: '📝' },
   { href: '/admin/attempts', label: 'Attempts', icon: '📋' },
+  { href: '/admin/violations', label: 'Violations', icon: '🚨' },
+]
+
+const toolLinks = [
+  { href: '/admin/questions', label: 'Questions', icon: '❓' },
   { href: '/admin/csv-import', label: 'CSV Import', icon: '📄' },
   { href: '/admin/csv-export', label: 'CSV Export', icon: '⬇️' },
   { href: '/admin/bulk-exams', label: 'Bulk Exams', icon: '🏗️' },
   { href: '/admin/grading', label: 'Grading', icon: '✏️' },
-  { href: '/admin/violations', label: 'Violations', icon: '🚨' },
   { href: '/admin/question-analysis', label: 'Question Analysis', icon: '📈' },
 ]
 
@@ -24,6 +27,24 @@ export default function AdminSidebar() {
         <h2 className="mb-4 text-lg font-bold text-primary">Admin Panel</h2>
         <div className="space-y-1">
           {links.map((link) => {
+            const active = location.pathname === link.href
+            return (
+              <a
+                key={link.href}
+                href={link.href}
+                className={`nav-link ${
+                  active
+                    ? 'bg-brand text-brand-foreground'
+                    : 'text-muted hover:bg-secondary hover:text-primary'
+                }`}
+              >
+                <span>{link.icon}</span>
+                {link.label}
+              </a>
+            )
+          })}
+          <p className="pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-text-muted/70">Tools</p>
+          {toolLinks.map((link) => {
             const active = location.pathname === link.href
             return (
               <a

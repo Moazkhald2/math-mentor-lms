@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { fetchActivityLogs } from '../lib/activity'
+import { fetchExams } from '../lib/exams'
 import WeakPointsCard from '../components/WeakPointsCard'
 import type { ExamAttempt } from '../types'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -52,9 +52,9 @@ export default function Dashboard() {
     enabled: !!user,
   })
 
-  const { data: activityLogs } = useQuery({
-    queryKey: ['my-activity', user?.id],
-    queryFn: () => fetchActivityLogs(user!.id, 10),
+  const examsQ = useQuery({
+    queryKey: ['dashboard-exams'],
+    queryFn: () => fetchExams(),
     enabled: !!user,
   })
 
@@ -62,6 +62,12 @@ export default function Dashboard() {
   const avgScore = completedAttempts.length > 0
     ? Math.round(completedAttempts.reduce((sum, a) => sum + (a.score ?? 0), 0) / completedAttempts.length)
     : 0
+
+  // What's Next: published exams the student hasn't attempted yet, in order
+  const attemptedExamIds = new Set((attempts ?? []).map((a) => a.exam_id))
+  const nextUp = (examsQ.data ?? [])
+    .filter((e) => e.type === 'exam' && e.is_published && !attemptedExamIds.has(e.id))
+    .slice(0, 3)
 
   const needsGrade = profile && !profile.grade && profile.role === 'student'
 
@@ -161,22 +167,39 @@ export default function Dashboard() {
       <div className="mb-8 rounded-2xl border border-hairline bg-surface p-6 shadow-[rgba(0,0,0,0.04)_0px_4px_20px]">
         <h2 className="mb-1 text-lg font-bold text-text">What to do next</h2>
         <p className="mb-4 text-sm text-text-muted">Your focused path - finish these and earn gems</p>
-        <div className="grid gap-3 md:grid-cols-3">
-          <a href="/exams" className="rounded-2xl bg-brand p-4 text-white hover:bg-brand-light">
+        <div className="grid gap-3 md:grid-cols-2">
+          <a href="/exams" className="hover-lift rounded-2xl bg-brand p-4 text-white hover:bg-brand-light">
             <div className="text-2xl">🎯</div>
             <p className="mt-2 font-bold">Take next exam</p>
             <p className="text-sm text-white/80">{completedAttempts.length === 0 ? 'Start your first mission' : `${completedAttempts.length} done, next awaits`}</p>
           </a>
-          <a href="/practice/1" className="rounded-2xl border border-border bg-tertiary p-4 hover:bg-surface">
+          <a href="/practice/1" className="hover-lift rounded-2xl border border-border bg-tertiary p-4 hover:bg-surface">
             <div className="text-2xl">✨</div>
             <p className="mt-2 font-bold text-text">Practice weak spots</p>
             <p className="text-sm text-text-muted">Feedback after each question</p>
           </a>
-          <a href="/connect" className="rounded-2xl border border-accent-gold/30 bg-accent-gold/10 p-4 hover:bg-accent-gold/20">
-            <div className="text-2xl">💬</div>
-            <p className="mt-2 font-bold text-text">Daily tip</p>
-            <p className="text-sm text-text-muted">Follow on Instagram</p>
-          </a>
+        </div>
+
+        {/* What's Next — ordered published exams not yet attempted */}
+        <div className="mt-5">
+          <p className="mb-2 text-sm font-semibold text-text">What's next — take these in order</p>
+          {nextUp.length === 0 ? (
+            <p className="text-sm text-text-muted">
+              {examsQ.data?.length ? "You're all caught up — new exams appear here." : 'Loading your exams...'}
+            </p>
+          ) : (
+            <ol className="space-y-2">
+              {nextUp.map((e, i) => (
+                <li key={e.id}>
+                  <a href={`/exam/${e.id}`} className="hover-lift flex items-center gap-3 rounded-xl border border-border bg-surface p-3 transition-colors hover:border-brand/50">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">{i + 1}</span>
+                    <span className="font-medium text-text">{e.title}</span>
+                    <span className="ml-auto text-xs text-text-muted">{e.time_limit_minutes} min · {e.grade ? `Grade ${e.grade}` : 'All grades'}</span>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
       </div>
 
@@ -226,8 +249,30 @@ export default function Dashboard() {
         <JoinClass />
       </div>
 
-      <h2 className="mb-4 text-xl font-bold text-text">Recent Attempts</h2>
+      {completedAttempts.length >= 2 && (
+        <div className="mb-8 rounded-xl border border-border bg-surface p-6">
+          <h2 className="mb-4 text-lg font-bold text-text">Score Trend</h2>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={completedAttempts.slice().reverse().slice(-10).map(a => ({
+              name: new Date(a.started_at).toLocaleDateString(),
+              score: a.score ?? 0
+            }))}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis domain={[0, 100]} />
+              <Tooltip />
+               <Line type="monotone" dataKey="score" stroke="var(--color-brand)" strokeWidth={2} dot={{ fill: 'var(--color-brand)' }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
+      <details className="mb-8 rounded-xl border border-border bg-surface">
+        <summary className="flex cursor-pointer items-center justify-between px-6 py-4">
+          <span className="text-lg font-bold text-text">Recent Attempts ({attempts?.length ?? 0})</span>
+          <a href="/exams" className="text-sm text-brand hover:underline" onClick={(e) => e.stopPropagation()}>Browse exams →</a>
+        </summary>
+        <div className="px-6 pb-5">
       {attempts && attempts.length === 0 && (
         <div className="rounded-xl border border-border bg-surface p-8 text-center">
           <p className="text-text-muted">No exams attempted yet</p>
@@ -279,54 +324,11 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
-
-      {completedAttempts.length >= 2 && (
-        <div className="mt-8 rounded-xl border border-border bg-surface p-6">
-          <h2 className="mb-4 text-lg font-bold text-text">Score Trend</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={completedAttempts.slice().reverse().slice(-10).map(a => ({
-              name: new Date(a.started_at).toLocaleDateString(),
-              score: a.score ?? 0
-            }))}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis domain={[0, 100]} />
-              <Tooltip />
-               <Line type="monotone" dataKey="score" stroke="var(--color-brand)" strokeWidth={2} dot={{ fill: 'var(--color-brand)' }} />
-            </LineChart>
-          </ResponsiveContainer>
         </div>
-      )}
+      </details>
 
-      <div className="mb-6 mt-8">
+      <div className="mb-6">
         <WeakPointsCard />
-      </div>
-
-      <div className="mt-8">
-        <h2 className="mb-4 text-xl font-bold text-text">Recent Activity</h2>
-        <div className="space-y-2">
-          {activityLogs?.map((log) => (
-            <div
-              key={log.id}
-              className="flex items-center justify-between rounded-lg border border-border bg-surface p-3"
-            >
-              <div>
-                <p className="font-medium text-text">
-                  {log.action.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                </p>
-                {log.exam_id && (
-                  <p className="text-xs text-text-muted">Exam #{log.exam_id.slice(0, 8)}</p>
-                )}
-              </div>
-              <p className="text-xs text-text-muted">
-                {new Date(log.created_at).toLocaleString()}
-              </p>
-            </div>
-          ))}
-          {activityLogs?.length === 0 && (
-            <p className="text-sm text-text-muted">No recent activity</p>
-          )}
-        </div>
       </div>
     </div>
   )
