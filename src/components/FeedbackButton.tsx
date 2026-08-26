@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useMutation } from '@tanstack/react-query'
 import { submitFeedback } from '../lib/bookmarks'
-import { Flag } from 'lucide-react'
+import { Flag } from '@phosphor-icons/react'
 
 export default function FeedbackButton({ questionId }: { questionId: string }) {
   const { user } = useAuth()

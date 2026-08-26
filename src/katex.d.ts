@@ -1,5 +1,1 @@
-interface Window {
-  katex: {
-    render(expression: string, element: HTMLElement, options?: { displayMode?: boolean; throwOnError?: boolean }): void
-  }
-}
+﻿declare module 'katex/dist/katex.min.css';

@@ -1,11 +1,12 @@
 ﻿import { useState, useEffect, type ReactNode } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, loading, signOut } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -15,10 +16,10 @@ export default function Layout({ children }: { children: ReactNode }) {
     supabase.from('profiles').select('grade').eq('id', user.id).single()
       .then(({ data }) => {
         if (data && !data.grade) {
-          window.location.href = '/complete-profile'
+          navigate('/complete-profile')
         }
       })
-  }, [user, loading, location.pathname])
+  }, [user, loading, location.pathname, navigate])
 
   return (
     <div className="min-h-screen bg-primary text-primary">

@@ -2,12 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
 import LatexRenderer from '../../components/LatexRenderer'
 
-beforeEach(() => {
-  ;(window as any).katex = {
+vi.mock('katex', () => ({
+  default: {
     render: vi.fn((tex: string, el: HTMLElement, _: any) => {
       el.textContent = `[RENDERED: ${tex}]`
     }),
-  }
+  },
+}))
+
+beforeEach(() => {
+  vi.clearAllMocks()
 })
 
 describe('LatexRenderer', () => {

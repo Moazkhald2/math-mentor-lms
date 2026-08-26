@@ -114,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }, 30000)
 
-    setInterval(() => {
+    const cooldownInterval = setInterval(() => {
       setLoginCooldownState(getLoginCooldown())
     }, 1000)
 
@@ -122,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       events.forEach((e) => document.removeEventListener(e, handleActivity))
       subscription.unsubscribe()
       clearInterval(idleInterval)
+      clearInterval(cooldownInterval)
     }
   }, [])
 

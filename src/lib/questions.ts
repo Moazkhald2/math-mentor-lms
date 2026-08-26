@@ -4,15 +4,15 @@ import type { Question, Difficulty } from '../types'
 type QuestionInput = Omit<Question, 'id' | 'created_at' | 'created_by'>
 
 let filtersCache: { subjects: string[]; topics: string[] } | null = null
+export function clearFiltersCache() { filtersCache = null }
 
 export async function fetchQuestionFilters() {
   if (filtersCache) return filtersCache
-  const [subRes, topRes] = await Promise.all([
-    supabase.from('questions').select('subject'),
-    supabase.from('questions').select('topic'),
-  ])
-  const subjects = [...new Set((subRes.data ?? []).map(r => r.subject).filter(Boolean))].sort() as string[]
-  const topics = [...new Set((topRes.data ?? []).map(r => r.topic).filter(Boolean))].sort() as string[]
+  // One query instead of two — fetch both columns at once and dedup client-side
+  const { data, error } = await supabase.from('questions').select('subject, topic')
+  if (error) throw error
+  const subjects = [...new Set((data ?? []).map(r => r.subject).filter(Boolean))].sort() as string[]
+  const topics = [...new Set((data ?? []).map(r => r.topic).filter(Boolean))].sort() as string[]
   filtersCache = { subjects, topics }
   return filtersCache
 }

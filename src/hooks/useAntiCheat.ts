@@ -36,7 +36,7 @@ export function useAntiCheat(config: AntiCheatConfig) {
     warningCount: 0,
     isDisqualified: false,
     timeSpent: 0,
-    isFullscreen: !!document.fullscreenElement,
+    isFullscreen: typeof document !== 'undefined' ? !!document.fullscreenElement : false,
   })
 
   const violationsRef = useRef(state.violations)
@@ -47,21 +47,13 @@ export function useAntiCheat(config: AntiCheatConfig) {
 
   const addViolation = useCallback((type: string) => {
     if (disqualifiedRef.current) return
-
     const updated = [...violationsRef.current, { type, timestamp: Date.now() }]
     violationsRef.current = updated
     const newCount = warningRef.current + 1
     warningRef.current = newCount
     persistViolations(examId, updated)
-
-    setState((prev) => ({
-      ...prev,
-      violations: updated,
-      warningCount: newCount,
-    }))
-
+    setState((prev) => ({ ...prev, violations: updated, warningCount: newCount }))
     onViolation?.(type, newCount)
-
     if (newCount >= maxWarnings) {
       disqualifiedRef.current = true
       setState((prev) => ({ ...prev, isDisqualified: true }))
@@ -69,7 +61,6 @@ export function useAntiCheat(config: AntiCheatConfig) {
     }
   }, [maxWarnings, onViolation, onDisqualified, examId])
 
-  // Restore warning count from persisted violations
   useEffect(() => {
     const restored = loadPersistedViolations(examId)
     if (restored.length > 0) {
@@ -85,61 +76,44 @@ export function useAntiCheat(config: AntiCheatConfig) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const handleVisibility = () => {
-      if (document.hidden) addViolation('tab_switch')
-    }
-
-    const handleBlur = () => {
-      addViolation('window_blur')
-    }
-
+    const handleVisibility = () => { if (document.hidden) addViolation('tab_switch') }
+    const handleBlur = () => addViolation('window_blur')
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x', 'u', 's', 'p'].includes(e.key.toLowerCase())) {
-        e.preventDefault()
-        addViolation('keyboard_shortcut')
+        e.preventDefault(); addViolation('keyboard_shortcut')
       }
-      if (e.key === 'Escape' && document.fullscreenElement) {
-        e.preventDefault()
-        addViolation('exit_fullscreen')
-      }
+      if (e.key === 'Escape' && document.fullscreenElement) { e.preventDefault(); addViolation('exit_fullscreen') }
       if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['i', 'j'].includes(e.key.toLowerCase()))) {
-        e.preventDefault()
-        addViolation('devtools_shortcut')
+        e.preventDefault(); addViolation('devtools_shortcut')
       }
     }
-
     const handleCopy = (e: ClipboardEvent) => { e.preventDefault(); addViolation('copy_attempt') }
     const handlePaste = (e: ClipboardEvent) => { e.preventDefault(); addViolation('paste_attempt') }
     const handleContextMenu = (e: MouseEvent) => { e.preventDefault(); addViolation('contextmenu') }
-
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement) addViolation('exit_fullscreen')
       setState((prev) => ({ ...prev, isFullscreen: !!document.fullscreenElement }))
     }
-
+    let lastResizeViolation = 0
     const handleResize = () => {
+      const now = Date.now()
+      if (now - lastResizeViolation < 5000) return
       const w = window.outerWidth - window.innerWidth
       const h = window.outerHeight - window.innerHeight
-      if (w > 200 || h > 200) addViolation('suspicious_resize')
+      if (w > 200 || h > 200) { lastResizeViolation = now; addViolation('suspicious_resize') }
     }
 
-    // DevTools detection via element trick (works in Chrome/Edge)
-    const devtoolsElement = new Image()
-    Object.defineProperty(devtoolsElement, 'id', {
-      get: () => { addViolation('devtools_open'); return '' }
-    })
-    let devtoolsInterval: ReturnType<typeof setInterval>
+    // Throttled devtools detection — no console.log spam, 3s interval, only when not already disqualified
+    let devtoolsInterval: ReturnType<typeof setInterval> | undefined
     const isFirefox = navigator.userAgent.toLowerCase().includes('firefox')
     if (!isFirefox) {
       devtoolsInterval = setInterval(() => {
-        console.log(devtoolsElement)
+        if (disqualifiedRef.current) return
         const threshold = 160
         const widthDiff = window.outerWidth - window.innerWidth
         const heightDiff = window.outerHeight - window.innerHeight
-        if (widthDiff > threshold || heightDiff > threshold) {
-          addViolation('devtools_open')
-        }
-      }, 1000)
+        if (widthDiff > threshold || heightDiff > threshold) addViolation('devtools_open')
+      }, 3000)
     }
 
     document.addEventListener('visibilitychange', handleVisibility)
@@ -150,7 +124,6 @@ export function useAntiCheat(config: AntiCheatConfig) {
     document.addEventListener('contextmenu', handleContextMenu)
     document.addEventListener('fullscreenchange', handleFullscreenChange)
     window.addEventListener('resize', handleResize)
-
     timerRef.current = setInterval(() => {
       setState((prev) => ({ ...prev, timeSpent: Math.floor((Date.now() - startTimeRef.current) / 1000) }))
     }, 1000)
@@ -175,8 +148,7 @@ export function useAntiCheat(config: AntiCheatConfig) {
   }, [addViolation])
 
   const exitFullscreen = useCallback(async () => {
-    try { await document.exitFullscreen() }
-    catch {}
+    try { await document.exitFullscreen() } catch {}
   }, [])
 
   return { ...state, requestFullscreen, exitFullscreen }

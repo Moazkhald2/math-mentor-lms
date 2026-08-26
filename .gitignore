@@ -39,3 +39,6 @@ supabase/reset-admin-password.sql
 *.njsproj
 *.sln
 *.sw?
+
+# Spec Kit / opencode agent folder
+.opencode/

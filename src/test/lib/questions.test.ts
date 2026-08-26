@@ -10,6 +10,8 @@ function createQueryBuilder(returnData: any[] = []) {
     update: vi.fn(() => chain),
     delete: vi.fn(() => chain),
   }
+  // make chain thenable for await
+  chain.then = (onFulfilled: any) => Promise.resolve({ data: returnData, error: null }).then(onFulfilled)
   return chain
 }
 
@@ -23,11 +25,13 @@ vi.mock('../../lib/supabase', () => {
 })
 
 import { supabase } from '../../lib/supabase'
-import { fetchQuestions, fetchQuestionFilters, fetchQuestionsByDifficulty, createQuestion, deleteQuestion } from '../../lib/questions'
+import { fetchQuestions, fetchQuestionFilters, fetchQuestionsByDifficulty, createQuestion, deleteQuestion, clearFiltersCache } from '../../lib/questions'
 
 describe('questions lib', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // reset filters cache by reimporting? hack: call internal cache reset via creating/deleting
+    // easiest: make fetchQuestionFilters not cached for this test by mocking fresh module
   })
 
   describe('fetchQuestions', () => {
@@ -77,21 +81,17 @@ describe('questions lib', () => {
 
   describe('fetchQuestionFilters', () => {
     it('returns deduplicated subjects and topics', async () => {
-      const subData = [{ subject: 'Algebra' }, { subject: 'Algebra' }, { subject: 'Geometry' }]
-      const topData = [{ topic: 'Equations' }, { topic: 'Functions' }]
-
-      let callCount = 0
-      const mockSelect = vi.fn(() => {
-        callCount++
-        if (callCount === 1) return Promise.resolve({ data: subData, error: null })
-        return Promise.resolve({ data: topData, error: null })
-      })
-
-      const qb = createQueryBuilder([])
-      qb.select = vi.fn(() => ({ ...qb, data: callCount === 1 ? subData : topData }))
-      qb.select = mockSelect
+      clearFiltersCache()
+      const combinedData = [
+        { subject: 'Algebra', topic: 'Equations' },
+        { subject: 'Algebra', topic: 'Functions' },
+        { subject: 'Geometry', topic: 'Functions' },
+      ]
+      const qb: any = {
+        select: vi.fn(() => qb),
+        then: (onFulfilled: any) => Promise.resolve({ data: combinedData, error: null }).then(onFulfilled),
+      }
       vi.mocked(supabase.from).mockReturnValue(qb)
-
       const result = await fetchQuestionFilters()
       expect(result.subjects).toEqual(['Algebra', 'Geometry'])
       expect(result.topics).toEqual(['Equations', 'Functions'])

@@ -1,5 +1,6 @@
 import type { Question } from '../types'
 import DifficultyBadge from './DifficultyBadge'
+import { XCircle, CheckCircle } from '@phosphor-icons/react'
 
 function parseMistakes(raw: unknown): { mistake: string; why: string; correct: string }[] {
   if (Array.isArray(raw)) return raw
@@ -61,7 +62,7 @@ export default function QuestionCard({ question }: { question: Question }) {
           <summary className="cursor-pointer text-sm font-semibold text-brand hover:text-brand-secondary">
             Explanation
           </summary>
-          <p className="mt-2 rounded-lg bg-tertiary p-4 text-sm leading-relaxed text-secondary">
+          <p className="mt-2 rounded-lg bg-ink p-4 text-sm leading-relaxed text-white">
             {question.explanation}
           </p>
         </details>
@@ -75,11 +76,13 @@ export default function QuestionCard({ question }: { question: Question }) {
           <div className="mt-2 space-y-3">
             {mistakes.map((cm, i) => (
               <div key={i} className="rounded-lg border border-warning/20 bg-warning/5 p-3">
-                <p className="mb-1 text-sm">
-                  <span className="font-semibold text-danger">✗ {cm.mistake}</span>
+                <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-danger">
+                  <XCircle size={16} weight="fill" /> {cm.mistake}
                 </p>
                 <p className="mb-1 text-xs text-muted">Why: {cm.why}</p>
-                <p className="text-sm text-success">✓ Correct: {cm.correct}</p>
+                <p className="flex items-center gap-1.5 text-sm text-success">
+                  <CheckCircle size={16} weight="fill" /> Correct: {cm.correct}
+                </p>
               </div>
             ))}
           </div>

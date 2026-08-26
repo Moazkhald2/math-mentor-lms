@@ -1,7 +1,7 @@
 import { useAuth } from '../hooks/useAuth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toggleBookmark, fetchBookmarkedIds } from '../lib/bookmarks'
-import { Bookmark } from 'lucide-react'
+import { Bookmark } from '@phosphor-icons/react'
 
 export default function BookmarkButton({ questionId }: { questionId: string }) {
   const { user } = useAuth()

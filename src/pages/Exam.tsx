@@ -128,9 +128,7 @@ export default function Exam() {
     if (!attemptId || saving || answered === 0) return
     setSaving(true)
     try {
-      for (const [qid, ans] of Object.entries(answers)) {
-        await saveAnswer(attemptId, qid, ans)
-      }
+      await Promise.all(Object.entries(answers).map(([qid, ans]) => saveAnswer(attemptId, qid, ans)))
       log('exam_saved', { answered })
     } catch (e: any) {
       setError(e.message)
@@ -146,6 +144,7 @@ export default function Exam() {
       let correct = 0
       let totalPoints = 0
       let earnedPoints = 0
+      const payloads: Array<{ qid: string; ans: string; ok: boolean; pts: number }> = []
       for (const eq of questions) {
         const points = eq.points ?? 1
         totalPoints += points
@@ -153,12 +152,10 @@ export default function Exam() {
         const isCorrect = eq.question.type === 'short_answer'
           ? userAns.trim().toLowerCase() === eq.question.correct_answer.trim().toLowerCase()
           : userAns === eq.question.correct_answer
-        if (isCorrect) {
-          correct++
-          earnedPoints += points
-        }
-        await submitAnswer(attemptId, eq.question_id, userAns, isCorrect, isCorrect ? points : 0)
+        if (isCorrect) { correct++; earnedPoints += points }
+        payloads.push({ qid: eq.question_id, ans: userAns, ok: isCorrect, pts: isCorrect ? points : 0 })
       }
+      await Promise.all(payloads.map(p => submitAnswer(attemptId, p.qid, p.ans, p.ok, p.pts)))
       const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0
       await completeAttempt(attemptId, score, totalPoints)
       log('exam_submitted', { score, correct, total: questions.length })
