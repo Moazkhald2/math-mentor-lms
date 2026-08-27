@@ -14,7 +14,8 @@ interface AuthContextType {
   loginCooldown: number
   signIn: (email: string, password: string) => Promise<string | null>
   signInWithGoogle: () => Promise<void>
-  signUp: (email: string, password: string, fullName: string, grade?: number, parentPhone?: string) => Promise<string | null>
+  signUp: (email: string, password: string, fullName: string, grade?: number, parentPhone?: string) => Promise<{ error: string | null; needsConfirmation: boolean }>
+  resendConfirmation: (email: string) => Promise<string | null>
   signOut: () => Promise<void>
 }
 
@@ -24,7 +25,8 @@ const AuthContext = createContext<AuthContextType>({
   loginCooldown: 0,
   signIn: async () => null,
   signInWithGoogle: async () => {},
-  signUp: async () => null,
+  signUp: async () => ({ error: null, needsConfirmation: false }),
+  resendConfirmation: async () => null,
   signOut: async () => {},
 })
 
@@ -145,11 +147,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signUp = async (email: string, password: string, fullName: string, grade?: number, parentPhone?: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName, grade, parent_phone: parentPhone ?? '' } },
     })
+    if (error) return { error: error.message, needsConfirmation: false }
+    const needsConfirmation = !!data.user && !data.session
+    return { error: null, needsConfirmation }
+  }
+
+  const resendConfirmation = async (email: string) => {
+    const { error } = await supabase.auth.resend({ type: 'signup', email })
     return error?.message ?? null
   }
 
@@ -159,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginCooldown, signIn, signInWithGoogle, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, loginCooldown, signIn, signInWithGoogle, signUp, resendConfirmation, signOut }}>
       {children}
     </AuthContext.Provider>
   )

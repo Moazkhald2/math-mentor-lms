@@ -52,6 +52,7 @@ vi.mock('../../lib/supabase', () => {
         signInWithPassword: vi.fn(),
         signInWithOAuth: vi.fn(),
         signUp: vi.fn(),
+        resend: vi.fn().mockResolvedValue({ error: null } as any),
         signOut: vi.fn(),
       },
       from: vi.fn(() => createQuery()),
@@ -193,7 +194,7 @@ describe('useAuth', () => {
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
       await waitFor(() => expect(result.current.loading).toBe(false))
 
-      const err = await result.current.signUp(
+      const res = await result.current.signUp(
         'new@test.com',
         'password123',
         'Test User',
@@ -201,7 +202,7 @@ describe('useAuth', () => {
         '1234567890',
       )
 
-      expect(err).toBeNull()
+      expect(res.error).toBeNull()
       expect(supabase.auth.signUp).toHaveBeenCalledWith({
         email: 'new@test.com',
         password: 'password123',
@@ -236,14 +237,14 @@ describe('useAuth', () => {
       vi.mocked(supabase.auth.signUp).mockResolvedValue({
         data: { user: null, session: null },
         error: mockAuthError('User already registered'),
-      })
+      } as any)
 
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
       await waitFor(() => expect(result.current.loading).toBe(false))
 
-      const err = await result.current.signUp('old@test.com', 'pass', 'Old User')
+      const res = await result.current.signUp('old@test.com', 'pass', 'Old User')
 
-      expect(err).toBe('User already registered')
+      expect(res.error).toBe('User already registered')
     })
   })
 

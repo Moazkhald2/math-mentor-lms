@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { isDisposableEmail, isValidPassword, isValidPhone, isValidEmailFormat, isValidName } from '../lib/validation'
 
 export default function Register() {
-  const { signUp } = useAuth()
+  const { signUp, resendConfirmation } = useAuth()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -13,6 +13,8 @@ export default function Register() {
   const [parentPhone, setParentPhone] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [needsConfirm, setNeedsConfirm] = useState(false)
+  const [resendMsg, setResendMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,26 +24,47 @@ export default function Register() {
     if (!isValidName(firstName) || !isValidName(lastName))
       return setError('Names must be 2-40 letters (spaces/hyphens allowed).')
     if (!isValidEmailFormat(email)) return setError('Please enter a valid email like name@example.com.')
-    if (isDisposableEmail(email)) return setError('Please use a real email address � temporary emails are not allowed.')
+    if (isDisposableEmail(email)) return setError('Please use a real email address - temporary emails are not allowed.')
     if (!isValidPassword(password)) return setError('Password must be at least 8 characters and include a letter and a number.')
     if (!isValidPhone(parentPhone)) return setError('Parent phone is required so we can send progress reports. Format: +201012345678')
     if (!grade) return
 
     setLoading(true)
     const fullName = `${firstName.trim()} ${lastName.trim()}`
-    const err = await signUp(email, password, fullName, grade, parentPhone)
-    if (err) setError(err)
-    else setSuccess(true)
+    const result = await signUp(email, password, fullName, grade, parentPhone)
+    if (result.error) setError(result.error)
+    else {
+      setNeedsConfirm(result.needsConfirmation)
+      setSuccess(true)
+    }
     setLoading(false)
   }
 
+  const handleResend = async () => {
+    setResendMsg(null)
+    const err = await resendConfirmation(email)
+    setResendMsg(err ? `Failed: ${err}` : `Resent to ${email} - check inbox and spam folder.`)
+  }
+
   if (success) {
+    if (needsConfirm) {
+      return (
+        <div className="mx-auto mt-16 max-w-md text-center">
+          <h1 className="mb-4 text-3xl font-bold text-text">Check your email</h1>
+          <p className="text-text-muted">
+            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
+          </p>
+          <p className="mt-2 text-xs text-text-muted">Nothing arrived? Check spam, or wait a minute and try again.</p>
+          <button onClick={handleResend} className="mt-4 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-paper">Resend email</button>
+          {resendMsg && <p className="mt-2 text-xs text-text-muted">{resendMsg}</p>}
+          <p className="mt-4 text-xs text-text-muted">If Supabase shows &quot;Confirm email OFF&quot;, no mail is sent - your account is ready, just <a href="/login" className="text-brand hover:underline">Sign in</a>.</p>
+        </div>
+      )
+    }
     return (
       <div className="mx-auto mt-16 max-w-md text-center">
-        <h1 className="mb-4 text-3xl font-bold text-text">Check your email</h1>
-        <p className="text-text-muted">
-          We sent a confirmation link to <strong>{email}</strong>
-        </p>
+        <h1 className="mb-4 text-3xl font-bold text-text">Account created</h1>
+        <p className="text-text-muted">Your account is ready - <a href="/login" className="text-brand hover:underline">Sign in now</a>.</p>
       </div>
     )
   }
@@ -68,7 +91,7 @@ export default function Register() {
           <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-email">Email *</label>
           <input id="reg-email" name="email" type="email" maxLength={254} value={email} onChange={e => setEmail(e.target.value)}
             className={inputCls} required autoComplete="email" />
-          <p className="mt-1 text-xs text-text-muted">Must be a real email � you'll confirm it by clicking a link.</p>
+          <p className="mt-1 text-xs text-text-muted">Must be a real email - you will confirm it by clicking a link.</p>
         </div>
         <div>
           <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-password">Password *</label>
