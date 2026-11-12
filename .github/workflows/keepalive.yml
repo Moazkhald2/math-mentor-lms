@@ -18,9 +18,11 @@ jobs:
         with:
           node-version: 24
       - run: npm ci --omit=dev
-      - name: Ping Supabase
+      - name: Keep Supabase + site alive
         run: node scripts/keepalive.mjs
         env:
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SITE_URL: https://math-mentor-lms.pages.dev
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}

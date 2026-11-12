@@ -1,33 +1,56 @@
-// Daily keep-alive ping - prevents Supabase free pause
+// Daily keep-alive ping - prevents Supabase free pause and keeps the site live
 import { createClient } from '@supabase/supabase-js'
 
-const url = process.env.SUPABASE_URL
-const key = process.env.SUPABASE_SERVICE_KEY
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY
+const siteUrl = process.env.SITE_URL || 'https://math-mentor-lms.pages.dev'
 
-if (!url || !key) {
-  console.error('Missing SUPABASE_URL or SERVICE_KEY')
-  process.exit(0)
+let supabaseOk = false
+let siteOk = false
+
+// 1. Keep Supabase awake (free tier pauses after inactivity)
+if (supabaseUrl && supabaseKey) {
+  try {
+    const supabase = createClient(supabaseUrl, supabaseKey)
+    const { error, count } = await supabase.from('profiles').select('id', {
+      count: 'exact',
+      head: true,
+    })
+    if (error) throw error
+    console.log(`Keep-alive OK - Supabase profiles count: ${count}`)
+    supabaseOk = true
+  } catch (e) {
+    console.error('Supabase keep-alive failed:', e.message)
+  }
+} else {
+  console.warn('Skipping Supabase ping: missing SUPABASE_URL or SERVICE_KEY')
 }
 
-const supabase = createClient(url, key)
-
+// 2. Keep the live site warm (hit the production URL daily)
 try {
-  const { error, count } = await supabase.from('profiles').select('id', { count: 'exact', head: true })
-  if (error) throw error
-  console.log(`Keep-alive OK - profiles count: ${count}`)
+  const res = await fetch(siteUrl)
+  console.log(`Site keep-alive ${siteUrl}: HTTP ${res.status}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  siteOk = true
 } catch (e) {
-  console.error('Keep-alive failed:', e.message)
-  // Notify via Telegram if configured
-  if (process.env.TELEGRAM_BOT_TOKEN) {
+  console.error('Site keep-alive failed:', e.message)
+}
+
+// 3. Notify via Telegram if either failed and a bot is configured
+if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_ADMIN_CHAT_ID) {
+  if (!supabaseOk || !siteOk) {
     try {
-      const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID
-      if (chatId) {
-        await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: `Supabase keep-alive failed: ${e.message}` })
-        })
-      }
+      const text =
+        `Math Mentor keep-alive failed:\n` +
+        `- Supabase: ${supabaseOk ? 'OK' : 'FAILED'}\n` +
+        `- Site (${siteUrl}): ${siteOk ? 'OK' : 'FAILED'}`
+      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: process.env.TELEGRAM_ADMIN_CHAT_ID, text }),
+      })
     } catch {}
   }
 }
+
+process.exit(supabaseOk && siteOk ? 0 : 1)
