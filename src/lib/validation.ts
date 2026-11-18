@@ -17,7 +17,8 @@ export function isValidPassword(pw: string): boolean {
 }
 
 export function isValidPhone(phone: string): boolean {
-  return /^\+?\d{8,15}$/.test(phone.trim())
+  const cleaned = phone.replace(/[\s\-\(\)]/g, '')
+  return /^\+?\d{8,15}$/.test(cleaned.trim())
 }
 
 /** Strict email shape: local@domain.tld (2+ letter TLD), no spaces. */

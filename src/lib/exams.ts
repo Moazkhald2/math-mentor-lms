@@ -120,6 +120,45 @@ export async function saveAnswer(attemptId: string, questionId: string, answer: 
   return data as Answer
 }
 
+export async function saveAnswersBatch(attemptId: string, answersMap: Record<string, string>) {
+  const entries = Object.entries(answersMap).map(([questionId, answer]) => ({
+    attempt_id: attemptId,
+    question_id: questionId,
+    answer,
+    is_correct: false,
+    points_earned: 0,
+  }))
+  if (entries.length === 0) return []
+  const { data, error } = await supabase
+    .from('answers')
+    .upsert(entries, { onConflict: 'attempt_id,question_id' })
+    .select()
+
+  if (error) throw error
+  return (data ?? []) as Answer[]
+}
+
+export async function submitAnswersBatch(
+  attemptId: string,
+  answersList: Array<{ questionId: string; answer: string; isCorrect: boolean; pointsEarned: number }>
+) {
+  const entries = answersList.map(a => ({
+    attempt_id: attemptId,
+    question_id: a.questionId,
+    answer: a.answer,
+    is_correct: a.isCorrect,
+    points_earned: a.pointsEarned,
+  }))
+  if (entries.length === 0) return []
+  const { data, error } = await supabase
+    .from('answers')
+    .upsert(entries, { onConflict: 'attempt_id,question_id' })
+    .select()
+
+  if (error) throw error
+  return (data ?? []) as Answer[]
+}
+
 export async function completeAttempt(attemptId: string, score: number, totalPoints: number) {
   const { data, error } = await supabase
     .from('exam_attempts')

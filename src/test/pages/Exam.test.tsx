@@ -39,6 +39,8 @@ vi.mock('../../lib/exams', () => ({
   cooldownRemainingMs: vi.fn(() => 0),
   saveAnswer: vi.fn(async (..._args: any[]) => ({ id: 'answer-1' })),
   submitAnswer: vi.fn(async (..._args: any[]) => ({ id: 'answer-1' })),
+  saveAnswersBatch: vi.fn(async (..._args: any[]) => [{ id: 'answer-1' }]),
+  submitAnswersBatch: vi.fn(async (..._args: any[]) => [{ id: 'answer-1' }]),
   completeAttempt: vi.fn(async (..._args: any[]) => ({ id: 'attempt-1' })),
 }))
 
@@ -116,9 +118,9 @@ describe('Exam Save and Submit Buttons', () => {
     })
   })
 
-  it('save button calls saveAnswer when clicked', async () => {
+  it('save button calls saveAnswersBatch when clicked', async () => {
     const examsLib = await import('../../lib/exams')
-    vi.mocked(examsLib.saveAnswer).mockImplementation(async (..._args: any[]): Promise<any> => ({ id: 'answer-1' }))
+    vi.mocked(examsLib.saveAnswersBatch).mockImplementation(async (..._args: any[]): Promise<any> => [{ id: 'answer-1' }])
 
     renderExam()
     await waitFor(() => {
@@ -130,12 +132,12 @@ describe('Exam Save and Submit Buttons', () => {
       fireEvent.click(saveButton!)
     })
 
-    expect(vi.mocked(examsLib.saveAnswer)).toHaveBeenCalled()
+    expect(vi.mocked(examsLib.saveAnswersBatch)).toHaveBeenCalled()
   })
 
-  it('submit button calls submitAnswer when clicked', async () => {
+  it('submit button calls submitAnswersBatch when clicked', async () => {
     const examsLib = await import('../../lib/exams')
-    vi.mocked(examsLib.submitAnswer).mockImplementation(async (..._args: any[]): Promise<any> => ({ id: 'answer-1' }))
+    vi.mocked(examsLib.submitAnswersBatch).mockImplementation(async (..._args: any[]): Promise<any> => [{ id: 'answer-1' }])
 
     renderExam()
     await waitFor(() => {
@@ -147,7 +149,7 @@ describe('Exam Save and Submit Buttons', () => {
       fireEvent.click(submitButton!)
     })
 
-    expect(vi.mocked(examsLib.submitAnswer)).toHaveBeenCalled()
+    expect(vi.mocked(examsLib.submitAnswersBatch)).toHaveBeenCalled()
   })
 
   it('submit button shows confirmation when unanswered questions exist', async () => {

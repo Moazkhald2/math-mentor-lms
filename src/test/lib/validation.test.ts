@@ -29,6 +29,8 @@ describe('isValidPhone', () => {
   it('accepts international formats', () => {
     expect(isValidPhone('+201001234567')).toBe(true)
     expect(isValidPhone('01001234567')).toBe(true)
+    expect(isValidPhone('+20 100 123 4567')).toBe(true)
+    expect(isValidPhone('010-0123-4567')).toBe(true)
   })
   it('rejects letters and short numbers', () => {
     expect(isValidPhone('abc')).toBe(false)

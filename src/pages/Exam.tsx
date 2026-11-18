@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { fetchExamQuestions, fetchVariantPool, startAttempt, submitAnswer, completeAttempt, saveAnswer, fetchStudentAttempts, cooldownRemainingMs, getBestScore } from '../lib/exams'
+import { fetchExamQuestions, fetchVariantPool, startAttempt, submitAnswer, completeAttempt, saveAnswer, saveAnswersBatch, submitAnswersBatch, fetchStudentAttempts, cooldownRemainingMs, getBestScore } from '../lib/exams'
 import { supabase } from '../lib/supabase'
 import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
 import { applyTemplate } from '../lib/params'
@@ -167,9 +167,7 @@ export default function Exam() {
     }
     setSaving(true)
     try {
-      for (const [qid, ans] of Object.entries(answers)) {
-        await saveAnswer(attemptId, qid, ans)
-      }
+      await saveAnswersBatch(attemptId, answers)
       log('exam_saved', { answered })
       if (offlineKey) localStorage.removeItem(offlineKey)
     } catch (e: any) {
@@ -188,6 +186,8 @@ export default function Exam() {
       let correct = 0
       let totalPoints = 0
       let earnedPoints = 0
+      const batchList: Array<{ questionId: string; answer: string; isCorrect: boolean; pointsEarned: number }> = []
+
       for (const eq of questions) {
         const points = eq.points ?? 1
         totalPoints += points
@@ -199,8 +199,14 @@ export default function Exam() {
           correct++
           earnedPoints += points
         }
-        await submitAnswer(attemptId, eq.question_id, userAns, isCorrect, isCorrect ? points : 0)
+        batchList.push({
+          questionId: eq.question_id,
+          answer: userAns,
+          isCorrect,
+          pointsEarned: isCorrect ? points : 0
+        })
       }
+      await submitAnswersBatch(attemptId, batchList)
       const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0
       await completeAttempt(attemptId, score, totalPoints)
       log('exam_submitted', { score, correct, total: questions.length })

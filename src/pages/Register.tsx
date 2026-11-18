@@ -22,14 +22,15 @@ export default function Register() {
     if (!isValidName(firstName) || !isValidName(lastName))
       return setError('Names must be 2-40 letters (spaces/hyphens allowed).')
     if (!isValidEmailFormat(email)) return setError('Please enter a valid email like name@example.com.')
-    if (isDisposableEmail(email)) return setError('Please use a real email address � temporary emails are not allowed.')
+    if (isDisposableEmail(email)) return setError('Please use a real email address — temporary emails are not allowed.')
     if (!isValidPassword(password)) return setError('Password must be at least 8 characters and include a letter and a number.')
-    if (!isValidPhone(parentPhone)) return setError('Parent phone is required so we can send progress reports. Format: +201012345678')
-    if (!grade) return
+    const cleanPhone = parentPhone.replace(/[\s\-\(\)]/g, '').trim()
+    if (!isValidPhone(cleanPhone)) return setError('Parent phone is required so we can send progress reports. Format: +201012345678')
+    if (!grade) return setError('Please select your grade.')
 
     setLoading(true)
     const fullName = `${firstName.trim()} ${lastName.trim()}`
-    const err = await signUp(email, password, fullName, grade, parentPhone)
+    const err = await signUp(email, password, fullName, grade, cleanPhone)
     if (err) setError(err)
     else setSuccess(true)
     setLoading(false)
@@ -42,6 +43,11 @@ export default function Register() {
         <p className="text-text-muted">
           We sent a confirmation link to <strong>{email}</strong>
         </p>
+        <div className="mt-6">
+          <a href="/login" className="inline-block rounded-lg bg-brand px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-light">
+            Back to Sign In
+          </a>
+        </div>
       </div>
     )
   }
@@ -107,7 +113,7 @@ export default function Register() {
         </div>
 
         {error && <p className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">{error}</p>}
-        <button type="submit" disabled={loading || !grade}
+        <button type="submit" disabled={loading}
           className="w-full rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand-light disabled:opacity-50">
           {loading ? 'Creating account...' : 'Create Account'}
         </button>
