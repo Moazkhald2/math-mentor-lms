@@ -7,12 +7,36 @@ export default function AdminCsvImport() {
   const [loading, setLoading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = []
+    let current = ''
+    let inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i]
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"'
+          i++
+        } else {
+          inQuotes = !inQuotes
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim())
+        current = ''
+      } else {
+        current += char
+      }
+    }
+    result.push(current.trim())
+    return result
+  }
+
   const parseCSV = (text: string): Partial<Question>[] => {
-    const lines = text.trim().split('\n')
+    const lines = text.trim().split(/\r?\n/).filter(l => l.trim().length > 0)
     if (lines.length < 2) return []
-    const headers = lines[0].split(',').map(h => h.trim())
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase())
     return lines.slice(1).map(line => {
-      const vals = line.split(',').map(v => v.trim())
+      const vals = parseCSVLine(line)
       const row: Record<string, string> = {}
       headers.forEach((h, j) => { row[h] = vals[j] ?? '' })
       const options = [row.a || row.option_a || '', row.b || row.option_b || '', row.c || row.option_c || '', row.d || row.option_d || ''].filter(Boolean)
