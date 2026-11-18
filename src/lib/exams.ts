@@ -175,3 +175,16 @@ export async function completeAttempt(attemptId: string, score: number, totalPoi
   if (error) throw error
   return data as ExamAttempt
 }
+
+export async function submitExamSecure(attemptId: string, answersMap: Record<string, string>) {
+  const payload = Object.entries(answersMap).map(([questionId, ans]) => ({
+    question_id: questionId,
+    answer: ans,
+  }))
+  const { data, error } = await supabase.rpc('submit_exam_attempt_secure', {
+    p_attempt_id: attemptId,
+    p_answers: payload,
+  })
+  if (error) throw error
+  return data as { score: number; total_points: number; earned_points: number; status: string }
+}

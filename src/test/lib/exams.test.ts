@@ -38,6 +38,7 @@ import {
   submitAnswer,
   completeAttempt,
   saveAnswer,
+  submitExamSecure,
   fetchStudentAttempts,
   getBestScore,
   cooldownRemainingMs,
@@ -406,6 +407,28 @@ describe('exams lib', () => {
       qb.single = vi.fn(() => Promise.resolve({ data: null, error: new Error('Update failed') }))
       vi.mocked(supabase.from).mockReturnValue(qb)
       await expect(completeAttempt('attempt-1', 85, 100)).rejects.toThrow('Update failed')
+    })
+  })
+
+  describe('submitExamSecure', () => {
+    it('calls supabase.rpc with submit_exam_attempt_secure and payload', async () => {
+      const mockResult = { score: 90, total_points: 10, earned_points: 9, status: 'completed' }
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: mockResult, error: null } as any)
+
+      const result = await submitExamSecure('attempt-1', { 'q-1': 'A', 'q-2': 'B' })
+      expect(supabase.rpc).toHaveBeenCalledWith('submit_exam_attempt_secure', {
+        p_attempt_id: 'attempt-1',
+        p_answers: [
+          { question_id: 'q-1', answer: 'A' },
+          { question_id: 'q-2', answer: 'B' },
+        ],
+      })
+      expect(result).toEqual(mockResult)
+    })
+
+    it('throws when supabase.rpc returns an error', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: null, error: new Error('RPC Failed') } as any)
+      await expect(submitExamSecure('attempt-1', { 'q-1': 'A' })).rejects.toThrow('RPC Failed')
     })
   })
 })
