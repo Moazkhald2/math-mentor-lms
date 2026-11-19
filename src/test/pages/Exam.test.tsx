@@ -41,6 +41,7 @@ vi.mock('../../lib/exams', () => ({
   submitAnswer: vi.fn(async (..._args: any[]) => ({ id: 'answer-1' })),
   saveAnswersBatch: vi.fn(async (..._args: any[]) => [{ id: 'answer-1' }]),
   submitAnswersBatch: vi.fn(async (..._args: any[]) => [{ id: 'answer-1' }]),
+  submitExamSecure: vi.fn(async (..._args: any[]) => { throw new Error('RPC test fallback') }),
   completeAttempt: vi.fn(async (..._args: any[]) => ({ id: 'attempt-1' })),
 }))
 

@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { fetchExamQuestions, fetchVariantPool, startAttempt, completeAttempt, saveAnswersBatch, submitAnswersBatch, fetchStudentAttempts, cooldownRemainingMs, getBestScore } from '../lib/exams'
+import { fetchExamQuestions, fetchVariantPool, startAttempt, completeAttempt, saveAnswersBatch, submitAnswersBatch, submitExamSecure, fetchStudentAttempts, cooldownRemainingMs, getBestScore } from '../lib/exams'
 import { supabase } from '../lib/supabase'
 import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
 import { applyTemplate } from '../lib/params'
@@ -207,12 +207,20 @@ export default function Exam() {
           pointsEarned: isCorrect ? points : 0
         })
       }
-      await submitAnswersBatch(attemptId, batchList)
-      const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0
-      await completeAttempt(attemptId, score, totalPoints)
-      log('exam_submitted', { score, correct, total: questions.length })
-      queryClient.invalidateQueries({ queryKey: ['my-exam-attempts', user?.id] })
-      navigate(`/results/${attemptId}`, { replace: true })
+      try {
+        const secureResult = await submitExamSecure(attemptId, answers)
+        log('exam_submitted', { score: secureResult.score, total: questions.length })
+        queryClient.invalidateQueries({ queryKey: ['my-exam-attempts', user?.id] })
+        navigate(`/results/${attemptId}`, { replace: true })
+      } catch {
+        // Fallback to client batch upsert if RPC is not yet enabled on DB
+        await submitAnswersBatch(attemptId, batchList)
+        const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0
+        await completeAttempt(attemptId, score, totalPoints)
+        log('exam_submitted', { score, correct, total: questions.length })
+        queryClient.invalidateQueries({ queryKey: ['my-exam-attempts', user?.id] })
+        navigate(`/results/${attemptId}`, { replace: true })
+      }
     } catch (e: any) {
       setError(e.message)
       setSubmitting(false)
