@@ -10,6 +10,7 @@ import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
 import { applyTemplate } from '../lib/params'
 import LatexRenderer from '../components/LatexRenderer'
 import Scratchpad from '../components/Scratchpad'
+import CartesianGrapherModal from '../components/CartesianGrapherModal'
 import MathInput from '../components/MathInput'
 import { isMathAnswerEqual } from '../lib/mathNormalize'
 import type { Exam, ExamQuestion, Question, ExamAttempt } from '../types'
@@ -169,6 +170,13 @@ export default function Practice() {
         <h1 className="text-xl font-bold text-text">{exam.title}</h1>
         <div className="flex items-center gap-3">
           <Scratchpad />
+          <CartesianGrapherModal
+            onInsertAnswer={(summary) => {
+              if (activeQuestion.type === 'short_answer' && !submitted) {
+                setSelectedAnswer(summary)
+              }
+            }}
+          />
           <span className="text-sm text-text-muted">Question {currentIndex + 1} of {eqs.length}</span>
         </div>
       </div>

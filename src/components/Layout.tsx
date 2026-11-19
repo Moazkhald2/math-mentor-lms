@@ -47,6 +47,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <a href="/sheets" className={navLink}>Sheets</a>
               <a href="/exams" className={navLink}>Exams</a>
               <a href="/dashboard" className={navLink}>Dashboard</a>
+              <a href="/grapher" className={navLink}>Grapher</a>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -85,6 +86,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <a href="/sheets" className={navLink} onClick={() => setMenuOpen(false)}>Sheets</a>
               <a href="/exams" className={navLink} onClick={() => setMenuOpen(false)}>Exams</a>
               <a href="/dashboard" className={navLink} onClick={() => setMenuOpen(false)}>Dashboard</a>
+              <a href="/grapher" className={navLink} onClick={() => setMenuOpen(false)}>Grapher</a>
               {loading ? null : user ? (
                 <>
                   <span className="text-sm text-muted">Signed in as {user.user_metadata.full_name}</span>

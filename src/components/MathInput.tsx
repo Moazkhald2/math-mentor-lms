@@ -3,6 +3,7 @@ import 'mathlive'
 import type { MathfieldElement } from 'mathlive'
 import VisualMathEditor from './VisualMathEditor'
 import MathKeypad, { type KeypadAction } from './MathKeypad'
+import CartesianGrapherModal from './CartesianGrapherModal'
 import LatexRenderer from './LatexRenderer'
 
 interface MathInputProps {
@@ -230,18 +231,25 @@ export default function MathInput({
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowKeypad((prev) => !prev)}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
-            showKeypad
-              ? 'border-brand bg-brand/10 text-brand'
-              : 'border-border bg-surface text-text-muted hover:text-text'
-          }`}
-        >
-          <span>⌨️</span>
-          <span>{showKeypad ? 'Hide Keypad' : 'Show Keypad'}</span>
-        </button>
+        <div className="flex items-center gap-1.5">
+          <CartesianGrapherModal
+            triggerLabel="📈 Graph Paper"
+            onInsertAnswer={(summary) => onChange(summary)}
+          />
+
+          <button
+            type="button"
+            onClick={() => setShowKeypad((prev) => !prev)}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+              showKeypad
+                ? 'border-brand bg-brand/10 text-brand'
+                : 'border-border bg-surface text-text-muted hover:text-text'
+            }`}
+          >
+            <span>⌨️</span>
+            <span>{showKeypad ? 'Hide Keypad' : 'Show Keypad'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Editor Body */}

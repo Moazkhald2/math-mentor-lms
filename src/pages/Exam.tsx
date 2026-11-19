@@ -13,6 +13,7 @@ import DifficultyBadge from '../components/DifficultyBadge'
 import { useActivityLogger } from '../hooks/useActivityLogger'
 import LatexRenderer from '../components/LatexRenderer'
 import Scratchpad from '../components/Scratchpad'
+import CartesianGrapherModal from '../components/CartesianGrapherModal'
 import MathInput from '../components/MathInput'
 import { isMathAnswerEqual } from '../lib/mathNormalize'
 import type { Question, Exam, ExamQuestion } from '../types'
@@ -324,6 +325,13 @@ export default function Exam() {
             />
           </div>
           <Scratchpad />
+          <CartesianGrapherModal
+            onInsertAnswer={(summary) => {
+              if (current?.question?.type === 'short_answer') {
+                handleAnswer(current.question_id, summary)
+              }
+            }}
+          />
           <button
             onClick={handleSave}
             disabled={answered === 0 || saving || !attemptId}
