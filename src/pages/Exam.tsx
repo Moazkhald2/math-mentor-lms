@@ -13,6 +13,8 @@ import DifficultyBadge from '../components/DifficultyBadge'
 import { useActivityLogger } from '../hooks/useActivityLogger'
 import LatexRenderer from '../components/LatexRenderer'
 import Scratchpad from '../components/Scratchpad'
+import MathInput from '../components/MathInput'
+import { isMathAnswerEqual } from '../lib/mathNormalize'
 import type { Question, Exam, ExamQuestion } from '../types'
 
 type ShuffledQuestion = ExamQuestion & {
@@ -194,7 +196,7 @@ export default function Exam() {
         totalPoints += points
         const userAns = answers[eq.question_id] ?? ''
         const isCorrect = eq.question.type === 'short_answer'
-          ? userAns.trim().toLowerCase() === eq.question.correct_answer.trim().toLowerCase()
+          ? isMathAnswerEqual(userAns, eq.question.correct_answer)
           : userAns === eq.question.correct_answer
         if (isCorrect) {
           correct++
@@ -430,9 +432,10 @@ function QuestionView({
         ))}
 
         {question.type === 'short_answer' && (
-          <input type="text" value={selected ?? ''} onChange={e => onAnswer(e.target.value)}
+          <MathInput
+            value={selected ?? ''}
+            onChange={val => onAnswer(val)}
             placeholder="Type your answer..."
-            className="w-full rounded-lg border border-border bg-surface px-5 py-3 text-ink outline-none focus:border-brand"
           />
         )}
       </div>

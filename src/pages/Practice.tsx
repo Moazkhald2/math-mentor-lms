@@ -10,6 +10,8 @@ import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
 import { applyTemplate } from '../lib/params'
 import LatexRenderer from '../components/LatexRenderer'
 import Scratchpad from '../components/Scratchpad'
+import MathInput from '../components/MathInput'
+import { isMathAnswerEqual } from '../lib/mathNormalize'
 import type { Exam, ExamQuestion, Question, ExamAttempt } from '../types'
 
 export default function Practice() {
@@ -122,7 +124,7 @@ export default function Practice() {
     setSaving(true)
     const ans = selectedAnswer ?? ''
     const correct = activeQuestion.type === 'short_answer'
-      ? ans.trim().toLowerCase() === activeQuestion.correct_answer.trim().toLowerCase()
+      ? isMathAnswerEqual(ans, activeQuestion.correct_answer)
       : ans === activeQuestion.correct_answer
     try {
       // First submission per question is scored; template retries are practice-only
@@ -206,8 +208,10 @@ export default function Practice() {
         ))}
 
         {activeQuestion.type === 'short_answer' && (
-          <input value={selectedAnswer ?? ''} onChange={e => !submitted && setSelectedAnswer(e.target.value)}
-            placeholder="Type your answer..." className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-ink"
+          <MathInput
+            value={selectedAnswer ?? ''}
+            onChange={val => !submitted && setSelectedAnswer(val)}
+            placeholder="Type your answer..."
             disabled={submitted}
           />
         )}
@@ -217,26 +221,26 @@ export default function Practice() {
         <div className={`mb-6 rounded-xl border p-4 ${
           selectedAnswer !== null && (
             activeQuestion.type === 'short_answer'
-              ? selectedAnswer.trim().toLowerCase() === activeQuestion.correct_answer.trim().toLowerCase()
+              ? isMathAnswerEqual(selectedAnswer, activeQuestion.correct_answer)
               : selectedAnswer === activeQuestion.correct_answer
           ) ? 'border-accent-green bg-accent-green/5' : 'border-danger bg-danger/5'
         }`}>
           <p className={`font-bold ${
             selectedAnswer !== null && (
               activeQuestion.type === 'short_answer'
-                ? selectedAnswer.trim().toLowerCase() === activeQuestion.correct_answer.trim().toLowerCase()
+                ? isMathAnswerEqual(selectedAnswer, activeQuestion.correct_answer)
                 : selectedAnswer === activeQuestion.correct_answer
             ) ? 'text-accent-green' : 'text-danger'
           }`}>
             {selectedAnswer !== null && (
               activeQuestion.type === 'short_answer'
-                ? selectedAnswer.trim().toLowerCase() === activeQuestion.correct_answer.trim().toLowerCase()
+                ? isMathAnswerEqual(selectedAnswer, activeQuestion.correct_answer)
                 : selectedAnswer === activeQuestion.correct_answer
             ) ? 'Correct!' : 'Wrong'}
           </p>
           {selectedAnswer !== null && !(
             activeQuestion.type === 'short_answer'
-              ? selectedAnswer.trim().toLowerCase() === activeQuestion.correct_answer.trim().toLowerCase()
+              ? isMathAnswerEqual(selectedAnswer, activeQuestion.correct_answer)
               : selectedAnswer === activeQuestion.correct_answer
           ) && <p className="text-sm text-accent-green mt-1">Correct answer: {activeQuestion.type === 'multiple_choice' ? activeQuestion.options[parseInt(activeQuestion.correct_answer)] || activeQuestion.correct_answer : activeQuestion.correct_answer}</p>}
           <div className="mt-3 space-y-2 leading-relaxed border-t border-border/60 pt-3">
