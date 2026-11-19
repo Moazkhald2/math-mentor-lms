@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { isValidPassword } from '../lib/validation'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -25,8 +26,8 @@ export default function ResetPassword() {
       setError('Passwords do not match')
       return
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+    if (!isValidPassword(password)) {
+      setError('Password must be at least 8 characters and include a letter and a number.')
       return
     }
 

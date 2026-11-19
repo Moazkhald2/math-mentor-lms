@@ -9,6 +9,7 @@ import { useActivityLogger } from '../hooks/useActivityLogger'
 import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
 import { applyTemplate } from '../lib/params'
 import LatexRenderer from '../components/LatexRenderer'
+import Scratchpad from '../components/Scratchpad'
 import type { Exam, ExamQuestion, Question, ExamAttempt } from '../types'
 
 export default function Practice() {
@@ -164,7 +165,10 @@ export default function Practice() {
     <div className="mx-auto max-w-2xl">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-text">{exam.title}</h1>
-        <span className="text-sm text-text-muted">Question {currentIndex + 1} of {eqs.length}</span>
+        <div className="flex items-center gap-3">
+          <Scratchpad />
+          <span className="text-sm text-text-muted">Question {currentIndex + 1} of {eqs.length}</span>
+        </div>
       </div>
 
       <div className="mb-6 rounded-xl border border-border bg-surface p-6">

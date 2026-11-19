@@ -93,7 +93,7 @@ export function useAntiCheat(config: AntiCheatConfig) {
     }
 
     const handleBlur = () => {
-      addViolation('window_blur')
+      if (!document.hidden) addViolation('window_blur')
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {

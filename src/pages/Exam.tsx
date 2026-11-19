@@ -12,6 +12,7 @@ import Watermark from '../components/Watermark'
 import DifficultyBadge from '../components/DifficultyBadge'
 import { useActivityLogger } from '../hooks/useActivityLogger'
 import LatexRenderer from '../components/LatexRenderer'
+import Scratchpad from '../components/Scratchpad'
 import type { Question, Exam, ExamQuestion } from '../types'
 
 type ShuffledQuestion = ExamQuestion & {
@@ -312,6 +313,7 @@ export default function Exam() {
               style={{ width: `${(answered / total) * 100}%` }}
             />
           </div>
+          <Scratchpad />
           <button
             onClick={handleSave}
             disabled={answered === 0 || saving || !attemptId}

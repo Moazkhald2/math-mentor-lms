@@ -53,7 +53,7 @@ export default function Login() {
 
         {resetSuccess && (
           <div className="mb-4 rounded-lg border border-accent-green/30 bg-accent-green/10 px-4 py-3 text-sm text-accent-green">
-            ? Password has been reset. Sign in with your new password.
+            ✓ Password has been reset. Sign in with your new password.
           </div>
         )}
 
