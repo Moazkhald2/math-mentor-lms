@@ -236,7 +236,7 @@ export default function VisualMathEditor({
                   }
                 }}
                 disabled={disabled}
-                placeholder="Numerator (البسط)"
+                placeholder="Numerator"
                 aria-label="Numerator"
                 className={`min-w-[130px] max-w-[280px] rounded-lg border-2 border-dashed px-3 py-2 text-center text-xl font-bold font-mono text-ink outline-none transition ${
                   activeField === 'num'
@@ -265,7 +265,7 @@ export default function VisualMathEditor({
                   }
                 }}
                 disabled={disabled}
-                placeholder="Denominator (المقام)"
+                placeholder="Denominator"
                 aria-label="Denominator"
                 className={`min-w-[130px] max-w-[280px] rounded-lg border-2 border-dashed px-3 py-2 text-center text-xl font-bold font-mono text-ink outline-none transition ${
                   activeField === 'den'
@@ -282,7 +282,7 @@ export default function VisualMathEditor({
           <div className="flex items-end justify-center gap-2 py-2">
             {/* Base Box */}
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[11px] font-semibold text-text-muted">Base (الأساس)</span>
+              <span className="text-[11px] font-semibold text-text-muted">Base</span>
               <input
                 ref={baseRef}
                 type="text"
@@ -309,7 +309,7 @@ export default function VisualMathEditor({
 
             {/* Exponent Box */}
             <div className="flex flex-col items-center gap-1 -translate-y-4">
-              <span className="text-[11px] font-semibold text-text-muted">Power (الأس)</span>
+              <span className="text-[11px] font-semibold text-text-muted">Exponent</span>
               <input
                 ref={expRef}
                 type="text"
@@ -348,7 +348,7 @@ export default function VisualMathEditor({
                 onChange={(e) => handleStateChange({ radicand: e.target.value })}
                 onFocus={() => updateActiveRef('radicand')}
                 disabled={disabled}
-                placeholder="Radicand (داخل الجذر)"
+                placeholder="Inside root"
                 aria-label="Radicand"
                 className={`min-w-[160px] max-w-[280px] rounded-lg border-2 border-dashed px-3 py-2 text-center text-xl font-bold font-mono text-ink outline-none transition ${
                   activeField === 'radicand'
@@ -408,7 +408,7 @@ export default function VisualMathEditor({
                 }
               }}
               disabled={disabled}
-              placeholder="f(x) (الدالة)"
+              placeholder="f(x)"
               aria-label="Limit Expression"
               className={`min-w-[160px] max-w-[280px] rounded-lg border-2 border-dashed px-3 py-2 text-center text-xl font-bold font-mono text-ink outline-none transition ${
                 activeField === 'expr'

@@ -53,7 +53,7 @@ describe('MathInput Component with Visual Calculator Boxes', () => {
     const rootBtn = screen.getByRole('button', { name: /Format as Root/i })
     fireEvent.click(rootBtn)
 
-    const radInput = screen.getByPlaceholderText(/Radicand/i)
+    const radInput = screen.getByPlaceholderText(/Inside root/i)
     fireEvent.change(radInput, { target: { value: '25' } })
     expect(handleChange).toHaveBeenCalledWith('\\sqrt{25}')
   })
