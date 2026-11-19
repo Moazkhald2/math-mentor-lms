@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import 'mathlive'
 import type { MathfieldElement } from 'mathlive'
 import VisualMathEditor from './VisualMathEditor'
 import MathKeypad, { type KeypadAction } from './MathKeypad'
@@ -42,11 +43,57 @@ export default function MathInput({
 
   const activeInputRef = useRef<HTMLInputElement | MathfieldElement | null>(null)
   const rawInputRef = useRef<HTMLInputElement | null>(null)
+  const textMathfieldRef = useRef<MathfieldElement | null>(null)
+
+  // Sync MathLive when in text mode
+  useEffect(() => {
+    if (mode !== 'text') return
+    const mf = textMathfieldRef.current
+    if (!mf) return
+
+    mf.mathVirtualKeyboardPolicy = 'manual'
+    mf.smartMode = false
+    mf.smartFence = true
+    mf.smartSuperscript = true
+
+    if (value !== undefined && mf.value !== value) {
+      mf.value = value || ''
+    }
+
+    const onInput = () => {
+      const val = mf.value
+      onChange(val)
+      if (rawInputRef.current) {
+        rawInputRef.current.value = val
+      }
+    }
+
+    mf.addEventListener('input', onInput)
+    return () => {
+      mf.removeEventListener('input', onInput)
+    }
+  }, [mode])
+
+  // Sync external value changes in text mode
+  useEffect(() => {
+    if (mode !== 'text') return
+    const mf = textMathfieldRef.current
+    if (mf && value !== undefined && mf.value !== value) {
+      if (typeof mf.setValue === 'function') {
+        mf.setValue(value || '', { silenceNotifications: true })
+      } else {
+        mf.value = value || ''
+      }
+    }
+    if (rawInputRef.current && rawInputRef.current.value !== value) {
+      rawInputRef.current.value = value || ''
+    }
+  }, [value, mode])
 
   // Handle keypad button clicks (numbers, math symbols, backspace, clear)
   const handleKeypadInsert = (action: KeypadAction) => {
     if (disabled) return
-    const input = mode === 'visual' ? activeInputRef.current : rawInputRef.current
+    const input = mode === 'visual' ? activeInputRef.current : (textMathfieldRef.current || rawInputRef.current)
 
     if (!input) {
       onChange((value || '') + (action.latex || action.insert))
@@ -67,7 +114,7 @@ export default function MathInput({
       return
     }
 
-    // Standard HTMLInputElement insertion
+    // Standard HTMLInputElement insertion fallback
     const htmlInput = input as HTMLInputElement
     const start = htmlInput.selectionStart ?? htmlInput.value.length
     const end = htmlInput.selectionEnd ?? htmlInput.value.length
@@ -100,7 +147,7 @@ export default function MathInput({
 
   const handleBackspace = () => {
     if (disabled) return
-    const input = mode === 'visual' ? activeInputRef.current : rawInputRef.current
+    const input = mode === 'visual' ? activeInputRef.current : (textMathfieldRef.current || rawInputRef.current)
     if (!input) return
 
     // Check if input is MathfieldElement
@@ -138,7 +185,7 @@ export default function MathInput({
 
   const handleClear = () => {
     if (disabled) return
-    const input = mode === 'visual' ? activeInputRef.current : rawInputRef.current
+    const input = mode === 'visual' ? activeInputRef.current : (textMathfieldRef.current || rawInputRef.current)
     if (input) {
       if ('setValue' in input && typeof (input as any).setValue === 'function') {
         ;(input as MathfieldElement).setValue('')
@@ -172,13 +219,14 @@ export default function MathInput({
           <button
             type="button"
             onClick={() => setMode('text')}
+            aria-label="Plain Input"
             className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
               mode === 'text'
                 ? 'bg-brand text-white shadow-xs'
                 : 'text-text-muted hover:text-text'
             }`}
           >
-            ✍️ Plain Input
+            ✍️ Type Your Answer
           </button>
         </div>
 
@@ -209,16 +257,36 @@ export default function MathInput({
         />
       ) : (
         <div className="relative space-y-2">
+          {/* True WYSIWYG Math Field for typed answer: formats math live as student types */}
+          <math-field
+            ref={textMathfieldRef}
+            class="w-full text-2xl p-4 rounded-xl border-2 border-brand/40 bg-surface text-ink text-center outline-none shadow-xs transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 min-h-[64px]"
+            disabled={disabled}
+            virtual-keyboard-mode="off"
+          />
+
+          {/* Accessible input for screen readers and automated test runners */}
           <input
             ref={rawInputRef}
             id={id}
             type="text"
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              onChange(e.target.value)
+              if (textMathfieldRef.current && textMathfieldRef.current.value !== e.target.value) {
+                if (typeof textMathfieldRef.current.setValue === 'function') {
+                  textMathfieldRef.current.setValue(e.target.value, { silenceNotifications: true })
+                } else {
+                  textMathfieldRef.current.value = e.target.value
+                }
+              }
+            }}
             placeholder={placeholder}
             disabled={disabled}
-            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-ink text-base outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:opacity-60 font-mono"
+            aria-label="Student Answer"
+            className="sr-only"
           />
+
           {value && (
             <div className="flex items-center gap-2 rounded-xl border border-brand/25 bg-brand/5 px-3.5 py-2 text-sm">
               <span className="text-xs font-bold uppercase tracking-wider text-brand">
