@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import 'mathlive'
 import MathInput from '../../components/MathInput'
 
 describe('MathInput Component with Visual Calculator Boxes', () => {

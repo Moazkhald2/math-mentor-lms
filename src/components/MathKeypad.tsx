@@ -4,11 +4,12 @@ import LatexRenderer from './LatexRenderer'
 export interface KeypadAction {
   label: string
   display?: string
+  displayLatex?: string
   latex?: string
   insert: string
-  cursorOffset?: number
   wrapPrefix?: string
   wrapSuffix?: string
+  cursorOffset?: number
 }
 
 interface MathKeypadProps {
@@ -19,99 +20,99 @@ interface MathKeypadProps {
 }
 
 export const COMMON_ACTIONS: KeypadAction[] = [
-  { label: 'a/b', latex: '\\frac{\\Box}{\\Box}', insert: '\\frac{}{}', cursorOffset: 6, wrapPrefix: '\\frac{', wrapSuffix: '}{}' },
-  { label: 'x²', latex: 'x^2', insert: '^2', wrapPrefix: '(', wrapSuffix: ')^2' },
-  { label: 'xⁿ', latex: 'x^{\\Box}', insert: '^{}', cursorOffset: 2, wrapPrefix: '(', wrapSuffix: ')^{}' },
-  { label: '√x', latex: '\\sqrt{\\Box}', insert: '\\sqrt{}', cursorOffset: 6, wrapPrefix: '\\sqrt{', wrapSuffix: '}' },
-  { label: 'lim', latex: '\\lim', insert: '\\lim_{x \\to 0} ', cursorOffset: 15 },
-  { label: 'x→', latex: 'x \\to', insert: 'x \\to ' },
-  { label: '∞', latex: '\\infty', insert: '\\infty' },
-  { label: '( )', latex: '(\\Box)', insert: '()', cursorOffset: 1, wrapPrefix: '(', wrapSuffix: ')' },
-  { label: '±', latex: '\\pm', insert: '\\pm' },
-  { label: 'π', latex: '\\pi', insert: '\\pi' },
+  { label: 'a/b', displayLatex: '\\frac{\\Box}{\\Box}', latex: '\\frac{#?}{#?}', insert: '\\frac{}{}' },
+  { label: 'x²', displayLatex: 'x^2', latex: '^2', insert: '^2' },
+  { label: 'xⁿ', displayLatex: 'x^{\\Box}', latex: '^{#?}', insert: '^{}' },
+  { label: '√x', displayLatex: '\\sqrt{\\Box}', latex: '\\sqrt{#?}', insert: '\\sqrt{}' },
+  { label: 'lim', displayLatex: '\\lim_{x \\to 0}\\Box', latex: '\\lim_{x \\to 0} #?', insert: '\\lim_{x \\to 0} ' },
+  { label: 'x→', displayLatex: 'x \\to \\Box', latex: 'x \\to #?', insert: 'x \\to ' },
+  { label: '∞', displayLatex: '\\infty', latex: '\\infty', insert: '\\infty' },
+  { label: '( )', displayLatex: '(\\Box)', latex: '(#?)', insert: '()' },
+  { label: '±', displayLatex: '\\pm', latex: '\\pm', insert: '\\pm' },
+  { label: 'π', displayLatex: '\\pi', latex: '\\pi', insert: '\\pi' },
 ]
 
 export const ALGEBRA_ACTIONS: KeypadAction[] = [
   // Fractions & Powers
-  { label: 'a/b', latex: '\\frac{\\Box}{\\Box}', insert: '\\frac{}{}', cursorOffset: 6, wrapPrefix: '\\frac{', wrapSuffix: '}{}' },
-  { label: 'x²', latex: 'x^2', insert: '^2', wrapPrefix: '(', wrapSuffix: ')^2' },
-  { label: 'x³', latex: 'x^3', insert: '^3', wrapPrefix: '(', wrapSuffix: ')^3' },
-  { label: 'xⁿ', latex: 'x^{\\Box}', insert: '^{}', cursorOffset: 2, wrapPrefix: '(', wrapSuffix: ')^{}' },
-  { label: 'xₙ', latex: 'x_{\\Box}', insert: '_{}', cursorOffset: 2, wrapPrefix: '', wrapSuffix: '_{}' },
-  { label: 'eˣ', latex: 'e^{\\Box}', insert: 'e^{}', cursorOffset: 3 },
+  { label: 'a/b', displayLatex: '\\frac{\\Box}{\\Box}', latex: '\\frac{#?}{#?}', insert: '\\frac{}{}' },
+  { label: 'x²', displayLatex: 'x^2', latex: '^2', insert: '^2' },
+  { label: 'x³', displayLatex: 'x^3', latex: '^3', insert: '^3' },
+  { label: 'xⁿ', displayLatex: 'x^{\\Box}', latex: '^{#?}', insert: '^{}' },
+  { label: 'xₙ', displayLatex: 'x_{\\Box}', latex: '_{#?}', insert: '_{}' },
+  { label: 'eˣ', displayLatex: 'e^{\\Box}', latex: 'e^{#?}', insert: 'e^{}' },
 
   // Roots
-  { label: '√x', latex: '\\sqrt{\\Box}', insert: '\\sqrt{}', cursorOffset: 6, wrapPrefix: '\\sqrt{', wrapSuffix: '}' },
-  { label: '∛x', latex: '\\sqrt[3]{\\Box}', insert: '\\sqrt[3]{}', cursorOffset: 9, wrapPrefix: '\\sqrt[3]{', wrapSuffix: '}' },
+  { label: '√x', displayLatex: '\\sqrt{\\Box}', latex: '\\sqrt{#?}', insert: '\\sqrt{}' },
+  { label: '∛x', displayLatex: '\\sqrt[3]{\\Box}', latex: '\\sqrt[3]{#?}', insert: '\\sqrt[3]{}' },
 
   // Grouping
-  { label: '( )', latex: '(\\Box)', insert: '()', cursorOffset: 1, wrapPrefix: '(', wrapSuffix: ')' },
-  { label: '[ ]', latex: '[\\Box]', insert: '[]', cursorOffset: 1, wrapPrefix: '[', wrapSuffix: ']' },
-  { label: '|x|', latex: '|\\Box|', insert: '||', cursorOffset: 1, wrapPrefix: '|', wrapSuffix: '|' },
+  { label: '( )', displayLatex: '(\\Box)', latex: '(#?)', insert: '()' },
+  { label: '[ ]', displayLatex: '[\\Box]', latex: '[#?]', insert: '[]' },
+  { label: '|x|', displayLatex: '|\\Box|', latex: '|#?|', insert: '||' },
 
   // Variables
-  { label: 'x', latex: 'x', insert: 'x' },
-  { label: 'y', latex: 'y', insert: 'y' },
-  { label: 'z', latex: 'z', insert: 'z' },
-  { label: 'n', latex: 'n', insert: 'n' },
+  { label: 'x', displayLatex: 'x', latex: 'x', insert: 'x' },
+  { label: 'y', displayLatex: 'y', latex: 'y', insert: 'y' },
+  { label: 'z', displayLatex: 'z', latex: 'z', insert: 'z' },
+  { label: 'n', displayLatex: 'n', latex: 'n', insert: 'n' },
 
   // Operators
-  { label: '+', latex: '+', insert: ' + ' },
-  { label: '-', latex: '-', insert: ' - ' },
-  { label: '×', latex: '\\times', insert: ' \\times ' },
-  { label: '÷', latex: '\\div', insert: ' \\div ' },
-  { label: '±', latex: '\\pm', insert: '\\pm ' },
-  { label: '=', latex: '=', insert: ' = ' },
+  { label: '+', displayLatex: '+', latex: '+', insert: ' + ' },
+  { label: '-', displayLatex: '-', latex: '-', insert: ' - ' },
+  { label: '×', displayLatex: '\\times', latex: '\\times', insert: ' \\times ' },
+  { label: '÷', displayLatex: '\\div', latex: '\\div', insert: ' \\div ' },
+  { label: '±', displayLatex: '\\pm', latex: '\\pm', insert: '\\pm ' },
+  { label: '=', displayLatex: '=', latex: '=', insert: ' = ' },
 ]
 
 export const CALCULUS_ACTIONS: KeypadAction[] = [
   // Limits
-  { label: 'lim_{x→0}', latex: '\\lim_{x \\to 0}', insert: '\\lim_{x \\to 0} ' },
-  { label: 'lim_{x→∞}', latex: '\\lim_{x \\to \\infty}', insert: '\\lim_{x \\to \\infty} ' },
-  { label: 'lim_{x→a}', latex: '\\lim_{x \\to a}', insert: '\\lim_{x \\to a} ' },
-  { label: 'x→', latex: 'x \\to', insert: 'x \\to ' },
-  { label: '∞', latex: '\\infty', insert: '\\infty' },
+  { label: 'lim_{x→0}', displayLatex: '\\lim_{x \\to 0}\\Box', latex: '\\lim_{x \\to 0} #?', insert: '\\lim_{x \\to 0} ' },
+  { label: 'lim_{x→∞}', displayLatex: '\\lim_{x \\to \\infty}\\Box', latex: '\\lim_{x \\to \\infty} #?', insert: '\\lim_{x \\to \\infty} ' },
+  { label: 'lim_{x→a}', displayLatex: '\\lim_{x \\to a}\\Box', latex: '\\lim_{x \\to a} #?', insert: '\\lim_{x \\to a} ' },
+  { label: 'x→', displayLatex: 'x \\to \\Box', latex: 'x \\to #?', insert: 'x \\to ' },
+  { label: '∞', displayLatex: '\\infty', latex: '\\infty', insert: '\\infty' },
 
   // Derivatives & Integrals
-  { label: 'dy/dx', latex: '\\frac{dy}{dx}', insert: '\\frac{dy}{dx}' },
-  { label: 'd/dx', latex: '\\frac{d}{dx}', insert: '\\frac{d}{dx}' },
-  { label: "f'(x)", latex: "f'(x)", insert: "f'(x)" },
-  { label: '∫', latex: '\\int', insert: '\\int ' },
-  { label: '∫_a^b', latex: '\\int_{a}^{b}', insert: '\\int_{a}^{b} ', cursorOffset: 6 },
+  { label: 'dy/dx', displayLatex: '\\frac{dy}{dx}', latex: '\\frac{dy}{dx}', insert: '\\frac{dy}{dx}' },
+  { label: 'd/dx', displayLatex: '\\frac{d}{dx}\\Box', latex: '\\frac{d}{dx}', insert: '\\frac{d}{dx}' },
+  { label: "f'(x)", displayLatex: "f'(x)", latex: "f'(x)", insert: "f'(x)" },
+  { label: '∫', displayLatex: '\\int \\Box', latex: '\\int #?', insert: '\\int ' },
+  { label: '∫_a^b', displayLatex: '\\int_a^b \\Box', latex: '\\int_{#?}^{#?} #?', insert: '\\int_{a}^{b} ' },
 
   // Functions
-  { label: 'sin', latex: '\\sin', insert: '\\sin(', cursorOffset: 5, wrapPrefix: '\\sin(', wrapSuffix: ')' },
-  { label: 'cos', latex: '\\cos', insert: '\\cos(', cursorOffset: 5, wrapPrefix: '\\cos(', wrapSuffix: ')' },
-  { label: 'tan', latex: '\\tan', insert: '\\tan(', cursorOffset: 5, wrapPrefix: '\\tan(', wrapSuffix: ')' },
-  { label: 'ln', latex: '\\ln', insert: '\\ln(', cursorOffset: 4, wrapPrefix: '\\ln(', wrapSuffix: ')' },
-  { label: 'log', latex: '\\log', insert: '\\log(', cursorOffset: 5, wrapPrefix: '\\log(', wrapSuffix: ')' },
-  { label: 'e', latex: 'e', insert: 'e' },
+  { label: 'sin', displayLatex: '\\sin(\\Box)', latex: '\\sin(#?)', insert: '\\sin(' },
+  { label: 'cos', displayLatex: '\\cos(\\Box)', latex: '\\cos(#?)', insert: '\\cos(' },
+  { label: 'tan', displayLatex: '\\tan(\\Box)', latex: '\\tan(#?)', insert: '\\tan(' },
+  { label: 'ln', displayLatex: '\\ln(\\Box)', latex: '\\ln(#?)', insert: '\\ln(' },
+  { label: 'log', displayLatex: '\\log(\\Box)', latex: '\\log(#?)', insert: '\\log(' },
+  { label: 'e', displayLatex: 'e', latex: 'e', insert: 'e' },
 ]
 
 export const SYMBOL_ACTIONS: KeypadAction[] = [
   // Relations
-  { label: '=', latex: '=', insert: ' = ' },
-  { label: '≠', latex: '\\ne', insert: ' \\neq ' },
-  { label: '<', latex: '<', insert: ' < ' },
-  { label: '>', latex: '>', insert: ' > ' },
-  { label: '≤', latex: '\\le', insert: ' \\le ' },
-  { label: '≥', latex: '\\ge', insert: ' \\ge ' },
-  { label: '≈', latex: '\\approx', insert: ' \\approx ' },
+  { label: '=', displayLatex: '=', latex: '=', insert: ' = ' },
+  { label: '≠', displayLatex: '\\ne', latex: '\\ne', insert: ' \\neq ' },
+  { label: '<', displayLatex: '<', latex: '<', insert: ' < ' },
+  { label: '>', displayLatex: '>', latex: '>', insert: ' > ' },
+  { label: '≤', displayLatex: '\\le', latex: '\\le', insert: ' \\le ' },
+  { label: '≥', displayLatex: '\\ge', latex: '\\ge', insert: ' \\ge ' },
+  { label: '≈', displayLatex: '\\approx', latex: '\\approx', insert: ' \\approx ' },
 
   // Constants & Greek
-  { label: 'π', latex: '\\pi', insert: '\\pi' },
-  { label: 'θ', latex: '\\theta', insert: '\\theta' },
-  { label: '°', latex: '^\\circ', insert: '^\\circ', wrapPrefix: '', wrapSuffix: '^\\circ' },
-  { label: 'Δ', latex: '\\Delta', insert: '\\Delta' },
-  { label: 'α', latex: '\\alpha', insert: '\\alpha' },
-  { label: 'β', latex: '\\beta', insert: '\\beta' },
+  { label: 'π', displayLatex: '\\pi', latex: '\\pi', insert: '\\pi' },
+  { label: 'θ', displayLatex: '\\theta', latex: '\\theta', insert: '\\theta' },
+  { label: '°', displayLatex: '^\\circ', latex: '^\\circ', insert: '^\\circ' },
+  { label: 'Δ', displayLatex: '\\Delta', latex: '\\Delta', insert: '\\Delta' },
+  { label: 'α', displayLatex: '\\alpha', latex: '\\alpha', insert: '\\alpha' },
+  { label: 'β', displayLatex: '\\beta', latex: '\\beta', insert: '\\beta' },
 
   // Sets & Logic
-  { label: '∈', latex: '\\in', insert: ' \\in ' },
-  { label: '∉', latex: '\\notin', insert: ' \\notin ' },
-  { label: '∪', latex: '\\cup', insert: ' \\cup ' },
-  { label: '∩', latex: '\\cap', insert: ' \\cap ' },
-  { label: '∅', latex: '\\emptyset', insert: '\\emptyset' },
+  { label: '∈', displayLatex: '\\in', latex: '\\in', insert: ' \\in ' },
+  { label: '∉', displayLatex: '\\notin', latex: '\\notin', insert: ' \\notin ' },
+  { label: '∪', displayLatex: '\\cup', latex: '\\cup', insert: ' \\cup ' },
+  { label: '∩', displayLatex: '\\cap', latex: '\\cap', insert: ' \\cap ' },
+  { label: '∅', displayLatex: '\\emptyset', latex: '\\emptyset', insert: '\\emptyset' },
 ]
 
 const NUMPAD_BUTTONS = [
@@ -182,7 +183,7 @@ export default function MathKeypad({ onInsert, onBackspace, onClear, className =
             onClick={onBackspace}
             aria-label="Delete"
             title="Delete character (Backspace)"
-            className="flex min-w-[52px] items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-extrabold text-amber-600 hover:bg-amber-500/20 active:scale-95 transition shadow-2xs"
+            className="flex min-w-[54px] items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-extrabold text-amber-600 hover:bg-amber-500/20 active:scale-95 transition shadow-2xs"
           >
             DEL
           </button>
@@ -191,7 +192,7 @@ export default function MathKeypad({ onInsert, onBackspace, onClear, className =
             onClick={onClear}
             aria-label="All Clear"
             title="All Clear"
-            className="flex min-w-[52px] items-center justify-center rounded-lg border border-danger/40 bg-danger/10 px-3 py-1.5 text-xs font-extrabold text-danger hover:bg-danger/20 active:scale-95 transition shadow-2xs"
+            className="flex min-w-[54px] items-center justify-center rounded-lg border border-danger/40 bg-danger/10 px-3 py-1.5 text-xs font-extrabold text-danger hover:bg-danger/20 active:scale-95 transition shadow-2xs"
           >
             AC
           </button>
@@ -202,22 +203,25 @@ export default function MathKeypad({ onInsert, onBackspace, onClear, className =
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Math Operation Keys (Rendered formatted like real calculator symbols) */}
         <div className="sm:col-span-2 grid grid-cols-4 gap-2 auto-rows-fr">
-          {actions.map((act) => (
-            <button
-              key={act.label}
-              type="button"
-              onClick={() => onInsert(act)}
-              aria-label={`Insert ${act.label}`}
-              title={`Insert ${act.label}`}
-              className="flex min-h-[46px] items-center justify-center rounded-xl border border-border/80 bg-bg hover:border-brand hover:bg-brand/10 text-text font-medium text-base transition active:scale-95 shadow-2xs overflow-hidden px-1"
-            >
-              {act.latex ? (
-                <LatexRenderer content={`$${act.latex}$`} inline />
-              ) : (
-                <span className="font-serif">{act.display || act.label}</span>
-              )}
-            </button>
-          ))}
+          {actions.map((act) => {
+            const mathExpression = act.displayLatex || act.latex?.replace(/#\?/g, '\\Box')
+            return (
+              <button
+                key={act.label}
+                type="button"
+                onClick={() => onInsert(act)}
+                aria-label={`Insert ${act.label}`}
+                title={`Insert ${act.label}`}
+                className="flex min-h-[46px] items-center justify-center rounded-xl border border-border/80 bg-bg hover:border-brand hover:bg-brand/10 text-text font-medium text-base transition active:scale-95 shadow-2xs overflow-hidden px-1"
+              >
+                {mathExpression ? (
+                  <LatexRenderer content={`$${mathExpression}$`} inline />
+                ) : (
+                  <span className="font-serif">{act.display || act.label}</span>
+                )}
+              </button>
+            )
+          })}
         </div>
 
         {/* Standard Numeric Keypad */}

@@ -139,3 +139,38 @@ html.theme-fading * {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
+
+/* ============================================================
+   MathLive WYSIWYG Math Field
+   Ensures students always see rendered math, never raw LaTeX
+   ============================================================ */
+math-field {
+  display: block;
+  width: 100%;
+  font-size: 1.35rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.875rem;
+  border: 1.5px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  outline: none;
+  min-height: 58px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+math-field:focus-within {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(10, 147, 150, 0.18);
+}
+
+math-field[disabled] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Hide MathLive internal virtual keyboard toggle and menu so custom keypad is clean */
+math-field::part(virtual-keyboard-toggle),
+math-field::part(menu-toggle) {
+  display: none !important;
+}

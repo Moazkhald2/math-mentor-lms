@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
+import 'mathlive'
+import type { MathfieldElement } from 'mathlive'
 import {
   parseMathTemplate,
   formatMathTemplate,
@@ -13,7 +15,7 @@ interface VisualMathEditorProps {
   disabled?: boolean
   className?: string
   placeholder?: string
-  onActiveFieldRef?: (ref: HTMLInputElement | null) => void
+  onActiveFieldRef?: (ref: HTMLInputElement | MathfieldElement | null) => void
 }
 
 export default function VisualMathEditor({
@@ -35,6 +37,7 @@ export default function VisualMathEditor({
   const appRef = useRef<HTMLInputElement>(null)
   const exprRef = useRef<HTMLInputElement>(null)
   const rawRef = useRef<HTMLInputElement>(null)
+  const mathfieldRef = useRef<MathfieldElement | null>(null)
 
   // Keep internal state in sync with external value prop
   useEffect(() => {
@@ -46,6 +49,46 @@ export default function VisualMathEditor({
       return parsed
     })
   }, [value])
+
+  // Sync MathLive web component when in expression mode
+  useEffect(() => {
+    if (state.template !== 'expression') return
+    const mf = mathfieldRef.current
+    if (!mf) return
+
+    mf.mathVirtualKeyboardPolicy = 'manual'
+    mf.smartMode = false
+    mf.smartFence = true
+    mf.smartSuperscript = true
+
+    if (state.raw !== undefined && mf.value !== state.raw) {
+      mf.value = state.raw || ''
+    }
+
+    const onInput = () => {
+      const val = mf.value
+      handleStateChange({ raw: val })
+    }
+
+    mf.addEventListener('input', onInput)
+    updateActiveRef('raw')
+
+    return () => {
+      mf.removeEventListener('input', onInput)
+    }
+  }, [state.template])
+
+  useEffect(() => {
+    if (state.template !== 'expression') return
+    const mf = mathfieldRef.current
+    if (mf && state.raw !== undefined && mf.value !== state.raw) {
+      if (typeof mf.setValue === 'function') {
+        mf.setValue(state.raw || '', { silenceNotifications: true })
+      } else {
+        mf.value = state.raw || ''
+      }
+    }
+  }, [state.raw])
 
   // Report active input element ref to parent for keypad insertions
   const updateActiveRef = (field: string) => {
@@ -76,7 +119,7 @@ export default function VisualMathEditor({
         break
       case 'raw':
       default:
-        onActiveFieldRef(rawRef.current)
+        onActiveFieldRef(mathfieldRef.current || rawRef.current)
         break
     }
   }
@@ -124,8 +167,13 @@ export default function VisualMathEditor({
     } else if (newTemplate === 'expression') {
       updates.raw = formatMathTemplate(state)
       setTimeout(() => {
-        rawRef.current?.focus()
-        updateActiveRef('raw')
+        if (mathfieldRef.current) {
+          mathfieldRef.current.focus()
+          updateActiveRef('raw')
+        } else {
+          rawRef.current?.focus()
+          updateActiveRef('raw')
+        }
       }, 50)
     }
 
@@ -211,7 +259,7 @@ export default function VisualMathEditor({
               : 'border border-border bg-bg text-text hover:border-brand'
           }`}
         >
-          <span>✍️ Single Expression</span>
+          <span>✍️ Math Field</span>
         </button>
       </div>
 
@@ -419,9 +467,16 @@ export default function VisualMathEditor({
           </div>
         )}
 
-        {/* 5. GENERAL EXPRESSION DISPLAY */}
+        {/* 5. GENERAL EXPRESSION DISPLAY (WYSIWYG Calculator Field) */}
         {state.template === 'expression' && (
-          <div className="w-full max-w-md py-2">
+          <div className="w-full max-w-xl py-2 flex flex-col items-center gap-2">
+            <math-field
+              ref={mathfieldRef}
+              class="w-full text-2xl p-4 rounded-xl border-2 border-brand/50 bg-surface text-ink text-center outline-none shadow-sm transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20"
+              disabled={disabled}
+              virtual-keyboard-mode="off"
+            />
+            {/* Accessible fallback for screen readers and automated tests */}
             <input
               ref={rawRef}
               type="text"
@@ -431,11 +486,7 @@ export default function VisualMathEditor({
               disabled={disabled}
               placeholder={placeholder || 'Type your answer...'}
               aria-label="Math Expression"
-              className={`w-full rounded-xl border-2 border-dashed px-4 py-3 text-center text-xl font-bold font-mono text-ink outline-none transition ${
-                activeField === 'raw'
-                  ? 'border-brand bg-surface ring-2 ring-brand/20'
-                  : 'border-border/80 bg-surface/70'
-              }`}
+              className="sr-only"
             />
           </div>
         )}

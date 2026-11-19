@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
+import type { MathfieldElement } from 'mathlive'
 import VisualMathEditor from './VisualMathEditor'
 import MathKeypad, { type KeypadAction } from './MathKeypad'
+import LatexRenderer from './LatexRenderer'
 
 interface MathInputProps {
   value: string
@@ -38,7 +40,7 @@ export default function MathInput({
   const [mode, setMode] = useState<'visual' | 'text'>('visual')
   const [showKeypad, setShowKeypad] = useState(true)
 
-  const activeInputRef = useRef<HTMLInputElement | null>(null)
+  const activeInputRef = useRef<HTMLInputElement | MathfieldElement | null>(null)
   const rawInputRef = useRef<HTMLInputElement | null>(null)
 
   // Handle keypad button clicks (numbers, math symbols, backspace, clear)
@@ -47,13 +49,29 @@ export default function MathInput({
     const input = mode === 'visual' ? activeInputRef.current : rawInputRef.current
 
     if (!input) {
-      onChange((value || '') + action.insert)
+      onChange((value || '') + (action.latex || action.insert))
       return
     }
 
-    const start = input.selectionStart ?? input.value.length
-    const end = input.selectionEnd ?? input.value.length
-    const currentVal = input.value
+    // Check if active target is a MathfieldElement (WYSIWYG custom element)
+    if ('insert' in input && typeof (input as any).insert === 'function') {
+      const mf = input as MathfieldElement
+      mf.focus()
+      const insertText = action.latex || action.insert
+      mf.insert(insertText, {
+        selectionMode: 'placeholder',
+        format: 'latex',
+        focus: true,
+      })
+      onChange(mf.value)
+      return
+    }
+
+    // Standard HTMLInputElement insertion
+    const htmlInput = input as HTMLInputElement
+    const start = htmlInput.selectionStart ?? htmlInput.value.length
+    const end = htmlInput.selectionEnd ?? htmlInput.value.length
+    const currentVal = htmlInput.value
 
     let insertText = action.insert
     let newCursorPos = start + insertText.length
@@ -71,12 +89,12 @@ export default function MathInput({
 
     const nextVal = currentVal.slice(0, start) + insertText + currentVal.slice(end)
 
-    setNativeValue(input, nextVal)
-    input.dispatchEvent(new Event('input', { bubbles: true }))
+    setNativeValue(htmlInput, nextVal)
+    htmlInput.dispatchEvent(new Event('input', { bubbles: true }))
 
     requestAnimationFrame(() => {
-      input.focus()
-      input.setSelectionRange(newCursorPos, newCursorPos)
+      htmlInput.focus()
+      htmlInput.setSelectionRange(newCursorPos, newCursorPos)
     })
   }
 
@@ -85,24 +103,35 @@ export default function MathInput({
     const input = mode === 'visual' ? activeInputRef.current : rawInputRef.current
     if (!input) return
 
-    const start = input.selectionStart ?? input.value.length
-    const end = input.selectionEnd ?? input.value.length
+    // Check if input is MathfieldElement
+    if ('executeCommand' in input && typeof (input as any).executeCommand === 'function') {
+      const mf = input as MathfieldElement
+      mf.focus()
+      mf.executeCommand('deleteBackward')
+      onChange(mf.value)
+      return
+    }
+
+    // Standard HTMLInputElement backspace
+    const htmlInput = input as HTMLInputElement
+    const start = htmlInput.selectionStart ?? htmlInput.value.length
+    const end = htmlInput.selectionEnd ?? htmlInput.value.length
 
     if (start !== end) {
-      const nextVal = input.value.slice(0, start) + input.value.slice(end)
-      setNativeValue(input, nextVal)
-      input.dispatchEvent(new Event('input', { bubbles: true }))
+      const nextVal = htmlInput.value.slice(0, start) + htmlInput.value.slice(end)
+      setNativeValue(htmlInput, nextVal)
+      htmlInput.dispatchEvent(new Event('input', { bubbles: true }))
       requestAnimationFrame(() => {
-        input.focus()
-        input.setSelectionRange(start, start)
+        htmlInput.focus()
+        htmlInput.setSelectionRange(start, start)
       })
     } else if (start > 0) {
-      const nextVal = input.value.slice(0, start - 1) + input.value.slice(start)
-      setNativeValue(input, nextVal)
-      input.dispatchEvent(new Event('input', { bubbles: true }))
+      const nextVal = htmlInput.value.slice(0, start - 1) + htmlInput.value.slice(start)
+      setNativeValue(htmlInput, nextVal)
+      htmlInput.dispatchEvent(new Event('input', { bubbles: true }))
       requestAnimationFrame(() => {
-        input.focus()
-        input.setSelectionRange(start - 1, start - 1)
+        htmlInput.focus()
+        htmlInput.setSelectionRange(start - 1, start - 1)
       })
     }
   }
@@ -111,7 +140,12 @@ export default function MathInput({
     if (disabled) return
     const input = mode === 'visual' ? activeInputRef.current : rawInputRef.current
     if (input) {
-      setNativeValue(input, '')
+      if ('setValue' in input && typeof (input as any).setValue === 'function') {
+        ;(input as MathfieldElement).setValue('')
+        onChange('')
+        return
+      }
+      setNativeValue(input as HTMLInputElement, '')
       input.dispatchEvent(new Event('input', { bubbles: true }))
       input.focus()
     } else {
@@ -174,7 +208,7 @@ export default function MathInput({
           }}
         />
       ) : (
-        <div className="relative">
+        <div className="relative space-y-2">
           <input
             ref={rawInputRef}
             id={id}
@@ -185,6 +219,16 @@ export default function MathInput({
             disabled={disabled}
             className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-ink text-base outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:opacity-60 font-mono"
           />
+          {value && (
+            <div className="flex items-center gap-2 rounded-xl border border-brand/25 bg-brand/5 px-3.5 py-2 text-sm">
+              <span className="text-xs font-bold uppercase tracking-wider text-brand">
+                Standard Math Preview:
+              </span>
+              <span className="font-serif text-base text-text">
+                <LatexRenderer content={`$${value}$`} inline />
+              </span>
+            </div>
+          )}
         </div>
       )}
 
