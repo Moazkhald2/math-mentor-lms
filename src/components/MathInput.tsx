@@ -1,6 +1,6 @@
-import { useState, useRef, useId } from 'react'
-import MathKeypad, { COMMON_ACTIONS, type KeypadAction } from './MathKeypad'
-import LatexRenderer from './LatexRenderer'
+import { useState, useRef } from 'react'
+import VisualMathEditor from './VisualMathEditor'
+import MathKeypad, { type KeypadAction } from './MathKeypad'
 
 interface MathInputProps {
   value: string
@@ -13,35 +13,18 @@ interface MathInputProps {
   showPreview?: boolean
 }
 
-/**
- * Transforms plain math notation (e.g. 1/2, sqrt(4)) into KaTeX friendly syntax for preview
- */
-function toLatexPreview(text: string): string {
-  if (!text || !text.trim()) return ''
-  let s = text.trim()
+function setNativeValue(element: HTMLInputElement, value: string) {
+  const valueSetter = Object.getOwnPropertyDescriptor(element, 'value')?.set
+  const prototype = Object.getPrototypeOf(element)
+  const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set
 
-  // Remove outer math wrapping if student typed $
-  if (s.startsWith('$$') && s.endsWith('$$')) {
-    s = s.slice(2, -2).trim()
-  } else if (s.startsWith('$') && s.endsWith('$')) {
-    s = s.slice(1, -1).trim()
+  if (prototypeValueSetter && valueSetter !== prototypeValueSetter) {
+    prototypeValueSetter.call(element, value)
+  } else if (valueSetter) {
+    valueSetter.call(element, value)
+  } else {
+    element.value = value
   }
-
-  // Convert basic slash fractions to \frac if not already latex
-  if (!s.includes('\\frac')) {
-    s = s.replace(/(\([^)]+\)|\b[a-zA-Z0-9.]+\b)\s*\/\s*(\([^)]+\)|\b[a-zA-Z0-9.]+\b)/g, (_m, num, den) => {
-      const cleanNum = num.replace(/^\((.*)\)$/, '$1')
-      const cleanDen = den.replace(/^\((.*)\)$/, '$1')
-      return `\\frac{${cleanNum}}{${cleanDen}}`
-    })
-  }
-
-  // Convert sqrt(x) to \sqrt{x}
-  if (!s.includes('\\sqrt')) {
-    s = s.replace(/sqrt\(([^)]+)\)/g, '\\sqrt{$1}')
-  }
-
-  return s
 }
 
 export default function MathInput({
@@ -51,43 +34,46 @@ export default function MathInput({
   disabled = false,
   className = '',
   id,
-  showQuickToolbar = true,
-  showPreview = true,
 }: MathInputProps) {
-  const generatedId = useId()
-  const inputId = id || generatedId
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [isOpen, setIsOpen] = useState(false)
+  const [mode, setMode] = useState<'visual' | 'text'>('visual')
+  const [showKeypad, setShowKeypad] = useState(true)
 
-  const handleInsert = (action: KeypadAction) => {
+  const activeInputRef = useRef<HTMLInputElement | null>(null)
+  const rawInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Handle keypad button clicks (numbers, math symbols, backspace, clear)
+  const handleKeypadInsert = (action: KeypadAction) => {
     if (disabled) return
-    const input = inputRef.current
+    const input = mode === 'visual' ? activeInputRef.current : rawInputRef.current
+
     if (!input) {
-      onChange(value + action.insert)
+      onChange((value || '') + action.insert)
       return
     }
 
-    const start = input.selectionStart ?? value.length
-    const end = input.selectionEnd ?? value.length
-    const selectedText = value.slice(start, end)
+    const start = input.selectionStart ?? input.value.length
+    const end = input.selectionEnd ?? input.value.length
+    const currentVal = input.value
 
     let insertText = action.insert
     let newCursorPos = start + insertText.length
 
-    // If text is selected and wrap rules exist
-    if (selectedText && (action.wrapPrefix !== undefined || action.wrapSuffix !== undefined)) {
+    // If text is selected and wrap options exist
+    if (start !== end && (action.wrapPrefix !== undefined || action.wrapSuffix !== undefined)) {
+      const selected = currentVal.slice(start, end)
       const prefix = action.wrapPrefix ?? ''
       const suffix = action.wrapSuffix ?? ''
-      insertText = `${prefix}${selectedText}${suffix}`
+      insertText = `${prefix}${selected}${suffix}`
       newCursorPos = start + insertText.length
     } else if (action.cursorOffset !== undefined) {
       newCursorPos = start + action.cursorOffset
     }
 
-    const nextValue = value.slice(0, start) + insertText + value.slice(end)
-    onChange(nextValue)
+    const nextVal = currentVal.slice(0, start) + insertText + currentVal.slice(end)
 
-    // Keep focus and position cursor precisely
+    setNativeValue(input, nextVal)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+
     requestAnimationFrame(() => {
       input.focus()
       input.setSelectionRange(newCursorPos, newCursorPos)
@@ -96,24 +82,24 @@ export default function MathInput({
 
   const handleBackspace = () => {
     if (disabled) return
-    const input = inputRef.current
+    const input = mode === 'visual' ? activeInputRef.current : rawInputRef.current
     if (!input) return
 
-    const start = input.selectionStart ?? value.length
-    const end = input.selectionEnd ?? value.length
+    const start = input.selectionStart ?? input.value.length
+    const end = input.selectionEnd ?? input.value.length
 
     if (start !== end) {
-      // Delete selected range
-      const nextValue = value.slice(0, start) + value.slice(end)
-      onChange(nextValue)
+      const nextVal = input.value.slice(0, start) + input.value.slice(end)
+      setNativeValue(input, nextVal)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
       requestAnimationFrame(() => {
         input.focus()
         input.setSelectionRange(start, start)
       })
     } else if (start > 0) {
-      // Delete previous character
-      const nextValue = value.slice(0, start - 1) + value.slice(start)
-      onChange(nextValue)
+      const nextVal = input.value.slice(0, start - 1) + input.value.slice(start)
+      setNativeValue(input, nextVal)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
       requestAnimationFrame(() => {
         input.focus()
         input.setSelectionRange(start - 1, start - 1)
@@ -123,90 +109,90 @@ export default function MathInput({
 
   const handleClear = () => {
     if (disabled) return
-    onChange('')
-    requestAnimationFrame(() => {
-      inputRef.current?.focus()
-    })
+    const input = mode === 'visual' ? activeInputRef.current : rawInputRef.current
+    if (input) {
+      setNativeValue(input, '')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      input.focus()
+    } else {
+      onChange('')
+    }
   }
 
-  const previewLatex = toLatexPreview(value)
-
   return (
-    <div className={`w-full space-y-2.5 ${className}`}>
-      {/* Quick Toolbar (Fractions, Powers, Roots, Limits) */}
-      {showQuickToolbar && !disabled && (
-        <div className="flex flex-wrap items-center gap-1.5 pb-1">
-          <span className="text-xs font-semibold uppercase tracking-wider text-text-muted mr-1">
-            Quick Keys:
-          </span>
-          {COMMON_ACTIONS.map((action) => (
-            <button
-              key={action.label}
-              type="button"
-              onClick={() => handleInsert(action)}
-              aria-label={`Insert ${action.label}`}
-              title={`Insert ${action.label}`}
-              className="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-text hover:border-brand hover:bg-brand/10 active:scale-95 transition"
-            >
-              {action.display || action.label}
-            </button>
-          ))}
+    <div className={`w-full space-y-3 ${className}`}>
+      {/* Top Header Mode Toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 rounded-lg border border-border bg-surface p-1">
           <button
             type="button"
-            onClick={() => setIsOpen((prev) => !prev)}
-            className={`ml-auto flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-semibold transition ${
-              isOpen
-                ? 'border-brand bg-brand text-white shadow-xs'
-                : 'border-border bg-surface text-text hover:border-brand hover:bg-brand/10'
+            onClick={() => setMode('visual')}
+            className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+              mode === 'visual'
+                ? 'bg-brand text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
             }`}
           >
-            <span>🧮</span>
-            <span>{isOpen ? 'Close Keypad' : 'More Keys'}</span>
+            🧮 Calculator Boxes
           </button>
-        </div>
-      )}
-
-      {/* Main Input Field */}
-      <div className="relative flex items-center">
-        <input
-          ref={inputRef}
-          id={inputId}
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          disabled={disabled}
-          className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-ink text-base outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:opacity-60"
-        />
-
-        {!showQuickToolbar && !disabled && (
           <button
             type="button"
-            onClick={() => setIsOpen((prev) => !prev)}
-            className="absolute right-2.5 rounded-lg border border-border bg-bg px-2.5 py-1.5 text-xs font-medium text-text-muted hover:border-brand hover:text-text"
+            onClick={() => setMode('text')}
+            className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+              mode === 'text'
+                ? 'bg-brand text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
           >
-            🧮 Math Keys
+            ✍️ Plain Input
           </button>
-        )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowKeypad((prev) => !prev)}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+            showKeypad
+              ? 'border-brand bg-brand/10 text-brand'
+              : 'border-border bg-surface text-text-muted hover:text-text'
+          }`}
+        >
+          <span>⌨️</span>
+          <span>{showKeypad ? 'Hide Keypad' : 'Show Keypad'}</span>
+        </button>
       </div>
 
-      {/* Real-time Math Preview */}
-      {showPreview && previewLatex && (
-        <div className="flex items-center gap-3 rounded-lg border border-brand/25 bg-brand/5 px-3.5 py-2 text-sm text-text">
-          <span className="text-xs font-bold uppercase tracking-wider text-brand">
-            Preview:
-          </span>
-          <div className="overflow-x-auto py-0.5">
-            <LatexRenderer content={`$${previewLatex}$`} inline />
-          </div>
+      {/* Editor Body */}
+      {mode === 'visual' ? (
+        <VisualMathEditor
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          placeholder={placeholder}
+          onActiveFieldRef={(ref) => {
+            activeInputRef.current = ref
+          }}
+        />
+      ) : (
+        <div className="relative">
+          <input
+            ref={rawInputRef}
+            id={id}
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            disabled={disabled}
+            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-ink text-base outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:opacity-60 font-mono"
+          />
         </div>
       )}
 
-      {/* Expandable Calculator Keypad */}
-      {isOpen && !disabled && (
+      {/* On-Screen Calculator Keypad */}
+      {showKeypad && !disabled && (
         <div className="pt-1">
           <MathKeypad
-            onInsert={handleInsert}
+            onInsert={handleKeypadInsert}
             onBackspace={handleBackspace}
             onClear={handleClear}
           />
