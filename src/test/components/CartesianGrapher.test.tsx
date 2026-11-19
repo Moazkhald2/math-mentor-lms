@@ -5,7 +5,7 @@ import CartesianGrapherModal from '../../components/CartesianGrapherModal'
 
 describe('CartesianGrapher Component', () => {
   it('renders Cartesian graph paper with tools, axes, and coordinate badge', () => {
-    render(<CartesianGrapher />)
+    render(<CartesianGrapher defaultGradeMode="senior" />)
 
     expect(screen.getByRole('region', { name: /Cartesian Coordinate Grapher/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Plot Point/i })).toBeInTheDocument()
@@ -13,6 +13,87 @@ describe('CartesianGrapher Component', () => {
     expect(screen.getByRole('button', { name: /Function y = f\(x\)/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Shaded Inequality/i })).toBeInTheDocument()
     expect(screen.getByText(/Coords:/i)).toBeInTheDocument()
+  })
+
+  it('renders Junior Mode with simplified tools for Grades 6-8', () => {
+    render(<CartesianGrapher defaultGradeMode="junior" />)
+
+    expect(screen.getByRole('button', { name: /Plot Points/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Connect Shape/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Dilation \(Scale Factor\)/i })).toBeInTheDocument()
+  })
+
+  it('switches between Junior and Senior grade modes seamlessly', () => {
+    render(<CartesianGrapher defaultGradeMode="junior" />)
+
+    // Initially in Junior mode
+    expect(screen.getByRole('button', { name: /Connect Shape/i })).toBeInTheDocument()
+
+    // Switch to Senior mode
+    const seniorBtn = screen.getByRole('button', { name: /Senior \(Grades 9–12\)/i })
+    fireEvent.click(seniorBtn)
+
+    expect(screen.getByRole('button', { name: /Line by 2 Points/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Function y = f\(x\)/i })).toBeInTheDocument()
+  })
+
+  it('applies geometric dilation (Before & After) with factor k = 1/3 in Junior Mode', () => {
+    const initialState = {
+      gradeMode: 'junior' as const,
+      points: [
+        { id: 'p1', label: 'A', x: 3, y: 6, color: '#3B82F6' },
+        { id: 'p2', label: 'B', x: 6, y: 3, color: '#3B82F6' },
+        { id: 'p3', label: 'C', x: 0, y: 0, color: '#3B82F6' },
+      ],
+      lines: [],
+      functions: [],
+      polygons: [
+        {
+          id: 'poly-1',
+          label: 'Triangle ABC',
+          points: [
+            { x: 3, y: 6, label: 'A' },
+            { x: 6, y: 3, label: 'B' },
+            { x: 0, y: 0, label: 'C' },
+          ],
+          color: '#3B82F6',
+          closed: true,
+        },
+      ],
+      snapStep: 1,
+      snapEnabled: true,
+    }
+
+    render(<CartesianGrapher initialState={initialState} defaultGradeMode="junior" />)
+
+    // Open dilation tool
+    const dilationToolBtn = screen.getByRole('button', { name: /Dilation \(Scale Factor\)/i })
+    fireEvent.click(dilationToolBtn)
+
+    // Apply Dilation with default k = 1/3
+    const applyBtn = screen.getByRole('button', { name: /Apply Dilation/i })
+    fireEvent.click(applyBtn)
+
+    // Verification: Transformation rule and dilated points A'(1, 2) and B'(2, 1) displayed
+    expect(screen.getByText(/Transformation Rule:/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/A\(3, 6\)/i).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/A'\(1, 2\)/i).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/B'\(2, 1\)/i).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('opens embedded Math Keypad for equations in Senior Mode', () => {
+    render(<CartesianGrapher defaultGradeMode="senior" />)
+
+    // Select function tool
+    const fnToolBtn = screen.getByRole('button', { name: /Function y = f\(x\)/i })
+    fireEvent.click(fnToolBtn)
+
+    // Keypad button is available
+    const keypadToggle = screen.getByRole('button', { name: /Math Keypad/i })
+    fireEvent.click(keypadToggle)
+
+    // Keypad is open
+    expect(screen.getByRole('region', { name: /Math Keypad/i })).toBeInTheDocument()
   })
 
   it('toggles snap to grid and step selector', () => {
@@ -48,7 +129,7 @@ describe('CartesianGrapher Component', () => {
       snapEnabled: true,
     }
 
-    render(<CartesianGrapher initialState={initialState} />)
+    render(<CartesianGrapher initialState={initialState} defaultGradeMode="senior" />)
 
     // Point A(1, 3) should be listed on SVG plane and in items legend
     expect(screen.getAllByText(/A\(1, 3\)/i).length).toBeGreaterThanOrEqual(1)
@@ -73,7 +154,7 @@ describe('CartesianGrapher Component', () => {
 
     render(<CartesianGrapher initialState={initialState} onInsertAnswer={handleInsert} />)
 
-    const insertBtn = screen.getByRole('button', { name: /Use Graph as Answer/i })
+    const insertBtn = screen.getByRole('button', { name: /Attach Graph to Answer|Use Graph as Answer/i })
     expect(insertBtn).toBeInTheDocument()
     fireEvent.click(insertBtn)
 

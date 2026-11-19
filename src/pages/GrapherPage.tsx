@@ -36,8 +36,49 @@ export default function GrapherPage() {
   })
 
   // Quick preset loader
-  const loadPreset = (preset: 'system' | 'optimization' | 'parabola') => {
-    if (preset === 'system') {
+  const loadPreset = (preset: 'system' | 'optimization' | 'parabola' | 'dilation') => {
+    if (preset === 'dilation') {
+      setGraphState({
+        gradeMode: 'junior',
+        points: [
+          { id: 'p1', label: 'A', x: 3, y: 6, color: '#3B82F6' },
+          { id: 'p2', label: 'B', x: 6, y: 3, color: '#3B82F6' },
+          { id: 'p3', label: 'C', x: 0, y: 0, color: '#3B82F6' },
+        ],
+        lines: [],
+        functions: [],
+        polygons: [
+          {
+            id: 'poly-1',
+            label: 'Triangle ABC',
+            points: [
+              { x: 3, y: 6, label: 'A' },
+              { x: 6, y: 3, label: 'B' },
+              { x: 0, y: 0, label: 'C' },
+            ],
+            color: '#3B82F6',
+            closed: true,
+          },
+        ],
+        dilations: [
+          {
+            id: 'dil-1',
+            label: 'Dilated Shape (k = 1/3)',
+            points: [
+              { x: 1, y: 2, label: "A'" },
+              { x: 2, y: 1, label: "B'" },
+              { x: 0, y: 0, label: "C'" },
+            ],
+            color: '#10B981',
+            closed: true,
+            scaleFactor: 1 / 3,
+            dilationCenter: { x: 0, y: 0 },
+          },
+        ],
+        snapStep: 1,
+        snapEnabled: true,
+      })
+    } else if (preset === 'system') {
       setGraphState({
         points: [],
         lines: [
@@ -101,8 +142,15 @@ export default function GrapherPage() {
         </div>
 
         {/* Quick Example Presets */}
-        <div className="flex items-center gap-1.5 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
           <span className="text-xs font-bold text-text-muted mr-1">Presets:</span>
+          <button
+            type="button"
+            onClick={() => loadPreset('dilation')}
+            className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 transition"
+          >
+            ✨ Dilation (k = 1/3)
+          </button>
           <button
             type="button"
             onClick={() => loadPreset('system')}
@@ -139,7 +187,14 @@ export default function GrapherPage() {
       </div>
 
       {/* Guide Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
+        <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm space-y-1.5">
+          <div className="text-lg">✨ Geometric Dilations</div>
+          <p className="text-xs text-text-muted">
+            Visualize Before & After transformations with scale factor $k = 1/3, 1/2, 2$ with projection rays from origin and coordinate mapping $A(x, y) \to A'(kx, ky)$.
+          </p>
+        </div>
+
         <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm space-y-1.5">
           <div className="text-lg">🧲 Snap to Grid</div>
           <p className="text-xs text-text-muted">

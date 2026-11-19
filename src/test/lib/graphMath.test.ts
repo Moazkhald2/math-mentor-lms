@@ -7,6 +7,8 @@ import {
   findLineIntersection,
   computeAllIntersections,
   evaluateMathExpression,
+  normalizeLatexMathExpression,
+  dilatePoints,
   serializeGraphState,
   type ViewBounds,
   type PlottedLine,
@@ -169,5 +171,89 @@ describe('graphMath utility functions', () => {
     expect(serialized).toContain('Points: A(2, 3), B(-1, 0)')
     expect(serialized).toContain('Line 1')
     expect(serialized).toContain('Functions: f(x): x^2')
+  })
+
+  it('normalizes LaTeX fractions and powers for mathematical evaluation', () => {
+    expect(normalizeLatexMathExpression('\\frac{1}{3}x')).toBe('((1)/(3))*x')
+    expect(normalizeLatexMathExpression('x^{2} - 1')).toBe('x**(2) - 1')
+    expect(normalizeLatexMathExpression('\\sqrt{x}')).toBe('Math.sqrt(x)')
+
+    // Evaluating normalized expressions with LaTeX
+    expect(evaluateMathExpression('\\frac{1}{2}x + 1', 4)).toBe(3)
+    expect(evaluateMathExpression('\\frac{1}{3}x', 9)).toBe(3)
+  })
+
+  it('correctly calculates geometric dilations (Before & After) by scale factor k = 1/3', () => {
+    // Triangle A(3, 6), B(6, 3), C(0, 0) dilated by factor 1/3 centered at (0, 0)
+    const originalPoints = [
+      { x: 3, y: 6, label: 'A' },
+      { x: 6, y: 3, label: 'B' },
+      { x: 0, y: 0, label: 'C' },
+    ]
+
+    const dilation = dilatePoints(originalPoints, 1 / 3, { x: 0, y: 0 })
+    expect(dilation.type).toBe('reduction')
+    expect(dilation.dilatedPoints.length).toBe(3)
+
+    // A'(1, 2)
+    expect(dilation.dilatedPoints[0].x).toBeCloseTo(1)
+    expect(dilation.dilatedPoints[0].y).toBeCloseTo(2)
+    expect(dilation.dilatedPoints[0].label).toBe("A'")
+
+    // B'(2, 1)
+    expect(dilation.dilatedPoints[1].x).toBeCloseTo(2)
+    expect(dilation.dilatedPoints[1].y).toBeCloseTo(1)
+    expect(dilation.dilatedPoints[1].label).toBe("B'")
+
+    // C'(0, 0)
+    expect(dilation.dilatedPoints[2].x).toBeCloseTo(0)
+    expect(dilation.dilatedPoints[2].y).toBeCloseTo(0)
+    expect(dilation.dilatedPoints[2].label).toBe("C'")
+
+    // Dilation mapping strings
+    expect(dilation.mappings[0].originalCoords).toBe('(3, 6)')
+    expect(dilation.mappings[0].dilatedCoords).toBe('(1, 2)')
+  })
+
+  it('serializes shapes and dilations into answer string', () => {
+    const state: GraphState = {
+      points: [
+        { id: '1', label: 'A', x: 3, y: 6, color: 'blue' },
+        { id: '2', label: 'B', x: 6, y: 3, color: 'blue' },
+      ],
+      lines: [],
+      functions: [],
+      polygons: [
+        {
+          id: 'poly-1',
+          label: 'Triangle ABC',
+          points: [
+            { x: 3, y: 6, label: 'A' },
+            { x: 6, y: 3, label: 'B' },
+          ],
+          color: '#3B82F6',
+          closed: true,
+        },
+      ],
+      dilations: [
+        {
+          id: 'dil-1',
+          label: "Dilated Triangle A'B'C'",
+          points: [
+            { x: 1, y: 2, label: "A'" },
+            { x: 2, y: 1, label: "B'" },
+          ],
+          color: '#10B981',
+          closed: true,
+          scaleFactor: 1 / 3,
+        },
+      ],
+      snapStep: 1,
+      snapEnabled: true,
+    }
+
+    const summary = serializeGraphState(state)
+    expect(summary).toContain('Shapes: Triangle ABC [A(3, 6), B(6, 3)]')
+    expect(summary).toContain("Dilations: Dilated Triangle A'B'C' (k=0.3333333333333333) [A'(1, 2), B'(2, 1)]")
   })
 })

@@ -19,6 +19,18 @@ export interface PlottedPoint {
   color: string
 }
 
+export interface PlottedPolygon {
+  id: string
+  label: string
+  points: { x: number; y: number; label?: string }[]
+  color: string
+  closed?: boolean
+  isDilation?: boolean
+  scaleFactor?: number
+  dilationCenter?: { x: number; y: number }
+  originalId?: string
+}
+
 export interface PlottedLine {
   id: string
   label: string
@@ -54,6 +66,9 @@ export interface GraphState {
   points: PlottedPoint[]
   lines: PlottedLine[]
   functions: PlottedFunction[]
+  polygons?: PlottedPolygon[]
+  dilations?: PlottedPolygon[]
+  gradeMode?: 'junior' | 'senior'
   snapStep: number
   snapEnabled: boolean
 }
@@ -254,18 +269,128 @@ export function computeAllIntersections(lines: PlottedLine[]): IntersectionPoint
 }
 
 /**
+ * Normalizes LaTeX math expressions (from keypad or text) to evaluatable JS math strings:
+ * e.g. "\frac{1}{3}x" -> "((1)/(3))*x"
+ * "\frac{x^2}{4}" -> "(((x**2))/(4))"
+ * "\sqrt{x + 1}" -> "Math.sqrt(x + 1)"
+ */
+export function normalizeLatexMathExpression(latex: string): string {
+  if (!latex) return ''
+  let s = latex.trim()
+
+  // Replace \frac{a}{b} -> ((a)/(b)) recursively
+  let prev = ''
+  while (s !== prev && /\\frac\{([^{}]+)\}\{([^{}]+)\}/.test(s)) {
+    prev = s
+    s = s.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '(($1)/($2))')
+  }
+
+  // Replace \sqrt[n]{x} -> (x**(1/n))
+  s = s.replace(/\\sqrt\[([^{}]+)\]\{([^{}]+)\}/g, '(($2)**(1/($1)))')
+  // Replace \sqrt{x} -> Math.sqrt($1)
+  s = s.replace(/\\sqrt\{([^{}]+)\}/g, 'Math.sqrt($1)')
+
+  // Replace powers: x^{2} -> x**(2)
+  s = s.replace(/\^\{([^{}]+)\}/g, '**($1)')
+
+  // Replace operators & symbols
+  s = s.replace(/\\cdot/g, '*')
+  s = s.replace(/\\times/g, '*')
+  s = s.replace(/\\div/g, '/')
+  s = s.replace(/\\pi/g, 'Math.PI')
+  s = s.replace(/\\sin/g, 'Math.sin')
+  s = s.replace(/\\cos/g, 'Math.cos')
+  s = s.replace(/\\tan/g, 'Math.tan')
+  s = s.replace(/\\ln/g, 'Math.log')
+  s = s.replace(/\\log/g, 'Math.log10')
+
+  // Remove any remaining backslashes
+  s = s.replace(/\\/g, '')
+
+  // Insert multiplication between closing paren and variable or number: e.g. ((1)/(3))x -> ((1)/(3))*x
+  s = s.replace(/\)([a-zA-Z0-9(])/g, ')*$1')
+
+  return s
+}
+
+export interface DilationMapping {
+  original: string
+  originalCoords: string
+  dilated: string
+  dilatedCoords: string
+}
+
+export interface DilationResult {
+  dilatedPoints: { x: number; y: number; label: string }[]
+  mappings: DilationMapping[]
+  type: 'reduction' | 'enlargement' | 'congruent'
+  scaleFactor: number
+  center: { x: number; y: number }
+}
+
+/**
+ * Applies geometric dilation to a set of 2D points given a scale factor k
+ * centered at a reference point (default: origin (0, 0)).
+ * Formula: x' = cx + k * (x - cx), y' = cy + k * (y - cy)
+ */
+export function dilatePoints(
+  points: { x: number; y: number; label?: string }[],
+  scaleFactor: number,
+  center: { x: number; y: number } = { x: 0, y: 0 }
+): DilationResult {
+  const dilatedPoints = points.map((p, idx) => {
+    const rawX = center.x + scaleFactor * (p.x - center.x)
+    const rawY = center.y + scaleFactor * (p.y - center.y)
+    const x = Number(rawX.toFixed(3))
+    const y = Number(rawY.toFixed(3))
+    const baseLabel = p.label || String.fromCharCode(65 + idx)
+    const label = `${baseLabel}'`
+    return { x, y, label }
+  })
+
+  const mappings: DilationMapping[] = points.map((p, idx) => {
+    const baseLabel = p.label || String.fromCharCode(65 + idx)
+    const d = dilatedPoints[idx]
+    return {
+      original: baseLabel,
+      originalCoords: `(${p.x}, ${p.y})`,
+      dilated: d.label,
+      dilatedCoords: `(${d.x}, ${d.y})`,
+    }
+  })
+
+  const type =
+    Math.abs(Math.abs(scaleFactor) - 1) < 1e-6
+      ? 'congruent'
+      : Math.abs(scaleFactor) < 1
+        ? 'reduction'
+        : 'enlargement'
+
+  return {
+    dilatedPoints,
+    mappings,
+    type,
+    scaleFactor,
+    center,
+  }
+}
+
+/**
  * Parses and evaluates simple math expressions:
- * e.g. "2x + 1", "-0.5x + 3", "x^2 - 4", "1/x", "x"
+ * e.g. "2x + 1", "-0.5x + 3", "x^2 - 4", "\frac{1}{2}x", "1/x", "x"
  */
 export function evaluateMathExpression(expr: string, x: number): number | null {
   if (!expr || !expr.trim()) return null
 
-  // Normalize expression syntax
-  let clean = expr
+  // 1. Normalize LaTeX if present
+  let clean = normalizeLatexMathExpression(expr)
+
+  // 2. Normalize expression syntax
+  clean = clean
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '')
-    // Replace implicit multiplication: e.g. 2x -> 2*x, 3(x) -> 3*(x)
+    // Replace implicit multiplication: e.g. 2x -> 2*x, 3(x) -> 3*(x), )x -> )*x
     .replace(/(\d)x/g, '$1*x')
     .replace(/(\d)\(/g, '$1*(')
     .replace(/\)x/g, ')*x')
@@ -277,6 +402,7 @@ export function evaluateMathExpression(expr: string, x: number): number | null {
     .replace(/abs\(([^)]+)\)/g, 'Math.abs($1)')
     .replace(/sin\(([^)]+)\)/g, 'Math.sin($1)')
     .replace(/cos\(([^)]+)\)/g, 'Math.cos($1)')
+    .replace(/tan\(([^)]+)\)/g, 'Math.tan($1)')
 
   // Remove "y=" or "f(x)=" if provided
   clean = clean.replace(/^(y|f\(x\))\s*=\s*/, '')
@@ -284,7 +410,7 @@ export function evaluateMathExpression(expr: string, x: number): number | null {
   try {
     // Sandboxed arithmetic evaluator with x injected
     // Limit allowed characters to prevent arbitrary code injection
-    if (!/^[0-9x+\-*/%().Mathsqrtabsinco*]+$/.test(clean)) {
+    if (!/^[0-9x+\-*/%().MathsqrtabsintanlogP*]+$/.test(clean)) {
       return null
     }
 
@@ -397,6 +523,26 @@ export function serializeGraphState(state: GraphState): string {
   if (state.lines.length > 0) {
     const lineList = state.lines.map((l) => `${l.label} [${computeLineEquation(l.point1 || { x: 0, y: l.b || 0 }, l.point2 || { x: 1, y: (l.m || 0) + (l.b || 0) }).equation}]`).join(', ')
     parts.push(`Lines: ${lineList}`)
+  }
+
+  if (state.polygons && state.polygons.length > 0) {
+    const polyList = state.polygons
+      .map((poly) => {
+        const pts = poly.points.map((p) => `${p.label || ''}(${p.x}, ${p.y})`).join(', ')
+        return `${poly.label} [${pts}]`
+      })
+      .join(', ')
+    parts.push(`Shapes: ${polyList}`)
+  }
+
+  if (state.dilations && state.dilations.length > 0) {
+    const dilList = state.dilations
+      .map((d) => {
+        const pts = d.points.map((p) => `${p.label || ''}(${p.x}, ${p.y})`).join(', ')
+        return `${d.label} (k=${d.scaleFactor}) [${pts}]`
+      })
+      .join(', ')
+    parts.push(`Dilations: ${dilList}`)
   }
 
   if (state.functions.length > 0) {

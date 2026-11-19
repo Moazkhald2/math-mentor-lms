@@ -94,4 +94,19 @@ describe('MathInput Component with Visual Calculator Boxes', () => {
     expect(input).toBeInTheDocument()
     expect(input).toHaveValue('x + 5')
   })
+
+  it('switches to inline Coordinate Grapher mode inside the exam question', () => {
+    const handleChange = vi.fn()
+    render(<MathInput value="" onChange={handleChange} />)
+
+    const graphTabBtn = screen.getByRole('button', { name: /Coordinate Grapher/i })
+    expect(graphTabBtn).toBeInTheDocument()
+
+    // Switch to graph mode
+    fireEvent.click(graphTabBtn)
+
+    // Inline Cartesian grapher is rendered directly in the question card
+    expect(screen.getByRole('region', { name: /Cartesian Coordinate Grapher/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Plot Points/i })).toBeInTheDocument()
+  })
 })

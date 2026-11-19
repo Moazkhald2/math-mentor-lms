@@ -4,6 +4,8 @@ import {
   type PlottedPoint,
   type PlottedLine,
   type PlottedFunction,
+  type PlottedPolygon,
+  type DilationResult,
   type GraphState,
   DEFAULT_VIEW_BOUNDS,
   GRAPH_PALETTE,
@@ -14,32 +16,48 @@ import {
   computeAllIntersections,
   sampleFunctionCurve,
   generateInequalityShading,
+  dilatePoints,
   serializeGraphState,
 } from '../lib/graphMath'
+import MathKeypad, { type KeypadAction } from './MathKeypad'
+import { useToast } from '../hooks/useToast'
 
-interface CartesianGrapherProps {
+export interface CartesianGrapherProps {
   initialState?: Partial<GraphState>
+  defaultGradeMode?: 'junior' | 'senior'
   onInsertAnswer?: (summary: string) => void
   readOnly?: boolean
+  compact?: boolean
   className?: string
   width?: number
   height?: number
 }
 
-type ActiveTool = 'point' | 'line' | 'function' | 'inequality' | 'pan'
+type SeniorTool = 'point' | 'line' | 'function' | 'inequality' | 'pan'
+type JuniorTool = 'point' | 'shape' | 'dilation' | 'pan'
 
 export default function CartesianGrapher({
   initialState,
+  defaultGradeMode = 'junior',
   onInsertAnswer,
   readOnly = false,
+  compact = false,
   className = '',
   width = 650,
-  height = 550,
+  height = 520,
 }: CartesianGrapherProps) {
   const containerId = useId()
+  const { toast } = useToast()
+
+  // Grade Mode: Junior (Grades 6-8) vs Senior (Grades 9-12)
+  const [gradeMode, setGradeMode] = useState<'junior' | 'senior'>(
+    initialState?.gradeMode ?? defaultGradeMode
+  )
 
   const [bounds, setBounds] = useState<ViewBounds>(DEFAULT_VIEW_BOUNDS)
-  const [activeTool, setActiveTool] = useState<ActiveTool>('point')
+  const [seniorTool, setSeniorTool] = useState<SeniorTool>('point')
+  const [juniorTool, setJuniorTool] = useState<JuniorTool>('point')
+
   const [snapEnabled, setSnapEnabled] = useState(initialState?.snapEnabled ?? true)
   const [snapStep, setSnapStep] = useState<number>(initialState?.snapStep ?? 1)
   const [showIntersections, setShowIntersections] = useState(true)
@@ -48,13 +66,24 @@ export default function CartesianGrapher({
   const [points, setPoints] = useState<PlottedPoint[]>(initialState?.points ?? [])
   const [lines, setLines] = useState<PlottedLine[]>(initialState?.lines ?? [])
   const [functions, setFunctions] = useState<PlottedFunction[]>(initialState?.functions ?? [])
+  const [polygons, setPolygons] = useState<PlottedPolygon[]>(initialState?.polygons ?? [])
+  const [dilations, setDilations] = useState<PlottedPolygon[]>(initialState?.dilations ?? [])
 
-  // Two-point line drawing buffer
+  // Junior Mode: Selected vertices to connect into a polygon/line
+  const [selectedShapePointIds, setSelectedShapePointIds] = useState<string[]>([])
+
+  // Junior Mode: Dilation settings & result
+  const [dilationScaleFactor, setDilationScaleFactor] = useState<number>(1 / 3)
+  const [dilationCenter] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const [lastDilation, setLastDilation] = useState<DilationResult | null>(null)
+
+  // Senior Mode: Two-point line drawing buffer
   const [lineStartPoint, setLineStartPoint] = useState<PlottedPoint | null>(null)
 
-  // Function input form
+  // Senior Mode: Function input form & keypad toggle
   const [fnInput, setFnInput] = useState('2x - 1')
   const [ineqSign, setIneqSign] = useState<'<=' | '>=' | '<' | '>'>('<=')
+  const [showEquationKeypad, setShowEquationKeypad] = useState(false)
 
   // Hover cursor state
   const [snappedCursor, setSnappedCursor] = useState<{ x: number; y: number } | null>(null)
@@ -70,13 +99,19 @@ export default function CartesianGrapher({
   }, [lines])
 
   // Current graph state
-  const currentState: GraphState = useMemo(() => ({
-    points,
-    lines,
-    functions,
-    snapStep,
-    snapEnabled,
-  }), [points, lines, functions, snapStep, snapEnabled])
+  const currentState: GraphState = useMemo(
+    () => ({
+      points,
+      lines,
+      functions,
+      polygons,
+      dilations,
+      gradeMode,
+      snapStep,
+      snapEnabled,
+    }),
+    [points, lines, functions, polygons, dilations, gradeMode, snapStep, snapEnabled]
+  )
 
   // Generate ticks for X and Y axes
   const xTicks = useMemo(() => {
@@ -148,6 +183,8 @@ export default function CartesianGrapher({
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     if (readOnly) return
 
+    const activeTool = gradeMode === 'junior' ? juniorTool : seniorTool
+
     if (activeTool === 'pan' || e.button === 1 || e.shiftKey) {
       e.currentTarget.setPointerCapture(e.pointerId)
       isPanningRef.current = true
@@ -163,8 +200,8 @@ export default function CartesianGrapher({
     const targetX = snapEnabled ? snapCoordinate(math.x, snapStep) : Number(math.x.toFixed(2))
     const targetY = snapEnabled ? snapCoordinate(math.y, snapStep) : Number(math.y.toFixed(2))
 
+    // 1. Point Plotting (both Junior and Senior)
     if (activeTool === 'point') {
-      // Check if point already exists at this location
       const existing = points.find(
         (p) => Math.abs(p.x - targetX) < 0.25 && Math.abs(p.y - targetY) < 0.25
       )
@@ -182,8 +219,41 @@ export default function CartesianGrapher({
           color,
         },
       ])
-    } else if (activeTool === 'line') {
-      // Find or create point 1
+      return
+    }
+
+    // 2. Junior Mode: Shape / Connecting
+    if (gradeMode === 'junior' && activeTool === 'shape') {
+      // Find clicked point or add new point
+      let clickedPt = points.find(
+        (p) => Math.abs(p.x - targetX) < 0.35 && Math.abs(p.y - targetY) < 0.35
+      )
+      if (!clickedPt) {
+        const label = String.fromCharCode(65 + (points.length % 26))
+        const color = GRAPH_PALETTE[points.length % GRAPH_PALETTE.length]
+        clickedPt = {
+          id: `pt-${Date.now()}`,
+          label,
+          x: targetX,
+          y: targetY,
+          color,
+        }
+        setPoints((prev) => [...prev, clickedPt!])
+      }
+
+      // Toggle selection of this point
+      setSelectedShapePointIds((prev) => {
+        if (prev.includes(clickedPt!.id)) {
+          return prev.filter((id) => id !== clickedPt!.id)
+        } else {
+          return [...prev, clickedPt!.id]
+        }
+      })
+      return
+    }
+
+    // 3. Senior Mode: Line by 2 points
+    if (gradeMode === 'senior' && activeTool === 'line') {
       let clickedPt = points.find(
         (p) => Math.abs(p.x - targetX) < 0.35 && Math.abs(p.y - targetY) < 0.35
       )
@@ -242,9 +312,86 @@ export default function CartesianGrapher({
     }
   }
 
-  // Add Function Curve
-  const handleAddFunction = (e: React.FormEvent) => {
-    e.preventDefault()
+  // Junior Mode: Create polygon/shape from selected points (or all plotted points)
+  const handleCreateShape = () => {
+    const ptsToUse =
+      selectedShapePointIds.length >= 2
+        ? points.filter((p) => selectedShapePointIds.includes(p.id))
+        : points
+
+    if (ptsToUse.length < 2) {
+      toast('Please plot at least 2 points to create a line, angle, or shape!', 'error')
+      return
+    }
+
+    const labels = ptsToUse.map((p) => p.label).join('')
+    const shapeLabel =
+      ptsToUse.length === 2
+        ? `Segment ${labels}`
+        : ptsToUse.length === 3
+          ? `Triangle ${labels}`
+          : ptsToUse.length === 4
+            ? `Quadrilateral ${labels}`
+            : `Polygon ${labels}`
+
+    const color = GRAPH_PALETTE[polygons.length % GRAPH_PALETTE.length]
+    const newShape: PlottedPolygon = {
+      id: `shape-${Date.now()}`,
+      label: shapeLabel,
+      points: ptsToUse.map((p) => ({ x: p.x, y: p.y, label: p.label })),
+      color,
+      closed: ptsToUse.length >= 3,
+    }
+
+    setPolygons((prev) => [...prev, newShape])
+    setSelectedShapePointIds([])
+    toast(`Created ${shapeLabel} with ${ptsToUse.length} vertices!`, 'info')
+  }
+
+  // Junior Mode: Apply Geometric Dilation ("Before & After")
+  const handleApplyDilation = (factor = dilationScaleFactor) => {
+    // Target vertices: use latest polygon points, or all plotted points
+    const targetPts =
+      polygons.length > 0
+        ? polygons[polygons.length - 1].points
+        : points.length >= 2
+          ? points.map((p) => ({ x: p.x, y: p.y, label: p.label }))
+          : []
+
+    if (targetPts.length < 2) {
+      toast('Plot points or a shape first to apply dilation!', 'error')
+      return
+    }
+
+    const result = dilatePoints(targetPts, factor, dilationCenter)
+    setLastDilation(result)
+
+    const factorStr = factor === 1 / 3 ? '1/3' : factor === 1 / 2 ? '1/2' : factor.toString()
+    const dilatedPoly: PlottedPolygon = {
+      id: `dil-${Date.now()}`,
+      label: `Dilated Shape (k = ${factorStr})`,
+      points: result.dilatedPoints,
+      color: '#10B981',
+      closed: targetPts.length >= 3,
+      isDilation: true,
+      scaleFactor: factor,
+      dilationCenter,
+    }
+
+    setDilations([dilatedPoly])
+    toast(`Dilated shape by scale factor k = ${factorStr}!`, 'success')
+  }
+
+  // Revert / Undo Dilation
+  const handleClearDilation = () => {
+    setDilations([])
+    setLastDilation(null)
+    toast('Dilation cleared.', 'info')
+  }
+
+  // Senior Mode: Add Function Curve
+  const handleAddFunction = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     if (!fnInput.trim()) return
 
     const color = GRAPH_PALETTE[(functions.length + 2) % GRAPH_PALETTE.length]
@@ -255,10 +402,25 @@ export default function CartesianGrapher({
         name: `f${functions.length + 1}(x)`,
         expression: fnInput.trim(),
         color,
-        isInequality: activeTool === 'inequality',
-        inequalitySign: activeTool === 'inequality' ? ineqSign : undefined,
+        isInequality: seniorTool === 'inequality',
+        inequalitySign: seniorTool === 'inequality' ? ineqSign : undefined,
       },
     ])
+    setShowEquationKeypad(false)
+  }
+
+  // Keypad action on formula input
+  const handleKeypadInsert = (action: KeypadAction) => {
+    const toInsert = action.latex || action.insert
+    setFnInput((prev) => prev + toInsert)
+  }
+
+  const handleKeypadBackspace = () => {
+    setFnInput((prev) => prev.slice(0, -1))
+  }
+
+  const handleKeypadClear = () => {
+    setFnInput('')
   }
 
   // Zoom helpers
@@ -284,10 +446,23 @@ export default function CartesianGrapher({
     setPoints([])
     setLines([])
     setFunctions([])
+    setPolygons([])
+    setDilations([])
+    setLastDilation(null)
     setLineStartPoint(null)
+    setSelectedShapePointIds([])
   }
 
   const handleUndo = () => {
+    if (dilations.length > 0) {
+      setDilations([])
+      setLastDilation(null)
+      return
+    }
+    if (polygons.length > 0) {
+      setPolygons((prev) => prev.slice(0, -1))
+      return
+    }
     if (lineStartPoint) {
       setLineStartPoint(null)
       return
@@ -305,104 +480,70 @@ export default function CartesianGrapher({
     }
   }
 
-  // Pixel positions of X and Y axes
+  // Origin pixel positions
   const originScreen = mathToScreen(0, 0, bounds, width, height)
+
+  const hasAnyItems =
+    points.length > 0 ||
+    lines.length > 0 ||
+    functions.length > 0 ||
+    polygons.length > 0 ||
+    dilations.length > 0
 
   return (
     <div
       role="region"
       aria-label="Cartesian Coordinate Grapher"
-      className={`flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-md select-none ${className}`}
+      className={`flex flex-col gap-3 rounded-2xl border border-border bg-surface shadow-md select-none ${
+        compact ? 'p-2.5 sm:p-3' : 'p-4'
+      } ${className}`}
     >
-      {/* Top Toolbar: Mode, Snapping, Zoom, Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
-        {/* Left: Interactive Tools */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTool('point')
-              setLineStartPoint(null)
-            }}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
-              activeTool === 'point'
-                ? 'bg-brand text-white shadow-xs'
-                : 'border border-border bg-bg text-text hover:border-brand'
-            }`}
-          >
-            <span>📍 Plot Point</span>
-          </button>
+      {/* 1. Grade Mode Selector & Header Banner */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+            Mode:
+          </span>
+          <div className="flex items-center rounded-lg border border-border bg-bg p-0.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => {
+                setGradeMode('junior')
+                setJuniorTool('point')
+              }}
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition ${
+                gradeMode === 'junior'
+                  ? 'bg-brand text-white shadow-xs'
+                  : 'text-text-muted hover:text-text'
+              }`}
+            >
+              <span>🎒 Junior (Grades 6–8)</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTool('line')
-              setLineStartPoint(null)
-            }}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
-              activeTool === 'line'
-                ? 'bg-brand text-white shadow-xs'
-                : 'border border-border bg-bg text-text hover:border-brand'
-            }`}
-          >
-            <span>📏 Line by 2 Points</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTool('function')
-              setLineStartPoint(null)
-            }}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
-              activeTool === 'function'
-                ? 'bg-brand text-white shadow-xs'
-                : 'border border-border bg-bg text-text hover:border-brand'
-            }`}
-          >
-            <span>📈 Function y = f(x)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTool('inequality')
-              setLineStartPoint(null)
-            }}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
-              activeTool === 'inequality'
-                ? 'bg-brand text-white shadow-xs'
-                : 'border border-border bg-bg text-text hover:border-brand'
-            }`}
-          >
-            <span>🎨 Shaded Inequality</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTool('pan')
-              setLineStartPoint(null)
-            }}
-            title="Pan Plane (drag to move axes)"
-            className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold transition active:scale-95 ${
-              activeTool === 'pan'
-                ? 'bg-brand text-white shadow-xs'
-                : 'border border-border bg-bg text-text hover:border-brand'
-            }`}
-          >
-            <span>✋ Pan</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setGradeMode('senior')
+                setSeniorTool('point')
+              }}
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition ${
+                gradeMode === 'senior'
+                  ? 'bg-brand text-white shadow-xs'
+                  : 'text-text-muted hover:text-text'
+              }`}
+            >
+              <span>🎓 Senior (Grades 9–12)</span>
+            </button>
+          </div>
         </div>
 
-        {/* Right: Snap, Zoom & Reset */}
+        {/* Snap & Zoom Controls */}
         <div className="flex items-center gap-1.5">
-          {/* Snap toggle */}
           <button
             type="button"
             onClick={() => setSnapEnabled((prev) => !prev)}
             title="Toggle Snap to Grid coordinates"
-            className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
+            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold transition ${
               snapEnabled
                 ? 'border border-brand/50 bg-brand/10 text-brand'
                 : 'border border-border bg-bg text-text-muted hover:text-text'
@@ -424,21 +565,22 @@ export default function CartesianGrapher({
             </select>
           )}
 
-          {/* Intersection Points toggle */}
-          <button
-            type="button"
-            onClick={() => setShowIntersections((prev) => !prev)}
-            title="Toggle showing intersection points"
-            className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
-              showIntersections
-                ? 'border border-amber-500/50 bg-amber-500/10 text-amber-600'
-                : 'border border-border bg-bg text-text-muted hover:text-text'
-            }`}
-          >
-            <span>🔍 Crossings: {showIntersections ? 'On' : 'Off'}</span>
-          </button>
+          {gradeMode === 'senior' && (
+            <button
+              type="button"
+              onClick={() => setShowIntersections((prev) => !prev)}
+              title="Toggle showing intersection points"
+              className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold transition ${
+                showIntersections
+                  ? 'border border-amber-500/50 bg-amber-500/10 text-amber-600'
+                  : 'border border-border bg-bg text-text-muted hover:text-text'
+              }`}
+            >
+              <span>🔍 Crossings: {showIntersections ? 'On' : 'Off'}</span>
+            </button>
+          )}
 
-          {/* Zoom In / Out / Center */}
+          {/* Zoom In / Out / Reset */}
           <div className="flex items-center gap-1 border-l border-border/60 pl-2">
             <button
               type="button"
@@ -461,7 +603,7 @@ export default function CartesianGrapher({
             <button
               type="button"
               onClick={handleResetView}
-              title="Reset View to (-10 to 10)"
+              title="Center View to Origin"
               className="rounded-lg border border-border bg-bg px-2 py-1 text-xs font-bold text-text-muted hover:text-text transition"
             >
               Center
@@ -470,51 +612,313 @@ export default function CartesianGrapher({
         </div>
       </div>
 
-      {/* Function / Inequality Formula Input Bar */}
-      {(activeTool === 'function' || activeTool === 'inequality') && (
-        <form
-          onSubmit={handleAddFunction}
-          className="flex flex-wrap items-center gap-2 rounded-xl border border-brand/30 bg-brand/5 p-2.5"
-        >
-          <span className="font-serif text-sm font-bold text-brand">
-            {activeTool === 'inequality' ? 'Inequality:' : 'Equation:'}
-          </span>
-          <span className="font-serif text-base font-semibold text-text">y</span>
-
-          {activeTool === 'inequality' ? (
-            <select
-              value={ineqSign}
-              onChange={(e) => setIneqSign(e.target.value as any)}
-              aria-label="Inequality Sign"
-              className="rounded-lg border border-brand/40 bg-surface px-2 py-1 font-bold text-text outline-none"
+      {/* 2. Interactive Toolbars by Grade */}
+      {gradeMode === 'junior' ? (
+        /* Junior Toolbar: Plot Points, Connect Shapes, Dilation Tool */
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-bg/70 p-2 border border-border/60">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setJuniorTool('point')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
+                juniorTool === 'point'
+                  ? 'bg-brand text-white shadow-xs'
+                  : 'border border-border bg-surface text-text hover:border-brand'
+              }`}
             >
-              <option value="<=">≤</option>
-              <option value=">=">≥</option>
-              <option value="<">&lt;</option>
-              <option value=">">&gt;</option>
-            </select>
-          ) : (
-            <span className="font-serif text-base font-semibold text-text">=</span>
+              <span>📍 Plot Points</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setJuniorTool('shape')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
+                juniorTool === 'shape'
+                  ? 'bg-brand text-white shadow-xs'
+                  : 'border border-border bg-surface text-text hover:border-brand'
+              }`}
+            >
+              <span>📐 Connect Shape</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setJuniorTool('dilation')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
+                juniorTool === 'dilation'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:border-emerald-500'
+              }`}
+            >
+              <span>🔍 Dilation (Scale Factor)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setJuniorTool('pan')}
+              className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold transition active:scale-95 ${
+                juniorTool === 'pan'
+                  ? 'bg-brand text-white shadow-xs'
+                  : 'border border-border bg-surface text-text hover:border-brand'
+              }`}
+            >
+              <span>✋ Pan</span>
+            </button>
+          </div>
+
+          {/* Quick Action for Shapes */}
+          {juniorTool === 'shape' && (
+            <button
+              type="button"
+              onClick={handleCreateShape}
+              className="rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-brand-light transition active:scale-95"
+            >
+              ✓ Connect Plotted Vertices ({selectedShapePointIds.length || points.length})
+            </button>
           )}
+        </div>
+      ) : (
+        /* Senior Toolbar: Points, Lines, Functions, Inequalities, Pan */
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-bg/70 p-2 border border-border/60">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setSeniorTool('point')
+                setLineStartPoint(null)
+              }}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
+                seniorTool === 'point'
+                  ? 'bg-brand text-white shadow-xs'
+                  : 'border border-border bg-surface text-text hover:border-brand'
+              }`}
+            >
+              <span>📍 Plot Point</span>
+            </button>
 
-          <input
-            type="text"
-            value={fnInput}
-            onChange={(e) => setFnInput(e.target.value)}
-            placeholder="e.g. 2x - 3 or x^2 - 4"
-            className="flex-1 min-w-[160px] rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-mono font-semibold text-ink outline-none focus:border-brand"
-          />
+            <button
+              type="button"
+              onClick={() => {
+                setSeniorTool('line')
+                setLineStartPoint(null)
+              }}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
+                seniorTool === 'line'
+                  ? 'bg-brand text-white shadow-xs'
+                  : 'border border-border bg-surface text-text hover:border-brand'
+              }`}
+            >
+              <span>📏 Line by 2 Points</span>
+            </button>
 
-          <button
-            type="submit"
-            className="rounded-lg bg-brand px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-brand-light transition active:scale-95"
-          >
-            Plot Graph
-          </button>
-        </form>
+            <button
+              type="button"
+              onClick={() => {
+                setSeniorTool('function')
+                setLineStartPoint(null)
+              }}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
+                seniorTool === 'function'
+                  ? 'bg-brand text-white shadow-xs'
+                  : 'border border-border bg-surface text-text hover:border-brand'
+              }`}
+            >
+              <span>📈 Function y = f(x)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSeniorTool('inequality')
+                setLineStartPoint(null)
+              }}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
+                seniorTool === 'inequality'
+                  ? 'bg-brand text-white shadow-xs'
+                  : 'border border-border bg-surface text-text hover:border-brand'
+              }`}
+            >
+              <span>🎨 Shaded Inequality</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSeniorTool('pan')
+                setLineStartPoint(null)
+              }}
+              className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold transition active:scale-95 ${
+                seniorTool === 'pan'
+                  ? 'bg-brand text-white shadow-xs'
+                  : 'border border-border bg-surface text-text hover:border-brand'
+              }`}
+            >
+              <span>✋ Pan</span>
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* Main SVG Graph Paper Area */}
+      {/* 3. Junior Mode: Dilation Control Panel */}
+      {gradeMode === 'junior' && juniorTool === 'dilation' && (
+        <div className="flex flex-col gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-emerald-800 dark:text-emerald-200">
+                Scale Factor (k):
+              </span>
+              <div className="flex items-center gap-1">
+                {[
+                  { label: 'k = 1/3', value: 1 / 3 },
+                  { label: 'k = 1/2', value: 0.5 },
+                  { label: 'k = 2', value: 2 },
+                  { label: 'k = 3', value: 3 },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => {
+                      setDilationScaleFactor(item.value)
+                      handleApplyDilation(item.value)
+                    }}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+                      Math.abs(dilationScaleFactor - item.value) < 1e-4
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'border border-emerald-500/30 bg-surface text-text hover:border-emerald-500'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => handleApplyDilation(dilationScaleFactor)}
+                className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition active:scale-95"
+              >
+                ✨ Apply Dilation (Before & After)
+              </button>
+
+              {dilations.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearDilation}
+                  className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-text-muted hover:text-danger transition"
+                >
+                  Clear Dilation
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Educational Dilation Transformation Breakdown */}
+          {lastDilation && (
+            <div className="rounded-lg border border-emerald-500/25 bg-surface p-2.5 text-xs">
+              <div className="flex items-center justify-between pb-1.5 border-b border-border/50">
+                <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                  Transformation Rule: (x, y) → ({dilationScaleFactor === 1 / 3 ? '1/3' : dilationScaleFactor}x, {dilationScaleFactor === 1 / 3 ? '1/3' : dilationScaleFactor}y)
+                </span>
+                <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 font-bold text-[11px] text-emerald-800 dark:text-emerald-200 capitalize">
+                  {lastDilation.type} (Scale factor {dilationScaleFactor === 1 / 3 ? '1/3' : dilationScaleFactor})
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2 font-mono">
+                {lastDilation.mappings.map((m, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-1.5 rounded-md bg-bg px-2 py-1 border border-border/60"
+                  >
+                    <span className="text-brand font-bold">
+                      {m.original}{m.originalCoords}
+                    </span>
+                    <span className="text-text-muted">→</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      {m.dilated}{m.dilatedCoords}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 4. Senior Mode: Function & Inequality Formula Input Bar with Math Keypad */}
+      {gradeMode === 'senior' &&
+        (seniorTool === 'function' || seniorTool === 'inequality') && (
+          <div className="flex flex-col gap-2 rounded-xl border border-brand/30 bg-brand/5 p-2.5">
+            <form
+              onSubmit={handleAddFunction}
+              className="flex flex-wrap items-center gap-2"
+            >
+              <span className="font-serif text-sm font-bold text-brand">
+                {seniorTool === 'inequality' ? 'Inequality:' : 'Equation:'}
+              </span>
+              <span className="font-serif text-base font-semibold text-text">y</span>
+
+              {seniorTool === 'inequality' ? (
+                <select
+                  value={ineqSign}
+                  onChange={(e) => setIneqSign(e.target.value as any)}
+                  aria-label="Inequality Sign"
+                  className="rounded-lg border border-brand/40 bg-surface px-2 py-1 font-bold text-text outline-none"
+                >
+                  <option value="<=">≤</option>
+                  <option value=">=">≥</option>
+                  <option value="<">&lt;</option>
+                  <option value=">">&gt;</option>
+                </select>
+              ) : (
+                <span className="font-serif text-base font-semibold text-text">=</span>
+              )}
+
+              <input
+                type="text"
+                value={fnInput}
+                onChange={(e) => setFnInput(e.target.value)}
+                placeholder="e.g. 2x - 3 or x^2 - 4 or \frac{1}{2}x"
+                className="flex-1 min-w-[160px] rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-mono font-semibold text-ink outline-none focus:border-brand"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowEquationKeypad((prev) => !prev)}
+                className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition ${
+                  showEquationKeypad
+                    ? 'border-brand bg-brand/20 text-brand'
+                    : 'border-border bg-surface text-text hover:border-brand'
+                }`}
+              >
+                <span>⌨️</span>
+                <span>{showEquationKeypad ? 'Hide Keypad' : 'Math Keypad'}</span>
+              </button>
+
+              <button
+                type="submit"
+                className="rounded-lg bg-brand px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-brand-light transition active:scale-95"
+              >
+                Plot Graph
+              </button>
+            </form>
+
+            {/* Embedded Math Keypad for Formula Input */}
+            {showEquationKeypad && (
+              <div className="pt-1.5 border-t border-brand/20">
+                <MathKeypad
+                  onInsert={handleKeypadInsert}
+                  onBackspace={handleKeypadBackspace}
+                  onClear={handleKeypadClear}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+      {/* 5. Main SVG Graph Paper Area */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-[#FBFDFB] dark:bg-[#151921] shadow-inner flex justify-center">
         {/* Live Coordinate Badge */}
         <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-2 rounded-lg bg-surface/90 px-2.5 py-1 text-xs font-mono font-bold text-text border border-border/80 shadow-2xs backdrop-blur-xs">
@@ -526,14 +930,28 @@ export default function CartesianGrapher({
 
         {/* Status Prompt */}
         <div className="absolute top-2.5 left-2.5 z-10 rounded-lg bg-surface/90 px-2.5 py-1 text-xs font-semibold text-text-muted border border-border/80 shadow-2xs backdrop-blur-xs">
-          {activeTool === 'point' && 'Click anywhere to plot a point'}
-          {activeTool === 'line' &&
-            (!lineStartPoint
-              ? 'Click 1st point for line'
-              : `Point ${lineStartPoint.label} chosen → Click 2nd point`)}
-          {activeTool === 'function' && 'Enter function above & click Plot'}
-          {activeTool === 'inequality' && 'Plot inequality region above'}
-          {activeTool === 'pan' && 'Drag to pan plane'}
+          {gradeMode === 'junior' && (
+            <>
+              {juniorTool === 'point' && 'Click grid to plot integer points (A, B, C...)'}
+              {juniorTool === 'shape' &&
+                'Click points to select vertices → Click "Connect Plotted Vertices"'}
+              {juniorTool === 'dilation' &&
+                'Choose scale factor k (e.g. 1/3) & click "Apply Dilation"'}
+              {juniorTool === 'pan' && 'Drag to move coordinate axes'}
+            </>
+          )}
+          {gradeMode === 'senior' && (
+            <>
+              {seniorTool === 'point' && 'Click anywhere to plot a point'}
+              {seniorTool === 'line' &&
+                (!lineStartPoint
+                  ? 'Click 1st point for line'
+                  : `Point ${lineStartPoint.label} chosen → Click 2nd point`)}
+              {seniorTool === 'function' && 'Enter function above & click Plot'}
+              {seniorTool === 'inequality' && 'Plot inequality region above'}
+              {seniorTool === 'pan' && 'Drag to pan plane'}
+            </>
+          )}
         </div>
 
         <svg
@@ -599,11 +1017,10 @@ export default function CartesianGrapher({
             )
           })}
 
-          {/* 3. Inequality Shading Regions (Linear Programming / Feasible Regions) */}
+          {/* 3. Inequality Shading Regions (Linear Programming) */}
           {functions
             .filter((f) => f.isInequality && f.inequalitySign)
             .map((fn) => {
-              // Parse simple linear functions for shading
               const mMatch = fn.expression.match(/([+-]?\d*\.?\d*)\s*\*?\s*x/i)
               const bMatch = fn.expression.match(/([+-]\s*\d+\.?\d*)$/)
               let m = 1
@@ -637,7 +1054,6 @@ export default function CartesianGrapher({
             })}
 
           {/* 4. Cartesian Axes (X and Y with Arrowheads) */}
-          {/* X Axis */}
           <line
             x1={0}
             y1={originScreen.y}
@@ -647,7 +1063,6 @@ export default function CartesianGrapher({
             strokeWidth="2.4"
             className="text-ink"
           />
-          {/* Y Axis */}
           <line
             x1={originScreen.x}
             y1={0}
@@ -741,7 +1156,124 @@ export default function CartesianGrapher({
             0
           </text>
 
-          {/* 5. Plotted Lines */}
+          {/* 5. Plotted Shapes / Polygons (Junior Mode: Triangles, Polygons, Angles) */}
+          {polygons.map((poly) => {
+            const ptsStr = poly.points
+              .map((pt) => {
+                const s = mathToScreen(pt.x, pt.y, bounds, width, height)
+                return `${s.x},${s.y}`
+              })
+              .join(' ')
+
+            return (
+              <g key={poly.id}>
+                {poly.closed ? (
+                  <polygon
+                    points={ptsStr}
+                    fill={poly.color}
+                    fillOpacity="0.18"
+                    stroke={poly.color}
+                    strokeWidth="2.6"
+                    className="transition-all"
+                  />
+                ) : (
+                  <polyline
+                    points={ptsStr}
+                    fill="none"
+                    stroke={poly.color}
+                    strokeWidth="2.6"
+                  />
+                )}
+              </g>
+            )
+          })}
+
+          {/* 6. Geometric Dilations (Before & After) with Projection Rays */}
+          {dilations.map((dil) => {
+            const ptsStr = dil.points
+              .map((pt) => {
+                const s = mathToScreen(pt.x, pt.y, bounds, width, height)
+                return `${s.x},${s.y}`
+              })
+              .join(' ')
+
+            const centerScreen = mathToScreen(
+              dil.dilationCenter?.x ?? 0,
+              dil.dilationCenter?.y ?? 0,
+              bounds,
+              width,
+              height
+            )
+
+            return (
+              <g key={dil.id}>
+                {/* Dilation projection rays from origin through vertices */}
+                {dil.points.map((pt, i) => {
+                  const pScreen = mathToScreen(pt.x, pt.y, bounds, width, height)
+                  return (
+                    <line
+                      key={`ray-${i}`}
+                      x1={centerScreen.x}
+                      y1={centerScreen.y}
+                      x2={pScreen.x}
+                      y2={pScreen.y}
+                      stroke="#10B981"
+                      strokeWidth="1.2"
+                      strokeDasharray="3,3"
+                      opacity="0.8"
+                    />
+                  )
+                })}
+
+                {/* Dilated Polygon / Shape */}
+                {dil.closed ? (
+                  <polygon
+                    points={ptsStr}
+                    fill="#10B981"
+                    fillOpacity="0.22"
+                    stroke="#10B981"
+                    strokeWidth="2.8"
+                    strokeDasharray="6,4"
+                  />
+                ) : (
+                  <polyline
+                    points={ptsStr}
+                    fill="none"
+                    stroke="#10B981"
+                    strokeWidth="2.8"
+                    strokeDasharray="6,4"
+                  />
+                )}
+
+                {/* Dilated Vertices & Prime Labels (A', B', C'...) */}
+                {dil.points.map((pt, i) => {
+                  const pScreen = mathToScreen(pt.x, pt.y, bounds, width, height)
+                  return (
+                    <g key={`dil-pt-${i}`}>
+                      <circle
+                        cx={pScreen.x}
+                        cy={pScreen.y}
+                        r="6"
+                        fill="#10B981"
+                        stroke="#ffffff"
+                        strokeWidth="2"
+                      />
+                      <text
+                        x={pScreen.x + 8}
+                        y={pScreen.y - 8}
+                        fill="#059669"
+                        className="text-xs font-serif font-extrabold filter drop-shadow-xs"
+                      >
+                        {pt.label}({pt.x}, {pt.y})
+                      </text>
+                    </g>
+                  )
+                })}
+              </g>
+            )
+          })}
+
+          {/* 7. Plotted Lines */}
           {lines.map((l) => {
             let pStart: { x: number; y: number }
             let pEnd: { x: number; y: number }
@@ -773,7 +1305,7 @@ export default function CartesianGrapher({
             )
           })}
 
-          {/* 6. Plotted Function Curves */}
+          {/* 8. Plotted Function Curves */}
           {functions.map((fn) => {
             const path = sampleFunctionCurve(fn.expression, bounds, width, height)
             if (!path) return null
@@ -790,7 +1322,7 @@ export default function CartesianGrapher({
             )
           })}
 
-          {/* 7. Intersection Points Highlight */}
+          {/* 9. Intersection Points Highlight */}
           {showIntersections &&
             intersections.map((intPt) => {
               const p = mathToScreen(intPt.x, intPt.y, bounds, width, height)
@@ -805,7 +1337,6 @@ export default function CartesianGrapher({
 
               return (
                 <g key={intPt.id} className="transition-transform">
-                  {/* Outer pulsing ring */}
                   <circle
                     cx={p.x}
                     cy={p.y}
@@ -816,9 +1347,7 @@ export default function CartesianGrapher({
                     strokeDasharray="3,3"
                     className="animate-pulse"
                   />
-                  {/* Inner dot */}
                   <circle cx={p.x} cy={p.y} r="4.5" fill="#F59E0B" />
-                  {/* Label */}
                   <rect
                     x={p.x + 8}
                     y={p.y - 20}
@@ -840,35 +1369,36 @@ export default function CartesianGrapher({
               )
             })}
 
-          {/* 8. Plotted Points */}
+          {/* 10. Plotted Points (Original Vertices) */}
           {points.map((pt) => {
             const p = mathToScreen(pt.x, pt.y, bounds, width, height)
-            const isSelected = lineStartPoint?.id === pt.id
+            const isSelectedForLine = lineStartPoint?.id === pt.id
+            const isSelectedForShape = selectedShapePointIds.includes(pt.id)
+
             return (
               <g key={pt.id} className="cursor-pointer">
-                {/* Highlight ring if selected for line */}
-                {isSelected && (
+                {/* Highlight ring if selected */}
+                {(isSelectedForLine || isSelectedForShape) && (
                   <circle
                     cx={p.x}
                     cy={p.y}
-                    r="12"
+                    r="13"
                     fill="none"
                     stroke={pt.color}
-                    strokeWidth="2"
+                    strokeWidth="2.2"
                     strokeDasharray="4,3"
-                    className="animate-spin"
+                    className="animate-pulse"
                   />
                 )}
                 <circle
                   cx={p.x}
                   cy={p.y}
-                  r="6"
+                  r="6.5"
                   fill={pt.color}
                   stroke="#ffffff"
                   strokeWidth="2"
                   className="shadow-sm transition-transform hover:scale-125"
                 />
-                {/* Point Label: e.g. A(2, 3) */}
                 <text
                   x={p.x + 8}
                   y={p.y - 8}
@@ -881,8 +1411,8 @@ export default function CartesianGrapher({
             )
           })}
 
-          {/* 9. Ghost Snap Indicator under Cursor */}
-          {snappedCursor && !readOnly && activeTool !== 'pan' && (
+          {/* 11. Ghost Snap Indicator under Cursor */}
+          {snappedCursor && !readOnly && seniorTool !== 'pan' && juniorTool !== 'pan' && (
             <circle
               cx={mathToScreen(snappedCursor.x, snappedCursor.y, bounds, width, height).x}
               cy={mathToScreen(snappedCursor.x, snappedCursor.y, bounds, width, height).y}
@@ -897,23 +1427,27 @@ export default function CartesianGrapher({
         </svg>
       </div>
 
-      {/* Bottom Panel: Plotted Items, Intersections & Answer Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-border/60 pt-3">
+      {/* 6. Bottom Panel: Plotted Items, Intersections & Answer Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-border/60 pt-2.5">
         {/* Plotted Items Summary / Legend */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <span className="font-bold text-text-muted uppercase tracking-wider text-[11px]">
             Items:
           </span>
 
-          {points.length === 0 && lines.length === 0 && functions.length === 0 && (
-            <span className="text-text-muted italic">No points or lines plotted yet.</span>
+          {!hasAnyItems && (
+            <span className="text-text-muted italic">No points, lines or shapes plotted yet.</span>
           )}
 
           {points.map((p) => (
             <span
               key={p.id}
               className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono font-bold text-[11px] border shadow-2xs"
-              style={{ borderColor: `${p.color}40`, backgroundColor: `${p.color}15`, color: p.color }}
+              style={{
+                borderColor: `${p.color}40`,
+                backgroundColor: `${p.color}15`,
+                color: p.color,
+              }}
             >
               <span>{p.label}({p.x}, {p.y})</span>
               <button
@@ -927,11 +1461,56 @@ export default function CartesianGrapher({
             </span>
           ))}
 
+          {polygons.map((poly) => (
+            <span
+              key={poly.id}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono font-bold text-[11px] border shadow-2xs"
+              style={{
+                borderColor: `${poly.color}40`,
+                backgroundColor: `${poly.color}15`,
+                color: poly.color,
+              }}
+            >
+              <span>{poly.label}</span>
+              <button
+                type="button"
+                onClick={() => setPolygons((prev) => prev.filter((x) => x.id !== poly.id))}
+                className="hover:opacity-75 ml-0.5"
+                title="Remove shape"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+
+          {dilations.map((d) => (
+            <span
+              key={d.id}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono font-bold text-[11px] border border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-2xs"
+            >
+              <span>
+                {d.label} (k = {d.scaleFactor === 1 / 3 ? '1/3' : d.scaleFactor})
+              </span>
+              <button
+                type="button"
+                onClick={handleClearDilation}
+                className="hover:opacity-75 ml-0.5"
+                title="Remove dilation"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+
           {lines.map((l) => (
             <span
               key={l.id}
               className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono font-bold text-[11px] border shadow-2xs"
-              style={{ borderColor: `${l.color}40`, backgroundColor: `${l.color}15`, color: l.color }}
+              style={{
+                borderColor: `${l.color}40`,
+                backgroundColor: `${l.color}15`,
+                color: l.color,
+              }}
             >
               <span>{l.label}</span>
               <button
@@ -949,7 +1528,11 @@ export default function CartesianGrapher({
             <span
               key={f.id}
               className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono font-bold text-[11px] border shadow-2xs"
-              style={{ borderColor: `${f.color}40`, backgroundColor: `${f.color}15`, color: f.color }}
+              style={{
+                borderColor: `${f.color}40`,
+                backgroundColor: `${f.color}15`,
+                color: f.color,
+              }}
             >
               <span>
                 {f.name}: y {f.inequalitySign || '='} {f.expression}
@@ -965,7 +1548,7 @@ export default function CartesianGrapher({
             </span>
           ))}
 
-          {intersections.length > 0 && (
+          {gradeMode === 'senior' && intersections.length > 0 && (
             <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono font-bold text-[11px] border border-amber-500/40 bg-amber-500/15 text-amber-600">
               <span>Crossing: {intersections.map((i) => `(${i.x}, ${i.y})`).join(', ')}</span>
             </span>
@@ -977,7 +1560,7 @@ export default function CartesianGrapher({
           <button
             type="button"
             onClick={handleUndo}
-            disabled={points.length === 0 && lines.length === 0 && functions.length === 0}
+            disabled={!hasAnyItems}
             className="rounded-lg border border-border bg-bg px-2.5 py-1.5 text-xs font-bold text-text-muted hover:text-text disabled:opacity-40 transition"
           >
             ⎌ Undo
@@ -986,7 +1569,7 @@ export default function CartesianGrapher({
           <button
             type="button"
             onClick={handleClearAll}
-            disabled={points.length === 0 && lines.length === 0 && functions.length === 0}
+            disabled={!hasAnyItems}
             className="rounded-lg border border-danger/40 bg-danger/10 px-2.5 py-1.5 text-xs font-bold text-danger hover:bg-danger/20 disabled:opacity-40 transition"
           >
             Clear All
@@ -998,11 +1581,12 @@ export default function CartesianGrapher({
               onClick={() => {
                 const summary = serializeGraphState(currentState)
                 onInsertAnswer(summary)
+                toast('✅ Graph attached to question answer!', 'success')
               }}
-              disabled={points.length === 0 && lines.length === 0 && functions.length === 0}
+              disabled={!hasAnyItems}
               className="flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-brand-light active:scale-95 disabled:opacity-40 transition"
             >
-              <span>📥 Use Graph as Answer</span>
+              <span>📥 Attach Graph to Answer</span>
             </button>
           )}
         </div>

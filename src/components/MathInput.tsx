@@ -3,6 +3,7 @@ import 'mathlive'
 import type { MathfieldElement } from 'mathlive'
 import VisualMathEditor from './VisualMathEditor'
 import MathKeypad, { type KeypadAction } from './MathKeypad'
+import CartesianGrapher from './CartesianGrapher'
 import CartesianGrapherModal from './CartesianGrapherModal'
 import LatexRenderer from './LatexRenderer'
 
@@ -39,7 +40,7 @@ export default function MathInput({
   className = '',
   id,
 }: MathInputProps) {
-  const [mode, setMode] = useState<'visual' | 'text'>('visual')
+  const [mode, setMode] = useState<'visual' | 'text' | 'graph'>('visual')
   const [showKeypad, setShowKeypad] = useState(true)
 
   const activeInputRef = useRef<HTMLInputElement | MathfieldElement | null>(null)
@@ -204,8 +205,8 @@ export default function MathInput({
   return (
     <div className={`w-full space-y-3 ${className}`}>
       {/* Top Header Mode Toggle */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 rounded-lg border border-border bg-surface p-1">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-surface p-1">
           <button
             type="button"
             onClick={() => setMode('visual')}
@@ -229,6 +230,18 @@ export default function MathInput({
           >
             ✍️ Type Your Answer
           </button>
+          <button
+            type="button"
+            onClick={() => setMode('graph')}
+            aria-label="Coordinate Grapher"
+            className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+              mode === 'graph'
+                ? 'bg-brand text-white shadow-xs'
+                : 'text-text-muted hover:text-text'
+            }`}
+          >
+            📈 Graph on Plane
+          </button>
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -237,18 +250,20 @@ export default function MathInput({
             onInsertAnswer={(summary) => onChange(summary)}
           />
 
-          <button
-            type="button"
-            onClick={() => setShowKeypad((prev) => !prev)}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
-              showKeypad
-                ? 'border-brand bg-brand/10 text-brand'
-                : 'border-border bg-surface text-text-muted hover:text-text'
-            }`}
-          >
-            <span>⌨️</span>
-            <span>{showKeypad ? 'Hide Keypad' : 'Show Keypad'}</span>
-          </button>
+          {mode !== 'graph' && (
+            <button
+              type="button"
+              onClick={() => setShowKeypad((prev) => !prev)}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                showKeypad
+                  ? 'border-brand bg-brand/10 text-brand'
+                  : 'border-border bg-surface text-text-muted hover:text-text'
+              }`}
+            >
+              <span>⌨️</span>
+              <span>{showKeypad ? 'Hide Keypad' : 'Show Keypad'}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -263,7 +278,7 @@ export default function MathInput({
             activeInputRef.current = ref
           }}
         />
-      ) : (
+      ) : mode === 'text' ? (
         <div className="relative space-y-2">
           {/* True WYSIWYG Math Field for typed answer: formats math live as student types */}
           <math-field
@@ -306,10 +321,32 @@ export default function MathInput({
             </div>
           )}
         </div>
+      ) : (
+        /* Inline Cartesian Grapher inside exam question */
+        <div className="space-y-3">
+          <CartesianGrapher
+            compact
+            readOnly={disabled}
+            onInsertAnswer={(summary) => {
+              onChange(summary)
+            }}
+          />
+
+          {value && (
+            <div className="flex items-center gap-2 rounded-xl border border-brand/25 bg-brand/5 px-3.5 py-2 text-xs">
+              <span className="font-bold uppercase tracking-wider text-brand">
+                Current Attached Graph Answer:
+              </span>
+              <span className="font-mono text-ink font-semibold truncate">
+                {value}
+              </span>
+            </div>
+          )}
+        </div>
       )}
 
       {/* On-Screen Calculator Keypad */}
-      {showKeypad && !disabled && (
+      {showKeypad && !disabled && mode !== 'graph' && (
         <div className="pt-1">
           <MathKeypad
             onInsert={handleKeypadInsert}
