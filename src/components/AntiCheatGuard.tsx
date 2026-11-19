@@ -12,6 +12,15 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
     useAntiCheat(config)
   const [blurred, setBlurred] = useState(false)
 
+  // Auto-apply fullscreen when entering the exam
+  useEffect(() => {
+    if (!isFullscreen && typeof requestFullscreen === 'function') {
+      try {
+        requestFullscreen()
+      } catch {}
+    }
+  }, [isFullscreen, requestFullscreen])
+
   // Privacy screen: hide exam content when the tab/window loses focus.
   // The underlying blur/focus events still feed the violation counter.
   useEffect(() => {
@@ -52,6 +61,26 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
 
   return (
     <div className="relative">
+      {/* Auto Fullscreen Guard Modal if browser blocked direct auto-entry */}
+      {!isFullscreen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="max-w-md w-full rounded-2xl border border-brand/50 bg-surface p-6 text-center shadow-2xl space-y-4">
+            <div className="text-4xl animate-pulse">🛡️</div>
+            <h2 className="text-xl font-black text-ink">Secure Fullscreen Exam Mode</h2>
+            <p className="text-sm text-text-muted">
+              To ensure academic integrity, this exam must be taken in full screen mode.
+            </p>
+            <button
+              type="button"
+              onClick={requestFullscreen}
+              className="w-full rounded-xl bg-brand py-3 text-sm font-bold text-white shadow-lg hover:bg-brand-light transition active:scale-95"
+            >
+              Enter Fullscreen & Begin Exam
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header bar: fullscreen warning + timer + violations */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">

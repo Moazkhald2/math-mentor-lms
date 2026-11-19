@@ -63,10 +63,16 @@ export default function Dashboard() {
     ? Math.round(completedAttempts.reduce((sum, a) => sum + (a.score ?? 0), 0) / completedAttempts.length)
     : 0
 
-  // What's Next: published exams the student hasn't attempted yet, in order
+  // What's Next: published exams the student hasn't attempted yet, matching student's grade
   const attemptedExamIds = new Set((attempts ?? []).map((a) => a.exam_id))
   const nextUp = (examsQ.data ?? [])
-    .filter((e) => e.type === 'exam' && e.is_published && !attemptedExamIds.has(e.id))
+    .filter(
+      (e) =>
+        e.type === 'exam' &&
+        e.is_published &&
+        (!profile?.grade || !e.grade || e.grade === profile.grade) &&
+        !attemptedExamIds.has(e.id)
+    )
     .slice(0, 3)
 
   const needsGrade = profile && !profile.grade && profile.role === 'student'
@@ -191,7 +197,17 @@ export default function Dashboard() {
             <ol className="space-y-2">
               {nextUp.map((e, i) => (
                 <li key={e.id}>
-                  <a href={`/exam/${e.id}`} className="hover-lift flex items-center gap-3 rounded-xl border border-border bg-surface p-3 transition-colors hover:border-brand/50">
+                  <a
+                    href={`/exam/${e.id}`}
+                    onClick={() => {
+                      try {
+                        if (!document.fullscreenElement) {
+                          document.documentElement.requestFullscreen().catch(() => {})
+                        }
+                      } catch {}
+                    }}
+                    className="hover-lift flex items-center gap-3 rounded-xl border border-border bg-surface p-3 transition-colors hover:border-brand/50"
+                  >
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">{i + 1}</span>
                     <span className="font-medium text-text">{e.title}</span>
                     <span className="ml-auto text-xs text-text-muted">{e.time_limit_minutes} min · {e.grade ? `Grade ${e.grade}` : 'All grades'}</span>

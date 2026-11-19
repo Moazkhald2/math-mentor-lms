@@ -42,6 +42,15 @@ export default function Exam() {
 
   const offlineKey = id ? `mm_answers_${id}_${user?.id ?? 'guest'}` : ''
 
+  // Auto-apply fullscreen when entering the exam
+  useEffect(() => {
+    if (!document.fullscreenElement) {
+      try {
+        document.documentElement.requestFullscreen().catch(() => {})
+      } catch {}
+    }
+  }, [])
+
   useEffect(() => {
     const onOnline = () => { setIsOnline(true); setOfflineNotice(null) }
     const onOffline = () => { setIsOnline(false); setOfflineNotice('Offline - answers saved on device, will sync when back online') }
