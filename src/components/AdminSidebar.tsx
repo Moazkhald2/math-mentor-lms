@@ -17,6 +17,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     title: 'Overview & Schedule',
     items: [
       { href: '/admin', label: 'Dashboard', icon: '📊' },
+      { href: '/admin/schedule', label: 'Schedule', icon: '📅' },
     ],
   },
   {

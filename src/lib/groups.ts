@@ -192,3 +192,33 @@ export async function deleteExamAssignment(assignmentId: string): Promise<void> 
     .eq('id', assignmentId)
   if (error) throw error
 }
+
+export async function updateExamAssignmentWindow(
+  assignmentId: string,
+  startsAtOverride: string | null,
+  endsAtOverride: string | null
+): Promise<ExamAssignment> {
+  const { data, error } = await supabase
+    .from('exam_assignments')
+    .update({
+      starts_at_override: startsAtOverride,
+      ends_at_override: endsAtOverride,
+    })
+    .eq('id', assignmentId)
+    .select()
+    .single()
+  if (error) throw error
+  return data as ExamAssignment
+}
+
+export async function updateExamDefaultWindow(
+  examId: string,
+  startsAt: string | null,
+  endsAt: string | null
+): Promise<void> {
+  const { error } = await supabase
+    .from('exams')
+    .update({ starts_at: startsAt, ends_at: endsAt })
+    .eq('id', examId)
+  if (error) throw error
+}

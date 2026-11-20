@@ -8,6 +8,7 @@ import StudentsView from '../components/teacher/StudentsView'
 import ExamsView from '../components/teacher/ExamsView'
 import BankView from '../components/teacher/BankView'
 import WrongAnswersView from '../components/teacher/WrongAnswersView'
+import ScheduleManager from '../components/ScheduleManager'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { ALL_GRADES } from '../lib/grades'
 
@@ -204,6 +205,7 @@ export default function TeacherDashboard() {
           <TabsTrigger value="wrong-answers">Wrong Answers</TabsTrigger>
           <TabsTrigger value="students">Students</TabsTrigger>
           <TabsTrigger value="exams">Exams</TabsTrigger>
+          <TabsTrigger value="schedule">Schedule</TabsTrigger>
           <TabsTrigger value="bank">Question Bank</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
@@ -230,6 +232,9 @@ export default function TeacherDashboard() {
         </TabsContent>
         <TabsContent value="exams">
           <ExamsView userId={user.id} grade={gradeFilter} />
+        </TabsContent>
+        <TabsContent value="schedule">
+          <ScheduleManager initialGrade={gradeFilter} />
         </TabsContent>
         <TabsContent value="bank">
           <BankView />

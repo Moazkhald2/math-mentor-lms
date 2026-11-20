@@ -15,6 +15,7 @@ import AdminCsvExport from './admin/AdminCsvExport'
 import AdminGrading from './admin/AdminGrading'
 import AdminViolations from './admin/AdminViolations'
 import QuestionAnalysis from './admin/QuestionAnalysis'
+import ScheduleManager from '../components/ScheduleManager'
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth()
@@ -47,6 +48,7 @@ export default function Admin() {
       <AdminSidebar />
       <div className="min-w-0 flex-1">
         {section === '' && <AdminDashboard />}
+        {section === '/schedule' && <ScheduleManager />}
         {section === '/users' && <AdminUsers />}
         {section === '/classes' && <AdminClasses />}
         {section === '/questions' && <AdminQuestions />}
