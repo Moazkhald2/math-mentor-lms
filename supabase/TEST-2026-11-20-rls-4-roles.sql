@@ -26,16 +26,20 @@ BEGIN
   -- ---------------------------------------------------------------------------
   -- Seed temporary test fixtures (rolled back at end of transaction)
   -- ---------------------------------------------------------------------------
-  INSERT INTO auth.users (id, email, raw_user_meta_data, aud, role)
+  INSERT INTO auth.users (id, instance_id, email, raw_user_meta_data, aud, role, email_confirmed_at, created_at, updated_at)
   VALUES
-    (v_student_id, 'rls_student1@test.local', '{"full_name":"RLS Student 1","grade":10}', 'authenticated', 'authenticated'),
-    (v_other_student_id, 'rls_student2@test.local', '{"full_name":"RLS Student 2","grade":10}', 'authenticated', 'authenticated'),
-    (v_teacher_id, 'rls_teacher@test.local', '{"full_name":"RLS Teacher"}', 'authenticated', 'authenticated'),
-    (v_admin_id, 'rls_admin@test.local', '{"full_name":"RLS Admin"}', 'authenticated', 'authenticated');
+    (v_student_id, '00000000-0000-0000-0000-000000000000', 'rls_student1@test.local', '{"full_name":"RLS Student 1","grade":10}', 'authenticated', 'authenticated', now(), now(), now()),
+    (v_other_student_id, '00000000-0000-0000-0000-000000000000', 'rls_student2@test.local', '{"full_name":"RLS Student 2","grade":10}', 'authenticated', 'authenticated', now(), now(), now()),
+    (v_teacher_id, '00000000-0000-0000-0000-000000000000', 'rls_teacher@test.local', '{"full_name":"RLS Teacher"}', 'authenticated', 'authenticated', now(), now(), now()),
+    (v_admin_id, '00000000-0000-0000-0000-000000000000', 'rls_admin@test.local', '{"full_name":"RLS Admin"}', 'authenticated', 'authenticated', now(), now(), now());
 
-  UPDATE public.profiles SET role = 'student', grade = 10 WHERE id IN (v_student_id, v_other_student_id);
-  UPDATE public.profiles SET role = 'teacher' WHERE id = v_teacher_id;
-  UPDATE public.profiles SET role = 'admin' WHERE id = v_admin_id;
+  INSERT INTO public.profiles (id, email, full_name, role, grade)
+  VALUES
+    (v_student_id, 'rls_student1@test.local', 'RLS Student 1', 'student', 10),
+    (v_other_student_id, 'rls_student2@test.local', 'RLS Student 2', 'student', 10),
+    (v_teacher_id, 'rls_teacher@test.local', 'RLS Teacher', 'teacher', NULL),
+    (v_admin_id, 'rls_admin@test.local', 'RLS Admin', 'admin', NULL)
+  ON CONFLICT (id) DO UPDATE SET role = EXCLUDED.role, grade = EXCLUDED.grade;
 
   INSERT INTO public.questions (id, type, subject, topic, difficulty, question_text, options, correct_answer, explanation, common_mistakes, created_by)
   VALUES (
@@ -212,6 +216,10 @@ BEGIN
   END IF;
 
   UPDATE public.profiles SET role = 'teacher' WHERE id = v_other_student_id;
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  IF v_count != 1 THEN
+    RAISE EXCEPTION 'FAIL [admin]: admin could not update student role!';
+  END IF;
 
   RAISE NOTICE 'PASS [4/4]: admin question bank & role management passed';
   RAISE NOTICE 'ALL 4-ROLE RLS & EXAM INTEGRITY ASSERTIONS PASSED!';

@@ -1,10 +1,63 @@
 -- =============================================================================
 -- Migration: Step 3 — Server-Side Answer-Key Lock, Timing Validation & Race Guard
 -- Date: 2026-11-20
--- Safe to run multiple times (idempotent).
+-- Safe to run multiple times (idempotent & self-healing for missing prereq tables).
 -- Matching rollback: supabase/ROLLBACK-2026-11-20-answer-key-lock.sql
 -- Matching 4-role test: supabase/TEST-2026-11-20-rls-4-roles.sql
 -- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- 0. Ensure Prerequisite Columns & Tables Exist (Idempotent Safety Guard)
+-- -----------------------------------------------------------------------------
+ALTER TABLE public.questions
+  ADD COLUMN IF NOT EXISTS variant_group_id TEXT,
+  ADD COLUMN IF NOT EXISTS params JSONB,
+  ADD COLUMN IF NOT EXISTS image_url TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS common_mistakes JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+ALTER TABLE public.exams
+  ADD COLUMN IF NOT EXISTS starts_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS ends_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS max_attempts INTEGER NOT NULL DEFAULT 3,
+  ADD COLUMN IF NOT EXISTS cooldown_hours INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'exam',
+  ADD COLUMN IF NOT EXISTS grade INTEGER;
+
+ALTER TABLE public.exam_attempts
+  ADD COLUMN IF NOT EXISTS seed TEXT,
+  ADD COLUMN IF NOT EXISTS attempt_number INTEGER;
+
+CREATE TABLE IF NOT EXISTS public.question_bookmarks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  question_id UUID NOT NULL REFERENCES public.questions(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, question_id)
+);
+ALTER TABLE public.question_bookmarks ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage own bookmarks" ON public.question_bookmarks;
+CREATE POLICY "Users can manage own bookmarks"
+  ON public.question_bookmarks FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS public.question_feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  question_id UUID NOT NULL REFERENCES public.questions(id) ON DELETE CASCADE,
+  feedback_type TEXT NOT NULL CHECK (feedback_type IN ('bug', 'confusing', 'typo', 'other')),
+  comment TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, question_id)
+);
+ALTER TABLE public.question_feedback ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage own feedback" ON public.question_feedback;
+CREATE POLICY "Users can manage own feedback"
+  ON public.question_feedback FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
 -- -----------------------------------------------------------------------------
 -- 1. Hardened Role Helper & Prevent Profile Role Self-Escalation
@@ -267,6 +320,7 @@ $$;
 -- -----------------------------------------------------------------------------
 -- 6. Hardened start_exam_attempt (Server-Authoritative Timing, Ownership & Resume)
 -- -----------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.start_exam_attempt(UUID, UUID);
 CREATE OR REPLACE FUNCTION public.start_exam_attempt(
   p_exam_id UUID,
   p_user_id UUID DEFAULT NULL
