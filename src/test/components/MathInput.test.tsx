@@ -72,14 +72,18 @@ describe('MathInput Component with Visual Calculator Boxes', () => {
     expect(handleChange).toHaveBeenCalledWith('\\lim_{x \\to 0} 2x')
   })
 
-  it('toggles keypad visibility', () => {
+  it('starts with keypad hidden for phone-keyboard friendliness and toggles cleanly', () => {
     render(<MathInput value="" onChange={vi.fn()} />)
 
+    // Hidden by default so students see question + answer + nav on one phone screen
+    expect(screen.queryByRole('region', { name: /Math Keypad/i })).not.toBeInTheDocument()
+
+    const openBtn = screen.getByRole('button', { name: /Math Keypad/i })
+    fireEvent.click(openBtn)
     expect(screen.getByRole('region', { name: /Math Keypad/i })).toBeInTheDocument()
 
-    const toggleBtn = screen.getByRole('button', { name: /Hide Keypad/i })
-    fireEvent.click(toggleBtn)
-
+    const switchBackBtn = screen.getByRole('button', { name: /Use Phone Keyboard/i })
+    fireEvent.click(switchBackBtn)
     expect(screen.queryByRole('region', { name: /Math Keypad/i })).not.toBeInTheDocument()
   })
 

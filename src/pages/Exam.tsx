@@ -413,39 +413,41 @@ export default function Exam() {
             {offlineNotice}
           </div>
         )}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-ink">
-            Question {currentIndex + 1} <span className="font-normal text-text-muted">of {total}</span>
-            {answered > 0 && <span className="ml-2 text-xs text-text-muted">· {answered} answered</span>}
+        <div className="mb-3 md:mb-5 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs md:text-sm font-semibold text-ink">
+            Q{currentIndex + 1} <span className="font-normal text-text-muted">/ {total}</span>
+            {answered > 0 && <span className="ml-1.5 text-xs text-text-muted">· {answered} answered</span>}
           </span>
-          <div className="mx-4 h-1.5 min-w-[120px] flex-1 rounded-full bg-surface-light">
+          <div className="mx-1 md:mx-4 h-1.5 min-w-[70px] flex-1 rounded-full bg-surface-light">
             <div
               className="h-1.5 rounded-full bg-brand transition-all duration-300"
               style={{ width: `${(answered / total) * 100}%` }}
             />
           </div>
-          <Scratchpad />
-          <CartesianGrapherModal
-            onInsertAnswer={(summary) => {
-              if (current?.question?.type === 'short_answer') {
-                handleAnswer(current.question.id, summary)
-              }
-            }}
-          />
-          <button
-            onClick={handleSave}
-            disabled={answered === 0 || saving || !attemptId}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-muted hover:bg-surface disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-          <button
-            onClick={handleSubmitClick}
-            disabled={submitting || !attemptId}
-            className="rounded-lg bg-accent-green px-4 py-2 text-sm font-semibold text-white hover:bg-accent-green/80 disabled:opacity-50"
-          >
-            {submitting ? 'Submitting...' : !attemptId ? 'Loading...' : 'Submit'}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <Scratchpad />
+            <CartesianGrapherModal
+              onInsertAnswer={(summary) => {
+                if (current?.question?.type === 'short_answer') {
+                  handleAnswer(current.question.id, summary)
+                }
+              }}
+            />
+            <button
+              onClick={handleSave}
+              disabled={answered === 0 || saving || !attemptId}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs md:text-sm font-semibold text-text-muted hover:bg-surface disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              onClick={handleSubmitClick}
+              disabled={submitting || !attemptId}
+              className="rounded-lg bg-accent-green px-3 py-1.5 text-xs md:text-sm font-semibold text-white hover:bg-accent-green/80 disabled:opacity-50"
+            >
+              {submitting ? 'Submitting...' : !attemptId ? 'Loading...' : 'Submit'}
+            </button>
+          </div>
         </div>
 
         {current && (
@@ -505,32 +507,39 @@ function QuestionView({
   onPrev: () => void
 }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-4 md:p-8">
-      <div className="mb-4 flex items-center gap-3">
-        <span className="text-sm font-semibold text-brand">Q{index + 1} / {total}</span>
-        <DifficultyBadge level={question.difficulty} />
+    <div className="rounded-xl border border-border bg-surface p-3.5 md:p-7 shadow-xs">
+      <div className="mb-2.5 md:mb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs md:text-sm font-bold text-brand">Q{index + 1} / {total}</span>
+          <DifficultyBadge level={question.difficulty} />
+        </div>
+        {selected && (
+          <span className="rounded-full bg-accent-green/15 px-2.5 py-0.5 text-[11px] font-semibold text-accent-green">
+            Answered
+          </span>
+        )}
       </div>
 
       {question.image_url && (
-        <div className="mb-6 flex justify-center">
-          <img src={question.image_url} alt="Diagram" className="max-h-64 rounded-lg" />
+        <div className="mb-3 md:mb-5 flex justify-center">
+          <img src={question.image_url} alt="Diagram" className="max-h-40 md:max-h-64 rounded-lg object-contain" />
         </div>
       )}
 
-      <div className="mb-6 md:mb-8 select-none text-base md:text-lg font-medium leading-relaxed text-text">
+      <div className="mb-4 md:mb-6 select-none text-[17px] md:text-lg font-medium leading-relaxed text-ink">
         <LatexRenderer content={question.question_text} />
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-2.5">
         {question.type === 'multiple_choice' && shuffledOptions.map((opt, displayIdx) => {
           const val = String(opt.originalIndex)
           return (
             <button key={opt.originalIndex} onClick={() => onAnswer(val)}
-              className={`w-full select-none rounded-lg border px-5 py-3 text-left transition ${
-                selected === val ? 'border-brand bg-brand/10 text-text' : 'border-border text-text-muted hover:border-brand/50 hover:text-text'
+              className={`w-full select-none rounded-xl border px-3.5 py-2.5 md:px-5 md:py-3 text-left text-sm md:text-base transition ${
+                selected === val ? 'border-brand bg-brand/10 font-medium text-ink shadow-xs' : 'border-border text-text hover:border-brand/50'
               }`}
             >
-              <span className="mr-3 font-mono text-sm text-text-muted">{String.fromCharCode(65 + displayIdx)}.</span>
+              <span className="mr-2.5 inline-block w-5 font-mono text-xs md:text-sm font-bold text-brand">{String.fromCharCode(65 + displayIdx)}.</span>
               <LatexRenderer content={opt.text} />
             </button>
           )
@@ -538,8 +547,8 @@ function QuestionView({
 
         {question.type === 'true_false' && ['True', 'False'].map(opt => (
           <button key={opt} onClick={() => onAnswer(opt.toLowerCase())}
-            className={`w-full rounded-lg border px-5 py-3 text-left transition ${
-              selected === opt.toLowerCase() ? 'border-brand bg-brand/10 text-text' : 'border-border text-text-muted hover:border-brand/50 hover:text-text'
+            className={`w-full rounded-xl border px-3.5 py-2.5 md:px-5 md:py-3 text-left text-sm md:text-base transition ${
+              selected === opt.toLowerCase() ? 'border-brand bg-brand/10 font-medium text-ink shadow-xs' : 'border-border text-text hover:border-brand/50'
             }`}
           >
             {opt}
@@ -555,12 +564,12 @@ function QuestionView({
         )}
       </div>
 
-      <div className="mt-8 flex justify-between">
+      <div className="mt-4 md:mt-6 flex items-center justify-between gap-2 border-t border-border pt-3">
         <button onClick={onPrev} disabled={index === 0}
-          className="rounded-lg border border-border px-5 py-2 text-sm text-text-muted hover:text-text disabled:opacity-30"
+          className="rounded-lg border border-border px-4 py-2 text-xs md:text-sm font-semibold text-text hover:border-brand hover:text-brand disabled:opacity-30"
         >← Previous</button>
         <button onClick={onNext} disabled={index === total - 1}
-          className="rounded-lg border border-border px-5 py-2 text-sm text-text-muted hover:text-text disabled:opacity-30"
+          className="rounded-lg bg-brand px-4 py-2 text-xs md:text-sm font-semibold text-white hover:opacity-90 disabled:opacity-30"
         >Next →</button>
       </div>
     </div>

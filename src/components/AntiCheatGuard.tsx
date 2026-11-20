@@ -41,10 +41,17 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
     }
   }, [timeSpent, durationMinutes, onTimeUp])
 
-  const remaining = durationMinutes ? durationMinutes * 60 - timeSpent : 0
-  const remainingMin = Math.floor(remaining / 60)
-  const remainingSec = remaining % 60
-  const isLowTime = durationMinutes ? remaining <= 300 : false // warn under 5 min
+  const remainingSecTotal = durationMinutes
+    ? Math.max(0, Math.floor(durationMinutes * 60 - timeSpent))
+    : 0
+  const remainingMin = remainingSecTotal === 0 ? 0 : Math.ceil(remainingSecTotal / 60)
+  const timeDisplay =
+    remainingSecTotal <= 0
+      ? '0 min'
+      : remainingSecTotal < 60
+        ? '< 1 min'
+        : `${remainingMin} min`
+  const isLowTime = durationMinutes ? remainingSecTotal <= 300 : false // warn under 5 min
 
   if (isDisqualified) {
     return (
@@ -82,30 +89,30 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
       )}
 
       {/* Header bar: fullscreen warning + timer + violations */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="mb-2 md:mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
           {!isFullscreen && (
-            <div className="rounded-lg border border-warning bg-warning/10 px-3 py-1.5 text-xs text-warning">
+            <div className="rounded-lg border border-warning bg-warning/10 px-2.5 py-1 text-xs text-warning">
               ⚠ Click fullscreen to start
               <button onClick={requestFullscreen} className="ml-1 underline hover:no-underline">Fullscreen</button>
             </div>
           )}
           {warningCount > 0 && (
-            <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-1.5 text-xs text-danger">
+            <div className="rounded-lg border border-danger/30 bg-danger/10 px-2.5 py-1 text-xs text-danger">
               ⚠ Violations: {warningCount}/{config.maxWarnings ?? 3}
             </div>
           )}
         </div>
 
         {durationMinutes && durationMinutes > 0 && (
-          <div className={`flex items-baseline gap-2 rounded-xl border px-4 py-2 ${
+          <div className={`flex items-baseline gap-2 rounded-xl border px-3 py-1 md:px-4 md:py-1.5 ${
             isLowTime
               ? 'border-danger bg-danger/10 text-danger animate-pulse'
               : 'border-border bg-secondary text-primary'
           }`}>
-            <span className="text-xs font-medium uppercase tracking-wide text-text-muted">Time left</span>
-            <span className="text-3xl font-extrabold tabular-nums tracking-tight" aria-live="off">
-              {remainingMin}:{String(remainingSec).padStart(2, '0')}
+            <span className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Time left</span>
+            <span className="text-lg md:text-2xl font-extrabold tabular-nums tracking-tight" aria-live="off">
+              {timeDisplay}
             </span>
           </div>
         )}

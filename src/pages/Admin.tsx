@@ -43,7 +43,7 @@ export default function Admin() {
   const section = location.pathname.replace(/^\/admin/, '') || ''
 
   return (
-    <div className="flex gap-8">
+    <div className="flex flex-col gap-4 md:flex-row md:gap-8">
       <AdminSidebar />
       <div className="min-w-0 flex-1">
         {section === '' && <AdminDashboard />}

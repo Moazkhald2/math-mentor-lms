@@ -41,7 +41,8 @@ export default function MathInput({
   id,
 }: MathInputProps) {
   const [mode, setMode] = useState<'visual' | 'text' | 'graph'>('visual')
-  const [showKeypad, setShowKeypad] = useState(true)
+  // Hidden by default so mobile exams fit on one screen and students can use their phone keyboard immediately
+  const [showKeypad, setShowKeypad] = useState(false)
 
   const activeInputRef = useRef<HTMLInputElement | MathfieldElement | null>(null)
   const rawInputRef = useRef<HTMLInputElement | null>(null)
@@ -203,14 +204,14 @@ export default function MathInput({
   }
 
   return (
-    <div className={`w-full space-y-3 ${className}`}>
-      {/* Top Header Mode Toggle */}
+    <div className={`w-full space-y-2.5 ${className}`}>
+      {/* Top Header Mode Toggle & Phone Keyboard <-> Math Keypad Switcher */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-surface p-1">
+        <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-surface p-0.5">
           <button
             type="button"
             onClick={() => setMode('visual')}
-            className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+            className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
               mode === 'visual'
                 ? 'bg-brand text-white shadow-xs'
                 : 'text-text-muted hover:text-text'
@@ -222,25 +223,25 @@ export default function MathInput({
             type="button"
             onClick={() => setMode('text')}
             aria-label="Plain Input"
-            className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+            className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
               mode === 'text'
                 ? 'bg-brand text-white shadow-xs'
                 : 'text-text-muted hover:text-text'
             }`}
           >
-            ✍️ Type Your Answer
+            ✍️ Type
           </button>
           <button
             type="button"
             onClick={() => setMode('graph')}
             aria-label="Coordinate Grapher"
-            className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+            className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
               mode === 'graph'
                 ? 'bg-brand text-white shadow-xs'
                 : 'text-text-muted hover:text-text'
             }`}
           >
-            📈 Graph on Plane
+            📈 Graph
           </button>
         </div>
 
@@ -253,15 +254,31 @@ export default function MathInput({
           {mode !== 'graph' && (
             <button
               type="button"
-              onClick={() => setShowKeypad((prev) => !prev)}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+              onClick={() => {
+                setShowKeypad((prev) => {
+                  const next = !prev
+                  if (!next) {
+                    // Switching back to native phone/device keyboard: focus active input cleanly
+                    requestAnimationFrame(() => {
+                      const target =
+                        mode === 'visual'
+                          ? activeInputRef.current
+                          : (textMathfieldRef.current || rawInputRef.current)
+                      target?.focus?.()
+                    })
+                  }
+                  return next
+                })
+              }}
+              aria-pressed={showKeypad}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition shadow-xs ${
                 showKeypad
-                  ? 'border-brand bg-brand/10 text-brand'
-                  : 'border-border bg-surface text-text-muted hover:text-text'
+                  ? 'border-brand bg-brand text-white'
+                  : 'border-brand/40 bg-brand/10 text-brand hover:bg-brand/15'
               }`}
             >
-              <span>⌨️</span>
-              <span>{showKeypad ? 'Hide Keypad' : 'Show Keypad'}</span>
+              <span>{showKeypad ? '📱' : '⌨️'}</span>
+              <span>{showKeypad ? 'Use Phone Keyboard' : 'Math Keypad'}</span>
             </button>
           )}
         </div>

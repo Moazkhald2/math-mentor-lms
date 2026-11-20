@@ -67,18 +67,18 @@ describe('AntiCheatGuard', () => {
     expect(screen.getByText(/Violations: 2\/5/)).toBeInTheDocument()
   })
 
-  it('shows timer when durationMinutes is set', () => {
+  it('shows timer in minutes only without seconds or sub-seconds when durationMinutes is set', () => {
     mockAntiCheat({ timeSpent: 60 })
     render(
-      <AntiCheatGuard examId="exam-1" durationMinutes={10}>
+      <AntiCheatGuard examId="exam-1" durationMinutes={9.438192}>
         <div>content</div>
       </AntiCheatGuard>,
     )
-    // 10*60 - 60 = 540 -> 9:00
-    expect(screen.getByText(/9:00/)).toBeInTheDocument()
+    // Math.floor(9.438192*60 - 60) = 506s -> Math.ceil(506/60) = 9 min (no decimals or seconds)
+    expect(screen.getByText('9 min')).toBeInTheDocument()
   })
 
-  it('shows low-time warning when under 5 minutes', () => {
+  it('shows low-time warning in minutes when under 5 minutes', () => {
     mockAntiCheat({ timeSpent: 7 * 60 }) // 7 min spent of 10 -> 3 min remaining
     render(
       <AntiCheatGuard examId="exam-1" durationMinutes={10}>
@@ -86,7 +86,17 @@ describe('AntiCheatGuard', () => {
       </AntiCheatGuard>,
     )
     expect(screen.getByText('Time left')).toBeInTheDocument()
-    expect(screen.getByText('3:00')).toBeInTheDocument()
+    expect(screen.getByText('3 min')).toBeInTheDocument()
+  })
+
+  it('shows < 1 min when under 60 seconds remain', () => {
+    mockAntiCheat({ timeSpent: 9 * 60 + 25 }) // 35s left
+    render(
+      <AntiCheatGuard examId="exam-1" durationMinutes={10}>
+        <div>content</div>
+      </AntiCheatGuard>,
+    )
+    expect(screen.getByText('< 1 min')).toBeInTheDocument()
   })
 
   it('calls onTimeUp when time exceeds duration', async () => {
