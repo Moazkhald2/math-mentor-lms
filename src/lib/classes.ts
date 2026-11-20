@@ -67,3 +67,50 @@ export async function fetchAvailableTeachers() {
   if (error) throw error
   return data
 }
+
+export async function moveStudentToClass(fromClassId: string, toClassId: string, studentId: string) {
+  if (fromClassId === toClassId) return
+  const { error: insertError } = await supabase
+    .from('class_members')
+    .insert({ class_id: toClassId, student_id: studentId })
+  // Ignore unique violation if student is already in target group
+  if (insertError && insertError.code !== '23505') throw insertError
+
+  const { error: deleteError } = await supabase
+    .from('class_members')
+    .delete()
+    .eq('class_id', fromClassId)
+    .eq('student_id', studentId)
+  if (deleteError) throw deleteError
+}
+
+export interface StudentAttemptSummary {
+  id: string
+  exam_id: string
+  started_at: string
+  completed_at: string | null
+  score: number | null
+  total_points: number | null
+  status: 'in_progress' | 'completed' | 'abandoned'
+  attempt_number: number | null
+  exams?: { id: string; title: string; type: 'exam' | 'practice' } | null
+}
+
+export async function fetchStudentRecentAttempts(studentId: string): Promise<StudentAttemptSummary[]> {
+  const { data, error } = await supabase
+    .from('exam_attempts')
+    .select('id, exam_id, started_at, completed_at, score, total_points, status, attempt_number, exams(id, title, type)')
+    .eq('user_id', studentId)
+    .order('started_at', { ascending: false })
+    .limit(20)
+  if (error) throw error
+  return (data ?? []) as unknown as StudentAttemptSummary[]
+}
+
+export async function resetStudentAttempt(attemptId: string): Promise<void> {
+  const { error } = await supabase
+    .from('exam_attempts')
+    .delete()
+    .eq('id', attemptId)
+  if (error) throw error
+}

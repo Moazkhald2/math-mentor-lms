@@ -1,8 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
-import { GRADES } from '../../components/ui/filters'
+import { fetchExams } from '../../lib/exams'
+import { ALL_GRADES } from '../../lib/grades'
 import StudentIdentity from '../../components/StudentIdentity'
+import StudentInspectorModal, { type InspectedStudent } from '../../components/StudentInspectorModal'
 
 export default function AdminUsers() {
   const queryClient = useQueryClient()
@@ -11,6 +14,7 @@ export default function AdminUsers() {
   const [gradeSel, setGradeSel] = useState<number | ''>('')
   const [classSel, setClassSel] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [inspectedStudent, setInspectedStudent] = useState<InspectedStudent | null>(null)
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(search), 300)
@@ -18,7 +22,7 @@ export default function AdminUsers() {
   }, [search])
 
   const { data: users, isLoading } = useQuery({
-    queryKey: ['admin-users'],
+    queryKey: ['admin-users', debouncedSearch, roleFilter],
     queryFn: async () => {
       let q = supabase.from('profiles').select('*')
       if (debouncedSearch) {
@@ -31,7 +35,12 @@ export default function AdminUsers() {
       if (error) throw error
       return data
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
+  })
+
+  const { data: exams = [] } = useQuery({
+    queryKey: ['admin-exams-list'],
+    queryFn: fetchExams,
   })
 
   const updateRole = useMutation({
@@ -42,14 +51,23 @@ export default function AdminUsers() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
   })
 
-  const deleteUser = useMutation({
-    mutationFn: async (id: string) => {
-      await supabase.from('profiles').delete().eq('id', id)
+  const updateGrade = useMutation({
+    mutationFn: async ({ id, grade }: { id: string; grade: number | null }) => {
+      const { error } = await supabase.from('profiles').update({ grade }).eq('id', id)
+      if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
   })
 
-  const filtered = (users ?? []).filter(u => {
+  const deleteUser = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('profiles').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+  })
+
+  const filtered = (users ?? []).filter((u) => {
     if (roleFilter && u.role !== roleFilter) return false
     if (gradeSel !== '' && u.grade !== gradeSel) return false
     if (classSel && u.class_code !== classSel) return false
@@ -66,10 +84,23 @@ export default function AdminUsers() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-black text-text">Users</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-black text-text">Users</h1>
+          <p className="text-sm text-text-muted">
+            Manage roles, update Grades 1–12, or inspect individual student attempts and assignments.
+          </p>
+        </div>
+        <Link
+          to="/admin/classes"
+          className="rounded-lg border border-brand/40 bg-brand/5 px-4 py-2 text-sm font-semibold text-brand hover:bg-brand/10"
+        >
+          Manage Grades &amp; Groups →
+        </Link>
+      </div>
 
-      <div className="mb-4 flex gap-3">
-        <div className="relative flex-1">
+      <div className="mb-4 flex flex-wrap gap-3">
+        <div className="relative min-w-[220px] flex-1">
           <input
             placeholder="Search by name or email..."
             value={search}
@@ -78,6 +109,7 @@ export default function AdminUsers() {
           />
           {search && (
             <button
+              type="button"
               onClick={() => setSearch('')}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
             >
@@ -85,7 +117,12 @@ export default function AdminUsers() {
             </button>
           )}
         </div>
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="rounded-lg border border-border bg-surface px-4 py-2 text-ink">
+        <select
+          aria-label="Filter by role"
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className="rounded-lg border border-border bg-surface px-4 py-2 text-ink"
+        >
           <option value="">All roles</option>
           <option value="student">Student</option>
           <option value="teacher">Teacher</option>
@@ -95,10 +132,17 @@ export default function AdminUsers() {
           aria-label="Filter by grade"
           className="input min-w-[130px]"
           value={gradeSel}
-          onChange={(e) => { setGradeSel(e.target.value ? Number(e.target.value) : ''); setClassSel('') }}
+          onChange={(e) => {
+            setGradeSel(e.target.value ? Number(e.target.value) : '')
+            setClassSel('')
+          }}
         >
           <option value="">All grades</option>
-          {GRADES.map((g) => <option key={g} value={g}>Grade {g}</option>)}
+          {ALL_GRADES.map((g) => (
+            <option key={g} value={g}>
+              Grade {g}
+            </option>
+          ))}
         </select>
         <select
           aria-label="Filter by class"
@@ -107,11 +151,19 @@ export default function AdminUsers() {
           onChange={(e) => setClassSel(e.target.value)}
         >
           <option value="">All classes</option>
-          {classOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+          {classOptions.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
         </select>
         {(gradeSel !== '' || classSel) && (
           <button
-            onClick={() => { setGradeSel(''); setClassSel('') }}
+            type="button"
+            onClick={() => {
+              setGradeSel('')
+              setClassSel('')
+            }}
             className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:border-brand hover:text-brand"
           >
             ✕ Clear filters
@@ -142,6 +194,7 @@ export default function AdminUsers() {
                 </td>
                 <td className="px-4 py-3">
                   <select
+                    aria-label={`Role for ${u.full_name || u.email}`}
                     value={u.role}
                     onChange={(e) => updateRole.mutate({ id: u.id, role: e.target.value })}
                     disabled={updateRole.isPending}
@@ -152,22 +205,66 @@ export default function AdminUsers() {
                     <option value="admin">Admin</option>
                   </select>
                 </td>
-                <td className="px-4 py-3">{u.grade ?? '-'}</td>
+                <td className="px-4 py-3">
+                  <select
+                    aria-label={`Grade for ${u.full_name || u.email}`}
+                    value={u.grade ?? ''}
+                    onChange={(e) =>
+                      updateGrade.mutate({
+                        id: u.id,
+                        grade: e.target.value ? Number(e.target.value) : null,
+                      })
+                    }
+                    disabled={updateGrade.isPending}
+                    className="rounded border border-border bg-surface px-2 py-1 text-xs text-ink"
+                  >
+                    <option value="">-</option>
+                    {ALL_GRADES.map((g) => (
+                      <option key={g} value={g}>
+                        Grade {g}
+                      </option>
+                    ))}
+                  </select>
+                </td>
                 <td className="px-4 py-3">{u.class_code ?? '-'}</td>
-                <td className="px-4 py-3 text-xs">{u.parent_phone ? u.parent_phone.slice(0, 3) + '...' + u.parent_phone.slice(-3) : 'N/A'}</td>
+                <td className="px-4 py-3 text-xs">
+                  {u.parent_phone
+                    ? u.parent_phone.slice(0, 3) + '...' + u.parent_phone.slice(-3)
+                    : 'N/A'}
+                </td>
                 <td className="px-4 py-3">{new Date(u.created_at).toLocaleDateString()}</td>
                 <td className="px-4 py-3">
-                  <button
-                    onClick={() => {
-                      if (confirm('Delete this user and all their data?')) {
-                        deleteUser.mutate(u.id)
-                      }
-                    }}
-                    disabled={deleteUser.isPending}
-                    className="text-xs text-danger hover:underline disabled:opacity-50"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {u.role === 'student' && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setInspectedStudent({
+                            id: u.id,
+                            full_name: u.full_name,
+                            email: u.email,
+                            grade: u.grade,
+                            groupName: u.class_code,
+                          })
+                        }
+                        className="rounded border border-brand/40 px-2 py-0.5 text-xs font-semibold text-brand hover:bg-brand/10"
+                      >
+                        Inspect
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Delete this user and all their data?')) {
+                          deleteUser.mutate(u.id)
+                        }
+                      }}
+                      disabled={deleteUser.isPending}
+                      className="text-xs text-danger hover:underline disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -179,6 +276,14 @@ export default function AdminUsers() {
           </div>
         )}
       </div>
+
+      {inspectedStudent && (
+        <StudentInspectorModal
+          student={inspectedStudent}
+          exams={exams}
+          onClose={() => setInspectedStudent(null)}
+        />
+      )}
     </div>
   )
 }

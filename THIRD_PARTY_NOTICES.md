@@ -24,6 +24,7 @@ at the official SPDX registry `https://spdx.org/licenses/`).
 | `lucide-react` | 1.27.0 | ISC | https://lucide.dev |
 | `mathlive` | 0.111.4 | MIT | https://cortexjs.io/mathlive |
 | `pg` | 8.22.0 | MIT | https://node-postgres.com |
+| `qrcode` | 1.5.4 | MIT | https://github.com/soldair/node-qrcode |
 | `react` | 19.2.8 | MIT | https://react.dev |
 | `react-dom` | 19.2.8 | MIT | https://react.dev |
 | `react-hook-form` | 7.83.0 | MIT | https://react-hook-form.com |
