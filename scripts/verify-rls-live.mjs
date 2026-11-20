@@ -66,6 +66,11 @@ async function main() {
     ['/rest/v1/question_feedback?select=*&limit=5', 'GET /rest/v1/question_feedback'],
     ['/rest/v1/system_settings?select=*&limit=5', 'GET /rest/v1/system_settings'],
     ['/rest/v1/rpc_rate_limits?select=*&limit=5', 'GET /rest/v1/rpc_rate_limits'],
+    ['/rest/v1/concepts?select=*&limit=5', 'GET /rest/v1/concepts'],
+    ['/rest/v1/curricula?select=*&limit=5', 'GET /rest/v1/curricula'],
+    ['/rest/v1/curriculum_outcomes?select=*&limit=5', 'GET /rest/v1/curriculum_outcomes'],
+    ['/rest/v1/curriculum_outcome_concepts?select=*&limit=5', 'GET /rest/v1/curriculum_outcome_concepts'],
+    ['/rest/v1/question_concepts?select=*&limit=5', 'GET /rest/v1/question_concepts'],
   ]
   for (const [path, label] of protectedTables) {
     ok = (await checkAnonBlocked(path, label)) && ok

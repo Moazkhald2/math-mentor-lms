@@ -11,13 +11,22 @@
 }
 
 export type QuestionType = 'multiple_choice' | 'true_false' | 'short_answer'
-export type Difficulty = 1 | 2 | 3 | 4
+export type Difficulty = 1 | 2 | 3 | 4 | 5 | 6
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   1: 'Easy',
   2: 'Intermediate',
   3: 'Hard',
   4: 'Expert',
+  5: 'Extreme',
+  6: 'Above',
 }
+
+/**
+ * Alias for the shared 1-6 difficulty scale.
+ * NOTE: `question_concepts.difficulty_tier` is the authoritative per-concept
+ * difficulty; `questions.difficulty` is the overall/legacy tier.
+ */
+export type DifficultyTier = Difficulty
 
 export interface Question {
   id: string
@@ -123,4 +132,87 @@ export interface AttemptReviewPayload {
     }
   }
   answers: (Answer & { question: Question })[]
+}
+
+// ---------------------------------------------------------------------------
+// Concept / outcome taxonomy (migration-2026-11-20-outcome-taxonomy.sql)
+// ---------------------------------------------------------------------------
+
+export type ConceptDomain = 'NUM' | 'ALG' | 'MEA' | 'GEO' | 'STA' | 'DAT'
+export type ConceptStatus = 'active' | 'deprecated'
+
+export interface ConceptAlias {
+  alias: string
+  source: string
+  lang: string
+}
+
+export interface Concept {
+  concept_id: string
+  label: string
+  description: string | null
+  domain: ConceptDomain
+  grade_band_low: number
+  grade_band_high: number
+  unit_hint: string | null
+  aliases: ConceptAlias[]
+  prerequisite_concept_ids: string[]
+  status: ConceptStatus
+  superseded_by: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export type CurriculumStatus = 'draft' | 'pilot' | 'active' | 'archived'
+
+export interface Curriculum {
+  id: string
+  display_name: string
+  country: string | null
+  version: string | null
+  academic_year: string | null
+  term: string | null
+  status: CurriculumStatus
+  source_ref: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
+export interface CurriculumOutcome {
+  id: number
+  curriculum_id: string
+  outcome_code: string
+  grade: number
+  stage: string | null
+  unit_code: string | null
+  lesson_no: number | null
+  lesson_date: string | null
+  text: string | null
+  source_pages: string | null
+  pedagogy: Record<string, unknown>
+}
+
+export type OutcomeMappingKind = 'primary' | 'supporting'
+
+export interface CurriculumOutcomeConcept {
+  curriculum_id: string
+  outcome_code: string
+  concept_id: string
+  mapping_kind: OutcomeMappingKind
+  confidence: number | null
+}
+
+export type ConceptMappingSource = 'auto_keyword' | 'manual' | 'ai_generated' | 'reviewed'
+
+export interface QuestionConcept {
+  id: string
+  question_id: string
+  concept_id: string
+  /** Authoritative per-concept difficulty on the shared 1-6 scale. */
+  difficulty_tier: DifficultyTier
+  is_primary: boolean
+  mapping_source: ConceptMappingSource
+  confidence: number | null
+  reviewed_by: string | null
+  reviewed_at: string | null
 }

@@ -23,6 +23,16 @@ describe('DifficultyBadge', () => {
     expect(screen.getByText('Expert')).toBeInTheDocument()
   })
 
+  it('renders Extreme for level 5', () => {
+    render(<DifficultyBadge level={5} />)
+    expect(screen.getByText('Extreme')).toBeInTheDocument()
+  })
+
+  it('renders Above for level 6', () => {
+    render(<DifficultyBadge level={6} />)
+    expect(screen.getByText('Above')).toBeInTheDocument()
+  })
+
   it('applies correct color class for each level', () => {
     const { container } = render(<DifficultyBadge level={1} />)
     expect(container.firstChild).toHaveClass('badge-success')

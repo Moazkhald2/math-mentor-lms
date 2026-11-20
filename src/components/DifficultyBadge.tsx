@@ -6,6 +6,8 @@ const colors: Record<Difficulty, string> = {
   2: 'badge-primary',
   3: 'badge-warning',
   4: 'badge-danger',
+  5: 'badge-danger',
+  6: 'badge-danger',
 }
 
 export default function DifficultyBadge({ level }: { level: Difficulty }) {
