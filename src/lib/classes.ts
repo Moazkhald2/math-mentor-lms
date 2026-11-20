@@ -25,6 +25,17 @@ export async function deleteClass(id: string) {
   if (error) throw error
 }
 
+export async function updateClassTeacher(classId: string, teacherId: string | null) {
+  const { data, error } = await supabase
+    .from('classes')
+    .update({ teacher_id: teacherId })
+    .eq('id', classId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function fetchClassMembers(classId: string) {
   const { data, error } = await supabase
     .from('class_members')

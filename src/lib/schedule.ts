@@ -113,11 +113,16 @@ export function resolveStudentSchedule(params: {
         continue
       }
     } else {
-      // No explicit assignments -> fallback to exam.grade match
-      if (exam.grade != null && studentGrade != null && exam.grade !== studentGrade) {
-        continue
+      // No explicit assignments -> strict grade isolation:
+      // Students with an enrolled grade ONLY see assessments for their exact grade.
+      if (studentGrade != null) {
+        if (exam.grade !== studentGrade) {
+          continue
+        }
+        scope = 'grade'
+      } else {
+        scope = exam.grade != null ? 'grade' : 'general'
       }
-      scope = exam.grade != null ? 'grade' : 'general'
     }
 
     const startsAt = matchedAssignment?.starts_at_override ?? exam.starts_at ?? null

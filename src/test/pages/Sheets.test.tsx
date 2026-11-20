@@ -92,6 +92,8 @@ describe('Sheets page save & resume indicators', () => {
       expect(screen.getByText('60%')).toBeInTheDocument()
       expect(screen.getByText('Resume Sheet →')).toBeInTheDocument()
       expect(screen.getByText('Start Practice →')).toBeInTheDocument()
+      // Strict grade isolation: students do NOT see Grade 1-12 selector tabs
+      expect(screen.queryByRole('button', { name: 'Grade 9' })).not.toBeInTheDocument()
     })
   })
 })

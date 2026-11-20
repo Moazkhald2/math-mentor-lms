@@ -1,16 +1,47 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useAntiCheat, type AntiCheatConfig } from '../hooks/useAntiCheat'
+import {
+  computeRemainingSecondsFromDeadline,
+  formatMinutesOnly,
+  getTimerUrgency,
+} from '../lib/examTiming'
 
 interface Props extends AntiCheatConfig {
   children: ReactNode
   onTimeUp?: () => void
   durationMinutes?: number
+  /** Server-anchored ISO deadline for offline-resilient timing (Step 17) */
+  deadlineIso?: string | null
+  /** Full exam duration in minutes used to compute calm -> amber -> urgent thresholds */
+  totalDurationMinutes?: number
 }
 
-export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ...config }: Props) {
+export default function AntiCheatGuard({
+  children,
+  onTimeUp,
+  durationMinutes,
+  deadlineIso,
+  totalDurationMinutes,
+  ...config
+}: Props) {
   const { warningCount, isDisqualified, timeSpent, isFullscreen, requestFullscreen } =
     useAntiCheat(config)
   const [blurred, setBlurred] = useState(false)
+  const [nowMs, setNowMs] = useState(() => Date.now())
+
+  // Keep offline-resilient wall-clock tick synced with server-anchored deadline
+  useEffect(() => {
+    if (!deadlineIso) return
+    const tick = setInterval(() => setNowMs(Date.now()), 1000)
+    const onResume = () => setNowMs(Date.now())
+    window.addEventListener('online', onResume)
+    window.addEventListener('focus', onResume)
+    return () => {
+      clearInterval(tick)
+      window.removeEventListener('online', onResume)
+      window.removeEventListener('focus', onResume)
+    }
+  }, [deadlineIso])
 
   // Auto-apply fullscreen when entering the exam
   useEffect(() => {
@@ -35,23 +66,29 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
     }
   }, [])
 
+  const remainingSecTotal = deadlineIso
+    ? computeRemainingSecondsFromDeadline(deadlineIso, nowMs)
+    : durationMinutes
+      ? Math.max(0, Math.floor(durationMinutes * 60 - timeSpent))
+      : 0
+
   useEffect(() => {
-    if (durationMinutes && timeSpent >= durationMinutes * 60) {
+    const hasTimer = Boolean(deadlineIso || (durationMinutes && durationMinutes > 0))
+    if (hasTimer && remainingSecTotal <= 0) {
       onTimeUp?.()
     }
-  }, [timeSpent, durationMinutes, onTimeUp])
+  }, [deadlineIso, durationMinutes, remainingSecTotal, onTimeUp])
 
-  const remainingSecTotal = durationMinutes
-    ? Math.max(0, Math.floor(durationMinutes * 60 - timeSpent))
-    : 0
-  const remainingMin = remainingSecTotal === 0 ? 0 : Math.ceil(remainingSecTotal / 60)
-  const timeDisplay =
-    remainingSecTotal <= 0
-      ? '0 min'
-      : remainingSecTotal < 60
-        ? '< 1 min'
-        : `${remainingMin} min`
-  const isLowTime = durationMinutes ? remainingSecTotal <= 300 : false // warn under 5 min
+  const totalSecForUrgency = (totalDurationMinutes ?? durationMinutes ?? 0) * 60
+  const timeDisplay = formatMinutesOnly(remainingSecTotal)
+  const urgency = getTimerUrgency(remainingSecTotal, totalSecForUrgency)
+
+  const timerToneClasses =
+    urgency === 'urgent'
+      ? 'border-danger bg-terra-light text-terra-dark dark:bg-danger/15 dark:text-danger'
+      : urgency === 'amber'
+        ? 'border-accent-gold bg-gold-light text-gold-dark dark:bg-accent-gold/15 dark:text-accent-gold'
+        : 'border-brand/35 bg-teal-light/60 text-brand-light dark:bg-brand/15 dark:text-brand'
 
   if (isDisqualified) {
     return (
@@ -104,13 +141,12 @@ export default function AntiCheatGuard({ children, onTimeUp, durationMinutes, ..
           )}
         </div>
 
-        {durationMinutes && durationMinutes > 0 && (
-          <div className={`flex items-baseline gap-2 rounded-xl border px-3 py-1 md:px-4 md:py-1.5 ${
-            isLowTime
-              ? 'border-danger bg-danger/10 text-danger animate-pulse'
-              : 'border-border bg-secondary text-primary'
-          }`}>
-            <span className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Time left</span>
+        {((durationMinutes && durationMinutes > 0) || deadlineIso) && (
+          <div
+            data-timer-urgency={urgency}
+            className={`flex items-baseline gap-2 rounded-xl border px-3 py-1 transition-colors duration-300 md:px-4 md:py-1.5 ${timerToneClasses}`}
+          >
+            <span className="text-[11px] font-medium uppercase tracking-wide opacity-80">Time left</span>
             <span className="text-lg md:text-2xl font-extrabold tabular-nums tracking-tight" aria-live="off">
               {timeDisplay}
             </span>

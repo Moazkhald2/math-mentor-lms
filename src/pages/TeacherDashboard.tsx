@@ -16,6 +16,7 @@ interface GroupOption {
   id: string
   name: string
   grade: number
+  teacher_id?: string | null
 }
 
 interface StudentOption {
@@ -31,6 +32,7 @@ export default function TeacherDashboard() {
   const [gradeFilter, setGradeFilter] = useState<number | undefined>(undefined)
   const [groupFilter, setGroupFilter] = useState<string>('')
   const [studentFilter, setStudentFilter] = useState<string>('')
+  const [onlyMyGroups, setOnlyMyGroups] = useState(false)
 
   const roleQ = useQuery({
     queryKey: ['td-role', user?.id],
@@ -47,7 +49,7 @@ export default function TeacherDashboard() {
   const groupsQ = useQuery({
     queryKey: ['td-groups'],
     queryFn: async () => {
-      const { data } = await supabase.from('classes').select('id, name, grade').order('grade').order('name')
+      const { data } = await supabase.from('classes').select('id, name, grade, teacher_id').order('grade').order('name')
       return (data ?? []) as GroupOption[]
     },
     enabled: isStaff,
@@ -84,11 +86,16 @@ export default function TeacherDashboard() {
     return new Set(groupMembersQ.data ?? [])
   }, [groupFilter, groupMembersQ.data])
 
+  const myAssignedGroups = useMemo(
+    () => (groupsQ.data ?? []).filter((g) => g.teacher_id === user?.id),
+    [groupsQ.data, user?.id]
+  )
+
   const visibleGroups = useMemo(() => {
-    const list = groupsQ.data ?? []
-    if (!gradeFilter) return list
-    return list.filter((g) => g.grade === gradeFilter)
-  }, [groupsQ.data, gradeFilter])
+    const base = onlyMyGroups ? myAssignedGroups : (groupsQ.data ?? [])
+    if (!gradeFilter) return base
+    return base.filter((g) => g.grade === gradeFilter)
+  }, [groupsQ.data, myAssignedGroups, onlyMyGroups, gradeFilter])
 
   const visibleStudents = useMemo(() => {
     return (studentsQ.data ?? []).filter((s) => {
@@ -125,6 +132,25 @@ export default function TeacherDashboard() {
 
         {/* Cascading Grade -> Group -> Single Student Filter Bar */}
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface p-3">
+          {myAssignedGroups.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setOnlyMyGroups((prev) => !prev)
+                setGroupFilter('')
+                setStudentFilter('')
+              }}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                onlyMyGroups
+                  ? 'border-brand bg-brand text-white'
+                  : 'border-border bg-paper text-ink hover:border-brand'
+              }`}
+            >
+              {onlyMyGroups
+                ? `My Assigned Groups (${myAssignedGroups.length})`
+                : `Show My Groups Only (${myAssignedGroups.length})`}
+            </button>
+          )}
           <label className="flex items-center gap-2 text-xs font-semibold text-text-muted">
             <span>Grade</span>
             <select

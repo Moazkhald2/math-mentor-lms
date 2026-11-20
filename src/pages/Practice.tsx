@@ -216,6 +216,16 @@ export default function Practice() {
     persistCheckpoint(targetIndex, answeredMap, eqs.length)
   }, [sessionInitialized, exam, answeredMap, persistCheckpoint])
 
+  const { data: studentProfile } = useQuery({
+    queryKey: ['practice-profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null
+      const { data } = await supabase.from('profiles').select('grade, role').eq('id', user.id).single()
+      return data as { grade?: number | null; role?: string | null } | null
+    },
+    enabled: !!user,
+  })
+
   if (authLoading) {
     return (
       <div className="mx-auto max-w-xl p-12 text-center">
@@ -238,6 +248,29 @@ export default function Practice() {
           className="inline-block rounded-xl bg-brand px-6 py-2.5 font-bold text-white hover:bg-brand-light transition"
         >
           Back to Sheets
+        </Link>
+      </div>
+    )
+  }
+
+  const isStaff = studentProfile?.role === 'teacher' || studentProfile?.role === 'admin'
+  if (
+    !isStaff &&
+    studentProfile?.grade &&
+    exam?.grade &&
+    exam.grade !== studentProfile.grade
+  ) {
+    return (
+      <div className="mx-auto max-w-xl rounded-2xl border border-danger/30 bg-surface p-8 text-center space-y-4">
+        <h2 className="font-display text-xl font-bold text-ink">Grade {exam.grade} Content</h2>
+        <p className="text-sm text-text-muted">
+          This practice sheet is for Grade {exam.grade}. Your account is enrolled in Grade {studentProfile.grade}.
+        </p>
+        <Link
+          to="/sheets"
+          className="inline-block rounded-xl bg-brand px-6 py-2.5 font-bold text-white hover:bg-brand-light transition"
+        >
+          Back to Grade {studentProfile.grade} Sheets
         </Link>
       </div>
     )
@@ -412,7 +445,7 @@ export default function Practice() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl select-none">
       <Watermark
         label={user?.user_metadata?.full_name ?? user?.email ?? 'Student'}
         sublabel={user?.email}

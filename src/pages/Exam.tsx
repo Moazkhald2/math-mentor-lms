@@ -24,6 +24,13 @@ import LatexRenderer from '../components/LatexRenderer'
 import Scratchpad from '../components/Scratchpad'
 import CartesianGrapherModal from '../components/CartesianGrapherModal'
 import MathInput from '../components/MathInput'
+import {
+  clearExamDeadline,
+  loadExamDeadline,
+  loadQuestionTimings,
+  persistExamDeadline,
+  saveQuestionTimings,
+} from '../lib/examTiming'
 import type { Exam, SafeExamQuestionRow, SafeQuestion } from '../types'
 
 interface ShuffledOption {
@@ -56,6 +63,8 @@ export default function Exam() {
   const [switchingDevice, setSwitchingDevice] = useState(false)
   const startedRef = useRef(false)
   const submittingRef = useRef(false)
+  const questionTimingsRef = useRef<Record<string, number>>({})
+  const activeTimingRef = useRef<{ questionId: string; enteredAt: number } | null>(null)
 
   const offlineKey = id ? `mm_answers_${id}_${user?.id ?? 'guest'}` : ''
 
@@ -220,6 +229,32 @@ export default function Exam() {
     })
   }, [safePayload, id, attemptId, attemptSeed, exam?.shuffle_questions])
 
+  // Offline-resilient server-anchored deadline (Step 17)
+  const examDeadlineIso = useMemo(() => {
+    if (!exam || !exam.time_limit_minutes || exam.time_limit_minutes <= 0) return null
+    if (safePayload?.started_at && safePayload?.server_now) {
+      const clockOffsetMs = Date.now() - new Date(safePayload.server_now).getTime()
+      const attemptEndMs =
+        new Date(safePayload.started_at).getTime() + exam.time_limit_minutes * 60_000 + clockOffsetMs
+      const examWindowEndMs = exam.ends_at
+        ? new Date(exam.ends_at).getTime() + clockOffsetMs
+        : Number.POSITIVE_INFINITY
+      const iso = new Date(Math.min(attemptEndMs, examWindowEndMs)).toISOString()
+      if (attemptId) {
+        persistExamDeadline({
+          attemptId,
+          deadlineIso: iso,
+          totalSeconds: exam.time_limit_minutes * 60,
+        })
+      }
+      return iso
+    }
+    if (attemptId) {
+      return loadExamDeadline(attemptId)?.deadlineIso ?? null
+    }
+    return null
+  }, [exam, safePayload?.started_at, safePayload?.server_now, attemptId])
+
   const remainingDurationMinutes = useMemo(() => {
     if (!exam) return 30
     if (!safePayload?.started_at || !safePayload?.server_now) return exam.time_limit_minutes
@@ -233,6 +268,43 @@ export default function Exam() {
   const current = questions?.[currentIndex]
   const total = questions?.length ?? 0
   const answered = Object.keys(answers).length
+
+  // Hydrate previously persisted per-question timings on reload
+  useEffect(() => {
+    if (!attemptId) return
+    questionTimingsRef.current = {
+      ...loadQuestionTimings(attemptId),
+      ...questionTimingsRef.current,
+    }
+  }, [attemptId])
+
+  // Flush elapsed seconds on the current question whenever student navigates or submits
+  const flushCurrentQuestionTiming = useCallback(() => {
+    const active = activeTimingRef.current
+    if (!active) return
+    const elapsedSec = Math.max(1, Math.round((Date.now() - active.enteredAt) / 1000))
+    questionTimingsRef.current[active.questionId] =
+      (questionTimingsRef.current[active.questionId] ?? 0) + elapsedSec
+    activeTimingRef.current = { questionId: active.questionId, enteredAt: Date.now() }
+    if (attemptId) {
+      saveQuestionTimings(attemptId, questionTimingsRef.current)
+    }
+  }, [attemptId])
+
+  useEffect(() => {
+    const qid = current?.question?.id
+    if (!qid) return
+    if (activeTimingRef.current && activeTimingRef.current.questionId !== qid) {
+      const prev = activeTimingRef.current
+      const elapsedSec = Math.max(1, Math.round((Date.now() - prev.enteredAt) / 1000))
+      questionTimingsRef.current[prev.questionId] =
+        (questionTimingsRef.current[prev.questionId] ?? 0) + elapsedSec
+      if (attemptId) {
+        saveQuestionTimings(attemptId, questionTimingsRef.current)
+      }
+    }
+    activeTimingRef.current = { questionId: qid, enteredAt: Date.now() }
+  }, [current?.question?.id, attemptId])
 
   const handleAnswer = (questionId: string, answer: string) => {
     setAnswers(prev => ({ ...prev, [questionId]: answer }))
@@ -266,10 +338,17 @@ export default function Exam() {
     if (!attemptId || !questions || submittingRef.current) return
     submittingRef.current = true
     setSubmitting(true)
+    flushCurrentQuestionTiming()
     try {
       const secureResult = await submitExamSecure(attemptId, answers)
       if (offlineKey) localStorage.removeItem(offlineKey)
-      log('exam_submitted', { score: secureResult.score, total: questions.length })
+      clearExamDeadline(attemptId)
+      const trackedSeconds = Object.values(questionTimingsRef.current).reduce((a, b) => a + b, 0)
+      log('exam_submitted', {
+        score: secureResult.score,
+        total: questions.length,
+        tracked_seconds: trackedSeconds,
+      })
       queryClient.invalidateQueries({ queryKey: ['my-exam-attempts', user?.id] })
       queryClient.invalidateQueries({ queryKey: ['my-exam-attempts', id] })
       navigate(`/results/${attemptId}`, { replace: true })
@@ -394,11 +473,13 @@ export default function Exam() {
       examId={id!}
       maxWarnings={3}
       durationMinutes={remainingDurationMinutes}
+      totalDurationMinutes={exam.time_limit_minutes}
+      deadlineIso={examDeadlineIso}
       onTimeUp={handleTimeUp}
       onDisqualified={handleTimeUp}
       onViolation={(type) => log('violation', { type })}
     >
-      <div className="mx-auto max-w-3xl px-2 md:px-0">
+      <div className="mx-auto max-w-3xl px-2 md:px-0 select-none">
         <Watermark
           label={user?.user_metadata?.full_name ?? user?.email ?? 'Student'}
           sublabel={user?.email}

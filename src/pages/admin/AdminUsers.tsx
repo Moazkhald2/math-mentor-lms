@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { fetchExams } from '../../lib/exams'
+import { fetchClasses } from '../../lib/classes'
 import { ALL_GRADES } from '../../lib/grades'
 import StudentIdentity from '../../components/StudentIdentity'
 import StudentInspectorModal, { type InspectedStudent } from '../../components/StudentInspectorModal'
@@ -15,6 +16,7 @@ export default function AdminUsers() {
   const [classSel, setClassSel] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [inspectedStudent, setInspectedStudent] = useState<InspectedStudent | null>(null)
+  const [promoteCandidateId, setPromoteCandidateId] = useState('')
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(search), 300)
@@ -42,6 +44,32 @@ export default function AdminUsers() {
     queryKey: ['admin-exams-list'],
     queryFn: fetchExams,
   })
+
+  const { data: allClasses = [] } = useQuery({
+    queryKey: ['admin-classes'],
+    queryFn: fetchClasses,
+  })
+
+  const teacherClassesMap = useMemo(() => {
+    const map = new Map<string, Array<{ id: string; name: string; grade: number }>>()
+    for (const c of allClasses as Array<{ id: string; name: string; grade: number; teacher_id?: string | null }>) {
+      if (!c.teacher_id) continue
+      const list = map.get(c.teacher_id) ?? []
+      list.push({ id: c.id, name: c.name, grade: c.grade })
+      map.set(c.teacher_id, list)
+    }
+    return map
+  }, [allClasses])
+
+  const currentTeachers = useMemo(
+    () => (users ?? []).filter((u) => u.role === 'teacher' || u.role === 'admin'),
+    [users]
+  )
+
+  const promotableStudents = useMemo(
+    () => (users ?? []).filter((u) => u.role === 'student'),
+    [users]
+  )
 
   const updateRole = useMutation({
     mutationFn: async ({ id, role }: { id: string; role: string }) => {
@@ -86,9 +114,9 @@ export default function AdminUsers() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-text">Users</h1>
+          <h1 className="font-display text-2xl font-extrabold text-ink">Users &amp; Teachers</h1>
           <p className="text-sm text-text-muted">
-            Manage roles, update Grades 1–12, or inspect individual student attempts and assignments.
+            Promote teachers, manage Grades 1–12, or inspect individual student attempts and assignments.
           </p>
         </div>
         <Link
@@ -98,6 +126,81 @@ export default function AdminUsers() {
           Manage Grades &amp; Groups →
         </Link>
       </div>
+
+      {/* Teachers & Multi-Grade Assignment Quick Panel */}
+      <section className="mb-6 rounded-2xl border border-brand/25 bg-surface p-5 shadow-2xs">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1">
+            <h2 className="text-base font-bold text-ink">Add or Assign a Teacher</h2>
+            <p className="text-xs text-text-muted">
+              Have your teacher register at <code className="rounded bg-paper px-1.5 py-0.5">/register</code>, then promote them to <strong>Teacher</strong> below. One teacher can teach multiple classes and grades via{' '}
+              <Link to="/admin/classes" className="font-semibold text-brand hover:underline">
+                Grades &amp; Groups
+              </Link>.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              aria-label="Select user to promote to teacher"
+              value={promoteCandidateId}
+              onChange={(e) => setPromoteCandidateId(e.target.value)}
+              className="rounded-lg border border-border bg-surface px-3 py-2 text-xs text-ink"
+            >
+              <option value="">Choose registered user...</option>
+              {promotableStudents.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.full_name || s.email} ({s.email})
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={!promoteCandidateId || updateRole.isPending}
+              onClick={() => {
+                if (!promoteCandidateId) return
+                updateRole.mutate(
+                  { id: promoteCandidateId, role: 'teacher' },
+                  {
+                    onSuccess: () => {
+                      setPromoteCandidateId('')
+                      queryClient.invalidateQueries({ queryKey: ['teachers'] })
+                    },
+                  }
+                )
+              }}
+              className="rounded-lg bg-brand px-4 py-2 text-xs font-bold text-white hover:bg-brand-light disabled:opacity-50"
+            >
+              + Promote to Teacher
+            </button>
+          </div>
+        </div>
+
+        {currentTeachers.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-border/60 pt-3">
+            {currentTeachers.map((t) => {
+              const assigned = teacherClassesMap.get(t.id) ?? []
+              return (
+                <div
+                  key={t.id}
+                  className="rounded-xl border border-border bg-paper px-3 py-2 text-xs dark:bg-tertiary/40"
+                >
+                  <p className="font-bold text-ink">
+                    {t.full_name || t.email}{' '}
+                    <span className="ml-1 rounded-full bg-brand/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-brand">
+                      {t.role}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-text-muted">
+                    {assigned.length > 0
+                      ? assigned.map((c) => `G${c.grade} · ${c.name}`).join(', ')
+                      : 'No groups assigned yet — assign in Grades & Groups'}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
 
       <div className="mb-4 flex flex-wrap gap-3">
         <div className="relative min-w-[220px] flex-1">

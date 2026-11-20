@@ -9,6 +9,11 @@ import BookmarkButton from '../components/BookmarkButton'
 import FeedbackButton from '../components/FeedbackButton'
 import PerfectScoreCelebration from '../components/PerfectScoreCelebration'
 import { isGamificationEnabled } from '../lib/gamification'
+import {
+  analyzeQuestionSpeeds,
+  formatDurationCompact,
+  loadQuestionTimings,
+} from '../lib/examTiming'
 
 function answerDisplay(answer: string, question: Question): string {
   if (!answer) return '(none)'
@@ -62,6 +67,12 @@ export default function Results() {
 
   const correct = answers.filter((a) => a.is_correct).length
   const total = answers.length
+  const speedSummary = attemptId
+    ? analyzeQuestionSpeeds(
+        loadQuestionTimings(attemptId),
+        answers.map((a) => ({ question_id: a.question.id, is_correct: a.is_correct }))
+      )
+    : null
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -124,18 +135,50 @@ export default function Results() {
         </div>
       )}
 
+      {speedSummary && (
+        <section className="mb-8 rounded-2xl border border-brand/25 bg-surface p-5 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-brand">Pacing &amp; Speed Insights</p>
+              <h2 className="mt-0.5 font-display text-lg font-bold text-ink">{speedSummary.headline}</h2>
+            </div>
+            <span className="rounded-full bg-teal-light px-3 py-1 text-xs font-bold text-brand-light dark:bg-brand/15 dark:text-brand">
+              Avg {formatDurationCompact(speedSummary.averageSeconds)} / question
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-text-muted">{speedSummary.tip}</p>
+        </section>
+      )}
+
       <h2 className="mb-4 text-xl font-bold text-text">Answers Review</h2>
 
       <div className="space-y-4">
-        {answers.map((a, i) => (
+        {answers.map((a, i) => {
+          const qSpeed = speedSummary?.perQuestion[a.question.id]
+          return (
           <div
             key={a.id}
             className={`rounded-lg border p-5 ${
               a.is_correct ? 'border-accent-green bg-accent-green/5' : 'border-danger bg-danger/5'
             }`}
           >
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm text-text-muted">Q{i + 1}</span>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-text-muted">Q{i + 1}</span>
+                {qSpeed && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                      qSpeed.tone === 'positive'
+                        ? 'bg-sage-light text-sage-dark dark:bg-accent-green/15 dark:text-accent-green'
+                        : qSpeed.tone === 'gentle'
+                          ? 'bg-gold-light text-gold-dark dark:bg-accent-gold/15 dark:text-accent-gold'
+                          : 'bg-paper text-text-muted'
+                    }`}
+                  >
+                    {formatDurationCompact(qSpeed.seconds)} · {qSpeed.label}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <BookmarkButton questionId={a.question.id} />
                 <FeedbackButton questionId={a.question.id} />
@@ -214,7 +257,8 @@ export default function Results() {
               </details>
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="mt-8 flex gap-4">

@@ -18,16 +18,19 @@ export default function Sheets() {
     return saved ? Number(saved) : 10
   })
 
-  // Load user's enrolled profile grade if available
+  // Load user's enrolled profile grade and role
   const { data: profile } = useQuery({
     queryKey: ['my-grade', user?.id],
     queryFn: async () => {
       if (!user) return null
-      const { data } = await supabase.from('profiles').select('grade').eq('id', user.id).single()
-      return data as { grade: number | null } | null
+      const { data } = await supabase.from('profiles').select('grade, role').eq('id', user.id).single()
+      return data as { grade: number | null; role?: string | null } | null
     },
     enabled: !!user,
   })
+
+  const isStaff = profile?.role === 'teacher' || profile?.role === 'admin'
+  const effectiveGrade = !isStaff && profile?.grade ? profile.grade : selectedGrade
 
   useEffect(() => {
     if (profile?.grade) {
@@ -37,15 +40,18 @@ export default function Sheets() {
   }, [profile?.grade])
 
   const handleSelectGrade = (g: number) => {
+    if (!isStaff) return
     setSelectedGrade(g)
     localStorage.setItem('math_mentor_current_grade', String(g))
   }
 
   const examsQ = useQuery({ queryKey: ['sheets'], queryFn: () => fetchExams(), enabled: !!user })
 
-  // Strict grade isolation: only sheets for the selected grade appear
+  // Strict grade isolation: students ONLY see published sheets belonging to their exact enrolled grade
   const allSheets = (examsQ.data ?? []).filter((e) => e.type === 'practice' && e.is_published)
-  const filteredSheets = allSheets.filter((s) => !s.grade || s.grade === selectedGrade)
+  const filteredSheets = allSheets.filter((s) =>
+    isStaff ? (!s.grade || s.grade === effectiveGrade) : s.grade === effectiveGrade
+  )
   const filteredSheetIds = useMemo(() => filteredSheets.map((s) => s.id), [filteredSheets])
 
   const progressQ = useQuery({
@@ -70,30 +76,32 @@ export default function Sheets() {
           </div>
 
           <div className="rounded-xl border border-brand/20 bg-brand/5 px-3.5 py-1.5 text-xs font-bold text-brand self-start sm:self-auto">
-            Showing Grade {selectedGrade} Content
+            Grade {effectiveGrade} Content
           </div>
         </div>
 
-        {/* Grade Selector Tabs: content of each grade only appears for that grade */}
-        <div className="mt-5 flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-bold uppercase tracking-wider text-text-muted mr-1.5">
-            Select Grade:
-          </span>
-          {AVAILABLE_GRADES.map((g) => (
-            <button
-              key={g}
-              type="button"
-              onClick={() => handleSelectGrade(g)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
-                selectedGrade === g
-                  ? 'bg-brand text-white shadow-xs'
-                  : 'border border-border bg-surface text-text hover:border-brand'
-              }`}
-            >
-              Grade {g}
-            </button>
-          ))}
-        </div>
+        {/* Grade Selector Tabs: Teachers & Admins only (students are strictly locked to their grade) */}
+        {isStaff && (
+          <div className="mt-5 flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-text-muted mr-1.5">
+              Select Grade:
+            </span>
+            {AVAILABLE_GRADES.map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => handleSelectGrade(g)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
+                  effectiveGrade === g
+                    ? 'bg-brand text-white shadow-xs'
+                    : 'border border-border bg-surface text-text hover:border-brand'
+                }`}
+              >
+                Grade {g}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       {examsQ.isLoading && <p className="text-text-muted">Loading sheets...</p>}
@@ -101,9 +109,11 @@ export default function Sheets() {
       {filteredSheets.length === 0 ? (
         <div className="rounded-2xl border border-border bg-surface p-10 text-center space-y-2">
           <div className="text-3xl">📄</div>
-          <h2 className="text-lg font-bold text-ink">No Practice Sheets for Grade {selectedGrade}</h2>
+          <h2 className="text-lg font-bold text-ink">No Practice Sheets for Grade {effectiveGrade}</h2>
           <p className="text-sm text-text-muted max-w-md mx-auto">
-            There are currently no practice sheets published for Grade {selectedGrade}. Select another grade above or check back soon!
+            {isStaff
+              ? `There are currently no practice sheets published for Grade ${effectiveGrade}. Select another grade above to preview other grades.`
+              : `No practice sheets have been published for Grade ${effectiveGrade} yet. Check back soon!`}
           </p>
         </div>
       ) : (

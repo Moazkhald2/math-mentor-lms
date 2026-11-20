@@ -40,11 +40,14 @@ export default function Exams() {
     queryKey: ['my-grade', user?.id],
     queryFn: async () => {
       if (!user) return null
-      const { data } = await supabase.from('profiles').select('grade').eq('id', user.id).single()
-      return data as { grade: number | null } | null
+      const { data } = await supabase.from('profiles').select('grade, role').eq('id', user.id).single()
+      return data as { grade: number | null; role?: string | null } | null
     },
     enabled: !!user,
   })
+
+  const isStaff = profile?.role === 'teacher' || profile?.role === 'admin'
+  const effectiveGrade = !isStaff && profile?.grade ? profile.grade : selectedGrade
 
   // Sync profile grade on load
   useEffect(() => {
@@ -55,6 +58,7 @@ export default function Exams() {
   }, [profile?.grade])
 
   const handleSelectGrade = (g: number) => {
+    if (!isStaff) return
     setSelectedGrade(g)
     localStorage.setItem('math_mentor_current_grade', String(g))
   }
@@ -70,11 +74,15 @@ export default function Exams() {
     }
   }
 
-  // Strict grade isolation: only exams matching this grade appear
+  // Strict grade isolation: students ONLY see exams belonging to their exact enrolled grade
   const filtered = (exams ?? []).filter((exam) => {
     if (exam.type !== 'exam' && exam.type !== 'practice') return false
     if (!exam.is_published) return false
-    if (exam.grade && exam.grade !== selectedGrade) return false
+    if (isStaff) {
+      if (exam.grade && exam.grade !== effectiveGrade) return false
+    } else if (exam.grade !== effectiveGrade) {
+      return false
+    }
     const now = new Date()
     if (exam.starts_at && now < new Date(exam.starts_at)) return false
     if (exam.ends_at && now > new Date(exam.ends_at)) return false
@@ -86,35 +94,37 @@ export default function Exams() {
       <div className="border-b border-border/60 pb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black text-text">Exams & Practice</h1>
+            <h1 className="font-display text-3xl font-extrabold text-ink">Exams & Practice</h1>
             <p className="mt-1 text-text-muted">Timed exams and untimed practice sheets</p>
           </div>
 
           <div className="rounded-xl border border-brand/20 bg-brand/5 px-3.5 py-1.5 text-xs font-bold text-brand self-start sm:self-auto">
-            Showing Grade {selectedGrade} Content
+            Grade {effectiveGrade} Content
           </div>
         </div>
 
-        {/* Grade Selector Tabs: Grade-isolated content */}
-        <div className="mt-5 flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-bold uppercase tracking-wider text-text-muted mr-1.5">
-            Select Grade:
-          </span>
-          {AVAILABLE_GRADES.map((g) => (
-            <button
-              key={g}
-              type="button"
-              onClick={() => handleSelectGrade(g)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
-                selectedGrade === g
-                  ? 'bg-brand text-white shadow-xs'
-                  : 'border border-border bg-surface text-text hover:border-brand'
-              }`}
-            >
-              Grade {g}
-            </button>
-          ))}
-        </div>
+        {/* Grade Selector Tabs: Teachers & Admins only (students are strictly locked to their grade) */}
+        {isStaff && (
+          <div className="mt-5 flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-text-muted mr-1.5">
+              Select Grade:
+            </span>
+            {AVAILABLE_GRADES.map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => handleSelectGrade(g)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
+                  effectiveGrade === g
+                    ? 'bg-brand text-white shadow-xs'
+                    : 'border border-border bg-surface text-text hover:border-brand'
+                }`}
+              >
+                Grade {g}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {isLoading && <p className="text-text-muted">Loading...</p>}
@@ -123,7 +133,9 @@ export default function Exams() {
         <div className="rounded-2xl border border-border bg-surface p-12 text-center space-y-2">
           <p className="text-lg text-text-muted">No exams available</p>
           <p className="text-sm text-text-muted">
-            Exams created for Grade {selectedGrade} will appear here. Select another grade above to view other exams.
+            {isStaff
+              ? `Exams created for Grade ${effectiveGrade} will appear here. Select another grade above to preview other grades.`
+              : `Exams created for Grade ${effectiveGrade} will appear here when published by your teacher.`}
           </p>
         </div>
       )}

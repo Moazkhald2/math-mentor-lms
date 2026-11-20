@@ -4,6 +4,7 @@ import {
   fetchClasses,
   createClass,
   deleteClass,
+  updateClassTeacher,
   fetchClassMembers,
   addStudentToClass,
   removeStudentFromClass,
@@ -29,6 +30,7 @@ interface GroupSettingsDraft {
   scheduleNote: string
   maxStudents: string
   expiresAt: string
+  teacherId: string
 }
 
 function toDatetimeLocalValue(iso: string | null | undefined): string {
@@ -50,6 +52,7 @@ export default function AdminClasses() {
   const [newName, setNewName] = useState('')
   const [newGrade, setNewGrade] = useState<number>(7)
   const [newTeacher, setNewTeacher] = useState('')
+  const [enableLinkOnCreate, setEnableLinkOnCreate] = useState(true)
   const [createError, setCreateError] = useState('')
 
   // Level 2 & 3 interactive states
@@ -59,6 +62,7 @@ export default function AdminClasses() {
     scheduleNote: '',
     maxStudents: '',
     expiresAt: '',
+    teacherId: '',
   })
   const [copiedClassId, setCopiedClassId] = useState<string | null>(null)
   const [qrGroup, setQrGroup] = useState<GroupRecord | null>(null)
@@ -115,7 +119,17 @@ export default function AdminClasses() {
   }, [assignments, selectedGrade])
 
   const createMutation = useMutation({
-    mutationFn: () => createClass(newName.trim(), newGrade, newTeacher || undefined),
+    mutationFn: async () => {
+      const created = await createClass(newName.trim(), newGrade, newTeacher || undefined)
+      if (enableLinkOnCreate && created?.id) {
+        try {
+          await updateGroupInviteSettings(created.id, { inviteEnabled: true })
+        } catch {
+          // Group was still created; admin can click Create & Enable Link on the card
+        }
+      }
+      return created
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-classes'] })
       setShowCreate(false)
@@ -124,6 +138,16 @@ export default function AdminClasses() {
       setCreateError('')
     },
     onError: (e: Error) => setCreateError(e.message),
+  })
+
+  const teacherMutation = useMutation({
+    mutationFn: ({ classId, teacherId }: { classId: string; teacherId: string | null }) =>
+      updateClassTeacher(classId, teacherId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-classes'] })
+      setFeedbackError('')
+    },
+    onError: (e: Error) => setFeedbackError(e.message),
   })
 
   const deleteMutation = useMutation({
@@ -207,21 +231,41 @@ export default function AdminClasses() {
       scheduleNote: group.schedule_note ?? '',
       maxStudents: group.max_students ? String(group.max_students) : '',
       expiresAt: toDatetimeLocalValue(group.invite_expires_at),
+      teacherId: group.teacher_id ?? '',
     })
   }
 
   const handleCopyInviteLink = async (group: GroupRecord) => {
     if (!group.invite_code) return
+    const url = buildGroupInviteUrl(group.invite_code)
     try {
-      await navigator.clipboard.writeText(buildGroupInviteUrl(group.invite_code))
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url)
+      } else {
+        throw new Error('clipboard_unavailable')
+      }
       setCopiedClassId(group.id)
       setTimeout(() => setCopiedClassId((prev) => (prev === group.id ? null : prev)), 2000)
     } catch {
-      setFeedbackError('Could not copy invite link automatically. Use the QR Code modal to view it.')
+      try {
+        const el = document.createElement('textarea')
+        el.value = url
+        el.setAttribute('readonly', '')
+        el.style.position = 'fixed'
+        el.style.opacity = '0'
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+        setCopiedClassId(group.id)
+        setTimeout(() => setCopiedClassId((prev) => (prev === group.id ? null : prev)), 2000)
+      } catch {
+        setFeedbackError(`Copy the link manually: ${url}`)
+      }
     }
   }
 
-  const handleSaveSettings = (group: GroupRecord) => {
+  const handleSaveSettings = async (group: GroupRecord) => {
     const parsedMax = settingsDraft.maxStudents.trim()
       ? Number(settingsDraft.maxStudents.trim())
       : null
@@ -232,6 +276,11 @@ export default function AdminClasses() {
     const isoExpiry = settingsDraft.expiresAt
       ? new Date(settingsDraft.expiresAt).toISOString()
       : null
+
+    const nextTeacherId = settingsDraft.teacherId || null
+    if (nextTeacherId !== (group.teacher_id ?? null)) {
+      await teacherMutation.mutateAsync({ classId: group.id, teacherId: nextTeacherId })
+    }
 
     inviteSettingsMutation.mutate(
       {
@@ -255,9 +304,9 @@ export default function AdminClasses() {
       {/* Header */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-text">Grades, Groups &amp; Students</h1>
+          <h1 className="font-display text-2xl font-extrabold text-ink">Grades, Groups &amp; Students</h1>
           <p className="text-sm text-text-muted">
-            Drill down by Grade → manage Group invite links &amp; capacity → inspect and move individual students.
+            Drill down by Grade → create active invite links &amp; assign teachers (teachers can teach multiple grades/groups) → manage individual students.
           </p>
         </div>
         <button
@@ -325,11 +374,20 @@ export default function AdminClasses() {
               type="button"
               onClick={() => createMutation.mutate()}
               disabled={!newName.trim() || createMutation.isPending}
-              className="rounded-lg bg-accent-green px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-light disabled:opacity-50"
             >
               {createMutation.isPending ? 'Creating...' : 'Create Group'}
             </button>
           </div>
+          <label className="mt-3 flex items-center gap-2 text-xs text-text-muted cursor-pointer">
+            <input
+              type="checkbox"
+              checked={enableLinkOnCreate}
+              onChange={(e) => setEnableLinkOnCreate(e.target.checked)}
+              className="h-4 w-4 accent-brand"
+            />
+            <span>Create and activate student invite link immediately</span>
+          </label>
           {createError && <p className="mt-2 text-sm text-danger">{createError}</p>}
         </div>
       )}
@@ -515,17 +573,20 @@ export default function AdminClasses() {
                     onClick={() =>
                       inviteSettingsMutation.mutate({
                         classId: group.id,
-                        opts: { inviteEnabled: !group.invite_enabled },
+                        opts: {
+                          inviteEnabled: !group.invite_enabled,
+                          ...(group.invite_code ? {} : { rotateCode: true }),
+                        },
                       })
                     }
                     disabled={inviteSettingsMutation.isPending}
                     className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${
                       group.invite_enabled
-                        ? 'border-amber-500/40 text-amber-700 hover:bg-amber-500/10'
-                        : 'border-accent-green/40 text-accent-green hover:bg-accent-green/10'
+                        ? 'border-accent-gold/50 text-gold-dark hover:bg-gold-light dark:text-accent-gold'
+                        : 'border-accent-green/50 bg-accent-green/10 text-sage-dark hover:bg-accent-green/20 dark:text-accent-green'
                     }`}
                   >
-                    {group.invite_enabled ? 'Lock Invite' : 'Unlock Invite'}
+                    {group.invite_enabled ? 'Lock Invite' : group.invite_code ? 'Unlock Invite' : 'Create & Enable Link'}
                   </button>
 
                   {group.invite_code && (
@@ -580,6 +641,44 @@ export default function AdminClasses() {
                 </div>
               </div>
 
+              {/* Direct Invite Link Preview Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 bg-paper/60 px-4 py-2 text-xs dark:bg-tertiary/30">
+                {group.invite_code && group.invite_enabled ? (
+                  <>
+                    <span className="font-mono text-[11px] text-ink break-all">
+                      {buildGroupInviteUrl(group.invite_code)}
+                    </span>
+                    <span className="text-[11px] font-semibold text-accent-green">
+                      Active — students can join now
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-text-muted">
+                      {group.invite_code
+                        ? 'Invite link is currently locked. Click "Unlock Invite" so students can use it.'
+                        : 'No invite link created yet for this group.'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        inviteSettingsMutation.mutate({
+                          classId: group.id,
+                          opts: {
+                            inviteEnabled: true,
+                            ...(group.invite_code ? {} : { rotateCode: true }),
+                          },
+                        })
+                      }
+                      disabled={inviteSettingsMutation.isPending}
+                      className="font-bold text-brand hover:underline"
+                    >
+                      {group.invite_code ? 'Activate Link Now →' : 'Generate Link Now →'}
+                    </button>
+                  </>
+                )}
+              </div>
+
               {/* Inline Invite, Schedule & Capacity Settings Panel */}
               {isEditingSettings && (
                 <div className="border-t border-border bg-surface-alt/40 p-4">
@@ -609,7 +708,27 @@ export default function AdminClasses() {
                     </button>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-text-muted">
+                        Assigned Teacher
+                      </label>
+                      <select
+                        aria-label={`Assigned teacher for ${group.name}`}
+                        value={settingsDraft.teacherId}
+                        onChange={(e) =>
+                          setSettingsDraft((d) => ({ ...d, teacherId: e.target.value }))
+                        }
+                        className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink"
+                      >
+                        <option value="">No teacher assigned</option>
+                        {teachers.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.full_name ?? t.email}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-text-muted">
                         Schedule Note
