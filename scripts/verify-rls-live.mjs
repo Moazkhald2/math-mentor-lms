@@ -50,26 +50,65 @@ async function checkAnonBlocked(path, label) {
 async function main() {
   console.log(`Probing live Supabase RLS at ${url}...\n`)
   let ok = true
-  ok = (await checkAnonBlocked('/rest/v1/questions?select=id,correct_answer,explanation&limit=5', 'GET /rest/v1/questions')) && ok
-  ok = (await checkAnonBlocked('/rest/v1/exam_questions?select=*&limit=5', 'GET /rest/v1/exam_questions')) && ok
+  const protectedTables = [
+    ['/rest/v1/exams?select=id,title&limit=5', 'GET /rest/v1/exams'],
+    ['/rest/v1/questions?select=id,correct_answer,explanation&limit=5', 'GET /rest/v1/questions'],
+    ['/rest/v1/exam_questions?select=*&limit=5', 'GET /rest/v1/exam_questions'],
+    ['/rest/v1/exam_attempts?select=*&limit=5', 'GET /rest/v1/exam_attempts'],
+    ['/rest/v1/answers?select=*&limit=5', 'GET /rest/v1/answers'],
+    ['/rest/v1/exam_submissions?select=*&limit=5', 'GET /rest/v1/exam_submissions'],
+    ['/rest/v1/profiles?select=id,email,full_name,role&limit=5', 'GET /rest/v1/profiles'],
+    ['/rest/v1/classes?select=*&limit=5', 'GET /rest/v1/classes'],
+    ['/rest/v1/class_members?select=*&limit=5', 'GET /rest/v1/class_members'],
+    ['/rest/v1/exam_assignments?select=*&limit=5', 'GET /rest/v1/exam_assignments'],
+    ['/rest/v1/activity_logs?select=*&limit=5', 'GET /rest/v1/activity_logs'],
+    ['/rest/v1/question_bookmarks?select=*&limit=5', 'GET /rest/v1/question_bookmarks'],
+    ['/rest/v1/question_feedback?select=*&limit=5', 'GET /rest/v1/question_feedback'],
+    ['/rest/v1/system_settings?select=*&limit=5', 'GET /rest/v1/system_settings'],
+    ['/rest/v1/rpc_rate_limits?select=*&limit=5', 'GET /rest/v1/rpc_rate_limits'],
+  ]
+  for (const [path, label] of protectedTables) {
+    ok = (await checkAnonBlocked(path, label)) && ok
+  }
 
-  // Verify anon cannot invoke get_exam_questions_safe
-  const rpcRes = await fetch(`${url}/rest/v1/rpc/get_exam_questions_safe`, {
+  // Verify anon cannot invoke get_exam_questions_safe or redeem_group_invite
+  for (const [rpcName, payload] of [
+    ['get_exam_questions_safe', { p_exam_id: '00000000-0000-0000-0000-000000000000', p_attempt_id: '00000000-0000-0000-0000-000000000000' }],
+    ['get_practice_questions_safe', { p_exam_id: '00000000-0000-0000-0000-000000000000' }],
+    ['redeem_group_invite', { p_code: 'INVALID-CODE' }],
+  ]) {
+    const rpcRes = await fetch(`${url}/rest/v1/rpc/${rpcName}`, {
+      method: 'POST',
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    if (!rpcRes.ok) {
+      console.log(`PASS [anon] POST /rpc/${rpcName}: rejected (${rpcRes.status})`)
+    } else {
+      console.error(`FAIL [anon] POST /rpc/${rpcName} succeeded unexpectedly!`)
+      ok = false
+    }
+  }
+
+  // Verify Step 7 public preview_group_invite RPC returns safe non-enumerating response
+  const previewRes = await fetch(`${url}/rest/v1/rpc/preview_group_invite`, {
     method: 'POST',
     headers: {
       apikey: anonKey,
       Authorization: `Bearer ${anonKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      p_exam_id: '00000000-0000-0000-0000-000000000000',
-      p_attempt_id: '00000000-0000-0000-0000-000000000000',
-    }),
+    body: JSON.stringify({ p_code: 'NONEXISTENT-CODE' }),
   })
-  if (!rpcRes.ok) {
-    console.log(`PASS [anon] POST /rpc/get_exam_questions_safe: rejected (${rpcRes.status})`)
+  const previewBody = await previewRes.json().catch(() => null)
+  if (previewRes.ok && previewBody && previewBody.valid === false && previewBody.reason === 'invalid_or_disabled') {
+    console.log('PASS [anon] POST /rpc/preview_group_invite: safe non-enumerating response')
   } else {
-    console.error('FAIL [anon] POST /rpc/get_exam_questions_safe succeeded unexpectedly!')
+    console.error('FAIL [anon] POST /rpc/preview_group_invite unexpected response:', previewRes.status, previewBody)
     ok = false
   }
 
@@ -99,7 +138,7 @@ async function main() {
     }
   }
 
-  console.log(ok ? '\nALL LIVE RLS PROBES PASSED!' : '\nLIVE RLS PROBE FAILED — APPLY migration-2026-11-20-answer-key-lock.sql IN SUPABASE SQL EDITOR!')
+  console.log(ok ? '\nALL LIVE RLS PROBES PASSED!' : '\nLIVE RLS PROBE FAILED — APPLY migration-2026-11-20-require-auth-content.sql IN SUPABASE SQL EDITOR!')
   process.exit(ok ? 0 : 1)
 }
 

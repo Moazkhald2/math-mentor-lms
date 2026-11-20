@@ -44,6 +44,7 @@ describe('LoginPage', () => {
     mockUser = null
     mockLoading = false
     mockSearchParams.delete('reset')
+    mockSearchParams.delete('next')
   })
 
   it('renders login form with email/password inputs and submit button', () => {
@@ -106,5 +107,18 @@ describe('LoginPage', () => {
     render(<Login />)
     const link = screen.getByText('Forgot password?')
     expect(link.closest('a')).toHaveAttribute('href', '/forgot-password')
+  })
+
+  it('honors safe ?next= path and ignores unsafe open-redirect values', () => {
+    mockUser = { id: 'user-1', email: 'test@test.com' }
+    mockSearchParams.set('next', '/join/G7-ABC123')
+    const { unmount } = render(<Login />)
+    expect(mockNavigate).toHaveBeenCalledWith('/join/G7-ABC123', { replace: true })
+    unmount()
+
+    vi.clearAllMocks()
+    mockSearchParams.set('next', '//evil.com/phish')
+    render(<Login />)
+    expect(mockNavigate).toHaveBeenCalledWith('/exams', { replace: true })
   })
 })

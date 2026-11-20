@@ -40,7 +40,7 @@ export default function Sheets() {
     localStorage.setItem('math_mentor_current_grade', String(g))
   }
 
-  const examsQ = useQuery({ queryKey: ['sheets'], queryFn: () => fetchExams() })
+  const examsQ = useQuery({ queryKey: ['sheets'], queryFn: () => fetchExams(), enabled: !!user })
 
   // Strict grade isolation: only sheets for the selected grade appear
   const allSheets = (examsQ.data ?? []).filter((e) => e.type === 'practice' && e.is_published)

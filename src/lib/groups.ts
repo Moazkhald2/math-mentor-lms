@@ -47,6 +47,55 @@ export interface ExamAssignment {
   created_at: string
 }
 
+export const PENDING_INVITE_STORAGE_KEY = 'mm_pending_group_invite'
+
+export function savePendingGroupInvite(code: string): void {
+  const clean = code.trim().toUpperCase()
+  if (!clean) return
+  try {
+    localStorage.setItem(PENDING_INVITE_STORAGE_KEY, clean)
+  } catch {
+    // Ignore storage quota / private-mode restrictions
+  }
+}
+
+export function getPendingGroupInvite(): string | null {
+  try {
+    const raw = localStorage.getItem(PENDING_INVITE_STORAGE_KEY)
+    return raw ? raw.trim().toUpperCase() : null
+  } catch {
+    return null
+  }
+}
+
+export function clearPendingGroupInvite(): void {
+  try {
+    localStorage.removeItem(PENDING_INVITE_STORAGE_KEY)
+  } catch {
+    // Ignore storage restrictions
+  }
+}
+
+export function formatGroupInviteError(rawMessage: string | null | undefined): string {
+  const msg = (rawMessage ?? '').toLowerCase()
+  if (msg.includes('invite_invalid_or_disabled')) {
+    return 'This invite link is invalid or currently locked by your teacher.'
+  }
+  if (msg.includes('invite_expired')) {
+    return 'This invite link has expired. Please ask your teacher for a fresh link.'
+  }
+  if (msg.includes('invite_group_full')) {
+    return 'This group has reached its maximum student capacity. Please contact your teacher.'
+  }
+  if (msg.includes('rate_limit')) {
+    return 'Too many invite attempts. Please wait a few minutes and try again.'
+  }
+  if (msg.includes('unauthorized')) {
+    return 'Please sign in first to join this group.'
+  }
+  return rawMessage || 'Could not join this group right now. Please try again.'
+}
+
 export function buildGroupInviteUrl(inviteCode: string, origin?: string): string {
   const base =
     origin ??

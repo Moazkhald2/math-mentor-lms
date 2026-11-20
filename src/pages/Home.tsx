@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function Home() {
   return (
     <div className="flex flex-col items-center pt-12 md:pt-24 text-center">
@@ -18,18 +20,18 @@ export default function Home() {
       </p>
 
       <div className="mb-16 flex flex-col gap-4 sm:flex-row">
-        <a
-          href="/register"
+        <Link
+          to="/register"
           className="hover-lift rounded-lg bg-cta px-9 py-3.5 text-lg font-extrabold tracking-wide text-white shadow-lg shadow-brand/30 transition-colors hover:bg-cta-hover"
         >
           Get Started Free
-        </a>
-        <a
-          href="/login"
+        </Link>
+        <Link
+          to="/login"
           className="rounded-lg border-2 border-border px-8 py-3 font-semibold text-text-muted transition-colors hover:border-brand hover:text-text"
         >
           Sign In
-        </a>
+        </Link>
       </div>
 
       <div className="grid w-full gap-6 sm:grid-cols-3">

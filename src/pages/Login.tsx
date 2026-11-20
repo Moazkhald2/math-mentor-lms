@@ -3,22 +3,30 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { isValidEmailFormat } from '../lib/validation'
 import { useToast } from '../hooks/useToast'
+import { getSafeNextPath, extractInviteCodeFromNext } from '../lib/safeRedirect'
 
 export default function Login() {
   const { user, loading, signIn, signInWithGoogle } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  const rawNext = searchParams.get('next')
+  const nextPath = getSafeNextPath(rawNext, '/exams')
+  const inviteCode = extractInviteCodeFromNext(nextPath)
+  const registerLink = inviteCode ? `/register?invite=${encodeURIComponent(inviteCode)}` : '/register'
 
   useEffect(() => {
-    if (!loading && user) navigate('/exams', { replace: true })
-  }, [user, loading, navigate])
-  const [searchParams] = useSearchParams()
+    if (!loading && user) navigate(nextPath, { replace: true })
+  }, [user, loading, navigate, nextPath])
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   const resetSuccess = searchParams.get('reset') === 'success'
+  const showAuthRequiredNotice = Boolean(rawNext && nextPath !== '/exams')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,7 +44,7 @@ export default function Login() {
       setError(friendly)
     } else {
       toast('Welcome back! You are signed in.')
-      setTimeout(() => navigate('/exams'), 1500)
+      setTimeout(() => navigate(nextPath, { replace: true }), 1500)
     }
     setSubmitting(false)
   }
@@ -50,6 +58,12 @@ export default function Login() {
           <h1 className="text-4xl font-black text-text">Sign In</h1>
           <p className="mt-2 text-lg text-text-muted">Welcome back to Math Mentor</p>
         </div>
+
+        {showAuthRequiredNotice && (
+          <div className="mb-4 rounded-lg border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-ink">
+            Please sign in to access your lessons, practice sheets, and exams.
+          </div>
+        )}
 
         {resetSuccess && (
           <div className="mb-4 rounded-lg border border-accent-green/30 bg-accent-green/10 px-4 py-3 text-sm text-accent-green">
@@ -120,7 +134,7 @@ export default function Login() {
 
           <p className="text-center text-base text-text-muted">
             No account?{' '}
-            <Link to="/register" className="text-brand hover:underline">
+            <Link to={registerLink} className="text-brand hover:underline">
               Sign up
             </Link>
           </p>

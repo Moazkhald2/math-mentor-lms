@@ -106,7 +106,7 @@ export default function Exam() {
       if (grade && e.grade && e.grade !== grade) throw new Error('This exam is not available for your grade')
       return e
     },
-    enabled: !!id,
+    enabled: !!id && !!user,
   })
 
   const { data: pastAttempts = [], isPending: attemptsLoading } = useQuery({

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { fetchPracticeQuestionsSafe, startPractice, upsertAnswer, finishPractice } from '../lib/practice'
 import { supabase } from '../lib/supabase'
@@ -68,14 +68,14 @@ export default function Practice() {
       })
       return { ...(examResult.data as Exam), questions: mapped, bases }
     },
-    enabled: !!id,
+    enabled: !!id && !!user,
   })
 
   useEffect(() => {
-    if (authLoading) return
+    if (authLoading || !user) return
     if (id && !startedRef.current) {
       startedRef.current = true
-      const uid = user?.id || 'guest_user'
+      const uid = user.id
       startPractice(id, uid)
         .then((attempt) => {
           attemptRef.current = attempt
@@ -87,7 +87,7 @@ export default function Practice() {
             setInitError('Practice sheet not found.')
             return
           }
-          // Robust session fallback: student can practice without being kicked out!
+          // Robust session fallback: authenticated student can practice without being kicked out
           attemptRef.current = {
             id: `local_att_${Date.now()}`,
             exam_id: id,
@@ -106,6 +106,10 @@ export default function Practice() {
         <p className="text-text-muted">Loading practice session...</p>
       </div>
     )
+  }
+
+  if (!user) {
+    return <Navigate to={`/login?next=${encodeURIComponent(`/practice/${id ?? ''}`)}`} replace />
   }
 
   if (initError) {

@@ -1,22 +1,56 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { formatAuthEmailError } from './ForgotPassword'
 import { isDisposableEmail, isValidPassword, isValidPhone, isValidEmailFormat, isValidName } from '../lib/validation'
 import { ALL_GRADES } from '../lib/grades'
+import { previewGroupInvite, savePendingGroupInvite, type GroupInvitePreview } from '../lib/groups'
 
 const RESEND_COOLDOWN_SECONDS = 60
 
 export default function Register() {
   const { signUp, user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const inviteCode = (searchParams.get('invite') ?? '').trim().toUpperCase()
+
+  const [invitePreview, setInvitePreview] = useState<GroupInvitePreview | null>(null)
+  const [inviteLoading, setInviteLoading] = useState(Boolean(inviteCode))
+
+  useEffect(() => {
+    if (!inviteCode) {
+      setInvitePreview(null)
+      setInviteLoading(false)
+      return
+    }
+    let cancelled = false
+    setInviteLoading(true)
+    previewGroupInvite(inviteCode)
+      .then((res) => {
+        if (cancelled) return
+        setInvitePreview(res)
+        if (res.valid && typeof res.grade === 'number') {
+          setGrade(res.grade)
+          setConfirmGrade(true)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setInvitePreview({ valid: false, reason: 'invalid_or_disabled' })
+      })
+      .finally(() => {
+        if (!cancelled) setInviteLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [inviteCode])
 
   useEffect(() => {
     if (!authLoading && user) {
-      navigate('/exams', { replace: true })
+      navigate(inviteCode ? `/join/${encodeURIComponent(inviteCode)}` : '/exams', { replace: true })
     }
-  }, [user, authLoading, navigate])
+  }, [user, authLoading, navigate, inviteCode])
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -31,6 +65,8 @@ export default function Register() {
   const [cooldown, setCooldown] = useState(0)
   const [resending, setResending] = useState(false)
   const [resendMessage, setResendMessage] = useState<string | null>(null)
+
+  const hasValidInvite = Boolean(inviteCode && invitePreview?.valid)
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -54,6 +90,9 @@ export default function Register() {
     if (!grade) return setError('Please select your grade.')
 
     setLoading(true)
+    if (hasValidInvite) {
+      savePendingGroupInvite(inviteCode)
+    }
     const fullName = `${firstName.trim()} ${lastName.trim()}`
     const err = await signUp(email, password, fullName, grade, cleanPhone)
     if (err) {
@@ -84,12 +123,21 @@ export default function Register() {
   }
 
   if (success) {
+    const postSignupLogin = hasValidInvite
+      ? `/login?next=${encodeURIComponent(`/join/${inviteCode}`)}`
+      : '/login'
     return (
       <div className="mx-auto mt-16 max-w-md text-center">
         <h1 className="mb-4 text-3xl font-bold text-text">Check your email</h1>
         <p className="text-text-muted">
           We sent a confirmation link to <strong>{email}</strong>
         </p>
+        {hasValidInvite && invitePreview && (
+          <p className="mt-3 rounded-lg border border-brand/30 bg-brand/5 px-4 py-2.5 text-sm text-ink">
+            Once you confirm your email and sign in, you will join{' '}
+            <strong>Grade {invitePreview.grade} &mdash; {invitePreview.group_name}</strong> automatically.
+          </p>
+        )}
         <p className="mt-2 text-xs text-text-muted">
           If you do not see it within a minute, please check your Spam or Promotions folder.
         </p>
@@ -112,7 +160,7 @@ export default function Register() {
                 ? `Resend confirmation in ${cooldown}s`
                 : 'Resend confirmation email'}
           </button>
-          <Link to="/login" className="inline-block rounded-lg bg-brand px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-light">
+          <Link to={postSignupLogin} className="inline-block rounded-lg bg-brand px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-light">
             Back to Sign In
           </Link>
         </div>
@@ -121,10 +169,34 @@ export default function Register() {
   }
 
   const inputCls = 'w-full rounded-lg border border-border bg-surface px-4 py-2 text-text outline-none focus:border-brand-light'
+  const signInLink = hasValidInvite
+    ? `/login?next=${encodeURIComponent(`/join/${inviteCode}`)}`
+    : '/login'
 
   return (
     <div className="mx-auto mt-16 max-w-md">
       <h1 className="mb-6 text-3xl font-bold text-text">Create Account</h1>
+
+      {inviteCode && !inviteLoading && hasValidInvite && invitePreview && (
+        <div className="mb-5 rounded-xl border border-brand/40 bg-brand/10 p-4 text-sm">
+          <p className="font-bold text-brand">
+            Joining Grade {invitePreview.grade} &mdash; {invitePreview.group_name}
+          </p>
+          {invitePreview.schedule_note && (
+            <p className="mt-0.5 text-xs text-text-muted">{invitePreview.schedule_note}</p>
+          )}
+          <p className="mt-1 text-xs text-text-muted">
+            Your grade is pre-selected from your teacher&apos;s invite link.
+          </p>
+        </div>
+      )}
+
+      {inviteCode && !inviteLoading && invitePreview && !invitePreview.valid && (
+        <div className="mb-5 rounded-xl border border-accent-gold/40 bg-accent-gold/10 p-4 text-sm text-ink">
+          This group invite link is no longer active. You can still create your account below or ask your teacher for a fresh link.
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -153,7 +225,14 @@ export default function Register() {
           <p className="mt-1 text-xs text-text-muted">At least 8 characters, with a letter and a number.</p>
         </div>
 
-        {!confirmGrade ? (
+        {hasValidInvite && grade ? (
+          <div className="rounded-xl border border-brand/40 bg-brand/5 p-4 text-center">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+              Grade (Assigned by Group Invite)
+            </p>
+            <p className="text-3xl font-black text-brand">Grade {grade}</p>
+          </div>
+        ) : !confirmGrade ? (
           <div>
             <label className="mb-1 block text-sm text-text-muted">Grade *</label>
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
@@ -184,11 +263,11 @@ export default function Register() {
         {error && <p className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">{error}</p>}
         <button type="submit" disabled={loading}
           className="w-full rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand-light disabled:opacity-50">
-          {loading ? 'Creating account...' : 'Create Account'}
+          {loading ? 'Creating account...' : hasValidInvite ? 'Create Account & Join Group' : 'Create Account'}
         </button>
         <p className="text-center text-sm text-text-muted">
           Already have an account?{' '}
-          <Link to="/login" className="text-brand-light hover:underline">Sign in</Link>
+          <Link to={signInLink} className="text-brand-light hover:underline">Sign in</Link>
         </p>
       </form>
     </div>

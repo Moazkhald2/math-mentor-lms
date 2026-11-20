@@ -20,11 +20,13 @@ import AuthCallback from './pages/AuthCallback'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
+import RequireAuth from './components/RequireAuth'
 import Admin from './pages/Admin'
 import Practice from './pages/Practice'
 import WeakPoints from './pages/WeakPoints'
 import Bookmarks from './pages/Bookmarks'
 import GrapherPage from './pages/GrapherPage'
+import JoinGroup from './pages/JoinGroup'
 
 // Scalable QueryClient config tuned for 1,000+ concurrent students:
 // - refetchOnWindowFocus disabled prevents 1,000 simultaneous students from hammering DB on tab focus
@@ -42,10 +44,14 @@ const queryClient = new QueryClient({
 })
 
 function AppLayout({ children }: { children: ReactNode }) {
+  return <Layout>{children}</Layout>
+}
+
+function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
-    <AuthProvider>
-      <Layout>{children}</Layout>
-    </AuthProvider>
+    <Layout>
+      <RequireAuth>{children}</RequireAuth>
+    </Layout>
   )
 }
 
@@ -53,32 +59,38 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AppLayout><Home /></AppLayout>} />
-          <Route path="/login" element={<AppLayout><Login /></AppLayout>} />
-          <Route path="/register" element={<AppLayout><Register /></AppLayout>} />
-          <Route path="/sheets" element={<AppLayout><Sheets /></AppLayout>} />
-          <Route path="/exams" element={<AppLayout><Exams /></AppLayout>} />
-          <Route path="/exam/:id" element={<AuthProvider><Exam /></AuthProvider>} />
-          <Route path="/practice/:id" element={<AuthProvider><Practice /></AuthProvider>} />
-          <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
-          <Route path="/grapher" element={<AppLayout><GrapherPage /></AppLayout>} />
-          <Route path="/weak-points" element={<AppLayout><WeakPoints /></AppLayout>} />
-          <Route path="/bookmarks" element={<AppLayout><Bookmarks /></AppLayout>} />
-          <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
-          <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
-          <Route path="/teacher" element={<AppLayout><TeacherDashboard /></AppLayout>} />
-          <Route path="/results/:attemptId" element={<AppLayout><Results /></AppLayout>} />
-          <Route path="/forgot-password" element={<AppLayout><ForgotPassword /></AppLayout>} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/complete-profile" element={<AppLayout><CompleteProfile /></AppLayout>} />
-          <Route path="/admin" element={<AppLayout><Admin /></AppLayout>} />
-          <Route path="/admin/:section" element={<AppLayout><Admin /></AppLayout>} />
-          <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
-        </Routes>
-      </BrowserRouter>
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* Public auth & landing routes only */}
+              <Route path="/" element={<AppLayout><Home /></AppLayout>} />
+              <Route path="/login" element={<AppLayout><Login /></AppLayout>} />
+              <Route path="/register" element={<AppLayout><Register /></AppLayout>} />
+              <Route path="/forgot-password" element={<AppLayout><ForgotPassword /></AppLayout>} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/join/:code" element={<AppLayout><JoinGroup /></AppLayout>} />
+
+              {/* Protected LMS content routes — mandatory sign-in */}
+              <Route path="/sheets" element={<ProtectedLayout><Sheets /></ProtectedLayout>} />
+              <Route path="/exams" element={<ProtectedLayout><Exams /></ProtectedLayout>} />
+              <Route path="/exam/:id" element={<RequireAuth><Exam /></RequireAuth>} />
+              <Route path="/practice/:id" element={<RequireAuth><Practice /></RequireAuth>} />
+              <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+              <Route path="/grapher" element={<ProtectedLayout><GrapherPage /></ProtectedLayout>} />
+              <Route path="/weak-points" element={<ProtectedLayout><WeakPoints /></ProtectedLayout>} />
+              <Route path="/bookmarks" element={<ProtectedLayout><Bookmarks /></ProtectedLayout>} />
+              <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
+              <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
+              <Route path="/teacher" element={<ProtectedLayout><TeacherDashboard /></ProtectedLayout>} />
+              <Route path="/results/:attemptId" element={<ProtectedLayout><Results /></ProtectedLayout>} />
+              <Route path="/complete-profile" element={<ProtectedLayout><CompleteProfile /></ProtectedLayout>} />
+              <Route path="/admin" element={<ProtectedLayout><Admin /></ProtectedLayout>} />
+              <Route path="/admin/:section" element={<ProtectedLayout><Admin /></ProtectedLayout>} />
+              <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
       </ToastProvider>
     </QueryClientProvider>
   )

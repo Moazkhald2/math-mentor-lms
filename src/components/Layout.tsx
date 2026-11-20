@@ -24,7 +24,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       checkedGradeUserRef.current = null
       return
     }
-    const skip = location.pathname === '/complete-profile' || location.pathname.startsWith('/admin')
+    const skip =
+      location.pathname === '/complete-profile' ||
+      location.pathname.startsWith('/admin') ||
+      location.pathname.startsWith('/join/')
     if (skip || checkedGradeUserRef.current === user.id) return
     checkedGradeUserRef.current = user.id
     supabase.from('profiles').select('grade').eq('id', user.id).single()
@@ -50,12 +53,14 @@ export default function Layout({ children }: { children: ReactNode }) {
             <button onClick={handleLogo} className="flex cursor-pointer items-center gap-2" aria-label="Go to dashboard">
               <img src="/logo-main.png" alt="The Math Mentor" className="h-11 w-auto rounded-2xl bg-white p-3 shadow-sm transition-transform duration-150 hover:scale-105" />
             </button>
-            <div className="hidden gap-6 md:flex">
-              <Link to="/sheets" className={navLink}>Sheets</Link>
-              <Link to="/exams" className={navLink}>Exams</Link>
-              <Link to="/dashboard" className={navLink}>Dashboard</Link>
-              <Link to="/grapher" className={navLink}>Grapher</Link>
-            </div>
+            {!loading && user && (
+              <div className="hidden gap-6 md:flex">
+                <Link to="/sheets" className={navLink}>Sheets</Link>
+                <Link to="/exams" className={navLink}>Exams</Link>
+                <Link to="/dashboard" className={navLink}>Dashboard</Link>
+                <Link to="/grapher" className={navLink}>Grapher</Link>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
@@ -100,12 +105,12 @@ export default function Layout({ children }: { children: ReactNode }) {
         {menuOpen && (
           <div className="border-t border-border bg-secondary px-4 py-4 md:hidden">
             <div className="flex flex-col gap-3">
-              <Link to="/sheets" className={navLink} onClick={() => setMenuOpen(false)}>Sheets</Link>
-              <Link to="/exams" className={navLink} onClick={() => setMenuOpen(false)}>Exams</Link>
-              <Link to="/dashboard" className={navLink} onClick={() => setMenuOpen(false)}>Dashboard</Link>
-              <Link to="/grapher" className={navLink} onClick={() => setMenuOpen(false)}>Grapher</Link>
               {loading ? null : user ? (
                 <>
+                  <Link to="/sheets" className={navLink} onClick={() => setMenuOpen(false)}>Sheets</Link>
+                  <Link to="/exams" className={navLink} onClick={() => setMenuOpen(false)}>Exams</Link>
+                  <Link to="/dashboard" className={navLink} onClick={() => setMenuOpen(false)}>Dashboard</Link>
+                  <Link to="/grapher" className={navLink} onClick={() => setMenuOpen(false)}>Grapher</Link>
                   <Link to="/profile" onClick={() => setMenuOpen(false)} className="rounded-lg border border-border bg-surface px-3 py-2 text-sm">
                     <span className="block font-bold text-ink">Name: {user.user_metadata?.full_name || 'Not set'}</span>
                     {user.email && <span className="block text-xs text-text-muted">Email: {user.email}</span>}

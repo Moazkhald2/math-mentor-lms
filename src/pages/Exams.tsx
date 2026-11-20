@@ -19,6 +19,7 @@ export default function Exams() {
   const { data: exams, isLoading } = useQuery({
     queryKey: ['exams'],
     queryFn: fetchExams,
+    enabled: !!user,
   })
 
   const { data: myAttempts = [] } = useQuery({

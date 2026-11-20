@@ -1,6 +1,7 @@
 ﻿import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { claimActiveSession } from '../lib/session'
+import { getPendingGroupInvite, clearPendingGroupInvite, redeemGroupInvite } from '../lib/groups'
 import type { User } from '@supabase/supabase-js'
 
 const IDLE_TIMEOUT = 60 * 60 * 1000
@@ -79,6 +80,27 @@ function resetAttempts() {
   localStorage.removeItem('math_mentor_login_attempts')
 }
 
+async function redeemPendingInviteIfAny() {
+  const pending = getPendingGroupInvite()
+  if (!pending) return
+  try {
+    const res = await redeemGroupInvite(pending)
+    clearPendingGroupInvite()
+    if (res?.grade) {
+      localStorage.setItem('math_mentor_current_grade', String(res.grade))
+    }
+  } catch (err) {
+    const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+    if (
+      msg.includes('invite_invalid_or_disabled') ||
+      msg.includes('invite_expired') ||
+      msg.includes('invite_group_full')
+    ) {
+      clearPendingGroupInvite()
+    }
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -92,7 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
-      if (currentUser) await ensureProfile(currentUser)
+      if (currentUser) {
+        await ensureProfile(currentUser)
+        redeemPendingInviteIfAny().catch(() => {})
+      }
       updateLastActivity()
       setLoading(false)
     })
@@ -105,6 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resetAttempts()
         // Register active device token silently on fresh sign-in (non-blocking)
         claimActiveSession(false).catch(() => {})
+        // Complete any pending invite link captured before email confirmation
+        redeemPendingInviteIfAny().catch(() => {})
       }
     })
 
