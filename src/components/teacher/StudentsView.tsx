@@ -22,7 +22,15 @@ interface AttemptRow {
   exams?: { title: string } | null
 }
 
-export default function StudentsView({ grade }: { grade?: number }) {
+export default function StudentsView({
+  grade,
+  groupStudentIds,
+  studentId,
+}: {
+  grade?: number
+  groupStudentIds?: Set<string>
+  studentId?: string
+}) {
   const [search, setSearch] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -71,6 +79,8 @@ export default function StudentsView({ grade }: { grade?: number }) {
 
   const students = (studentsQ.data ?? [])
     .filter((s) => !grade || s.grade === grade)
+    .filter((s) => !groupStudentIds || groupStudentIds.has(s.id))
+    .filter((s) => !studentId || s.id === studentId)
     .filter((s) => {
       const q = search.trim().toLowerCase()
       if (!q) return true

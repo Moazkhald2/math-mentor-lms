@@ -70,7 +70,17 @@ const BUCKETS = [
   { label: '85-100', min: 85, max: 100 },
 ]
 
-export default function OverviewView({ userId, grade }: { userId: string; grade?: number }) {
+export default function OverviewView({
+  userId,
+  grade,
+  groupStudentIds,
+  studentId,
+}: {
+  userId: string
+  grade?: number
+  groupStudentIds?: Set<string>
+  studentId?: string
+}) {
   const examsQ = useTeacherExams(userId)
   const examsAll = examsQ.data ?? []
   const exams = grade ? examsAll.filter((e) => e.grade === grade) : examsAll
@@ -78,8 +88,10 @@ export default function OverviewView({ userId, grade }: { userId: string; grade?
   const violationsQ = useViolations(userId)
   const { byUser } = useStudentGradeMap()
 
-  // Exam-level grade filter, plus student-level filter for cross-grade classes
+  // Exam-level grade filter, plus group & single-student filters
   const attempts = (attemptsQ.data ?? []).filter((a) => {
+    if (studentId && a.user_id !== studentId) return false
+    if (groupStudentIds && !groupStudentIds.has(a.user_id)) return false
     if (!grade) return true
     if ((a.exams as { grade?: number | null } | null)?.grade != null) {
       return (a.exams as unknown as { grade: number }).grade === grade
