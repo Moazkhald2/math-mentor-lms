@@ -70,7 +70,10 @@ describe('Auth email resend cooldown & rate-limit feedback (Step 2)', () => {
     fireEvent.change(screen.getByLabelText(/^Email/i), { target: { value: 'ahmed@gmail.com' } })
     fireEvent.change(screen.getByLabelText(/^Password/i), { target: { value: 'Math1234' } })
     fireEvent.click(screen.getByRole('button', { name: '10' }))
+    fireEvent.change(screen.getByLabelText(/Guardian Full Name/i), { target: { value: 'Hassan Ali' } })
+    fireEvent.change(screen.getByLabelText(/Guardian Email/i), { target: { value: 'hassan@gmail.com' } })
     fireEvent.change(screen.getByLabelText(/Parent Phone/i), { target: { value: '+201012345678' } })
+    fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByRole('button', { name: /Create Account/i }))
 
     await waitFor(() => {

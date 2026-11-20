@@ -28,6 +28,8 @@ import Bookmarks from './pages/Bookmarks'
 import GrapherPage from './pages/GrapherPage'
 import JoinGroup from './pages/JoinGroup'
 import Schedule from './pages/Schedule'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsOfService from './pages/TermsOfService'
 
 // Scalable QueryClient config tuned for 1,000+ concurrent students:
 // - refetchOnWindowFocus disabled prevents 1,000 simultaneous students from hammering DB on tab focus
@@ -71,6 +73,8 @@ function App() {
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/join/:code" element={<AppLayout><JoinGroup /></AppLayout>} />
+              <Route path="/privacy" element={<AppLayout><PrivacyPolicy /></AppLayout>} />
+              <Route path="/terms" element={<AppLayout><TermsOfService /></AppLayout>} />
 
               {/* Protected LMS content routes — mandatory sign-in */}
               <Route path="/sheets" element={<ProtectedLayout><Sheets /></ProtectedLayout>} />

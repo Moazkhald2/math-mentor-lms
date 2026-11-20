@@ -32,3 +32,9 @@ export function isValidName(name: string): boolean {
   const re = /^[\p{L}\p{M}' -]{2,40}$/u
   return re.test(name.trim())
 }
+
+/** Multi-part full names (e.g., Guardian full name in Arabic or English); 2–80 chars. */
+export function isValidFullName(name: string): boolean {
+  const re = /^[\p{L}\p{M}' -]{2,80}$/u
+  return re.test(name.trim())
+}

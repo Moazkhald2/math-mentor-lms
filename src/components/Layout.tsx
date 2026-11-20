@@ -4,11 +4,12 @@ import { Mail, Send, Phone } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import ThemeToggle from './ThemeToggle'
+import { LEGAL_CONTACT_EMAIL } from '../lib/legal'
 
 // Owner fills these later (contact placeholders)
 const CONTACT_WHATSAPP: string = '' // e.g. '+201000000000'
 const CONTACT_TELEGRAM: string = 'https://t.me/themathmentor'
-const CONTACT_EMAIL: string = 'support@themathmentor.com'
+const CONTACT_EMAIL: string = LEGAL_CONTACT_EMAIL
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, loading, signOut } = useAuth()
@@ -27,7 +28,9 @@ export default function Layout({ children }: { children: ReactNode }) {
     const skip =
       location.pathname === '/complete-profile' ||
       location.pathname.startsWith('/admin') ||
-      location.pathname.startsWith('/join/')
+      location.pathname.startsWith('/join/') ||
+      location.pathname === '/privacy' ||
+      location.pathname === '/terms'
     if (skip || checkedGradeUserRef.current === user.id) return
     checkedGradeUserRef.current = user.id
     supabase.from('profiles').select('grade').eq('id', user.id).single()
@@ -162,7 +165,15 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </li>
               </ul>
             </div>
-            <div className="flex items-end">
+            <div className="flex flex-col items-start justify-end gap-2 md:items-end">
+              <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
+                <Link to="/privacy" className="text-text-muted transition-colors hover:text-brand">
+                  Privacy Notice · إشعار الخصوصية
+                </Link>
+                <Link to="/terms" className="text-text-muted transition-colors hover:text-brand">
+                  Terms · شروط الاستخدام
+                </Link>
+              </div>
               <span>&copy; {new Date().getFullYear()} Moaaz Khaled &mdash; The Math Mentor. All Rights Reserved.</span>
             </div>
           </div>

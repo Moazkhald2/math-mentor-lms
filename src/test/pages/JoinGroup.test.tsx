@@ -151,11 +151,26 @@ describe('Step 8 — Student Join-by-Link Flow (/join/:code & /register?invite=)
     fireEvent.change(screen.getByLabelText(/Last Name/i), { target: { value: 'Adel' } })
     fireEvent.change(screen.getByLabelText(/^Email/i), { target: { value: 'youssef@gmail.com' } })
     fireEvent.change(screen.getByLabelText(/^Password/i), { target: { value: 'Math2026' } })
+    fireEvent.change(screen.getByLabelText(/Guardian Full Name/i), { target: { value: 'Adel Mahmoud' } })
+    fireEvent.change(screen.getByLabelText(/Guardian Email/i), { target: { value: 'adel@gmail.com' } })
     fireEvent.change(screen.getByLabelText(/Parent Phone/i), { target: { value: '+201099887766' } })
+    fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByRole('button', { name: /Create Account & Join Group/i }))
 
     await waitFor(() => {
-      expect(mockSignUp).toHaveBeenCalledWith('youssef@gmail.com', 'Math2026', 'Youssef Adel', 11, '+201099887766')
+      expect(mockSignUp).toHaveBeenCalledWith(
+        'youssef@gmail.com',
+        'Math2026',
+        'Youssef Adel',
+        11,
+        '+201099887766',
+        expect.objectContaining({
+          ageBand: 'under_18',
+          guardianName: 'Adel Mahmoud',
+          guardianEmail: 'adel@gmail.com',
+          consentVersion: '2026-11-v1',
+        })
+      )
     })
     expect(localStorage.getItem(PENDING_INVITE_STORAGE_KEY)).toBe('G11-ELITE01')
     const backToLogin = await screen.findByRole('link', { name: /Back to Sign In/i })

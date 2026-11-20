@@ -71,6 +71,7 @@ async function main() {
     ['/rest/v1/curriculum_outcomes?select=*&limit=5', 'GET /rest/v1/curriculum_outcomes'],
     ['/rest/v1/curriculum_outcome_concepts?select=*&limit=5', 'GET /rest/v1/curriculum_outcome_concepts'],
     ['/rest/v1/question_concepts?select=*&limit=5', 'GET /rest/v1/question_concepts'],
+    ['/rest/v1/consent_records?select=*&limit=5', 'GET /rest/v1/consent_records'],
   ]
   for (const [path, label] of protectedTables) {
     ok = (await checkAnonBlocked(path, label)) && ok

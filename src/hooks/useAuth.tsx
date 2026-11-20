@@ -2,6 +2,7 @@
 import { supabase } from '../lib/supabase'
 import { claimActiveSession } from '../lib/session'
 import { getPendingGroupInvite, clearPendingGroupInvite, redeemGroupInvite } from '../lib/groups'
+import type { RegistrationConsentPayload } from '../lib/legal'
 import type { User } from '@supabase/supabase-js'
 
 const IDLE_TIMEOUT = 60 * 60 * 1000
@@ -16,7 +17,14 @@ interface AuthContextType {
   loginCooldown: number
   signIn: (email: string, password: string) => Promise<string | null>
   signInWithGoogle: () => Promise<void>
-  signUp: (email: string, password: string, fullName: string, grade?: number, parentPhone?: string) => Promise<string | null>
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string,
+    grade?: number,
+    parentPhone?: string,
+    consent?: RegistrationConsentPayload
+  ) => Promise<string | null>
   signOut: () => Promise<void>
 }
 
@@ -175,11 +183,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signInWithOAuth({ provider: 'google' })
   }
 
-  const signUp = async (email: string, password: string, fullName: string, grade?: number, parentPhone?: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string,
+    grade?: number,
+    parentPhone?: string,
+    consent?: RegistrationConsentPayload
+  ) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, grade, parent_phone: parentPhone ?? '' } },
+      options: {
+        data: {
+          full_name: fullName,
+          grade,
+          parent_phone: parentPhone ?? '',
+          ...(consent
+            ? {
+                age_band: consent.ageBand,
+                guardian_name: consent.guardianName,
+                guardian_email: consent.guardianEmail,
+                consent_version: consent.consentVersion,
+                consent_accepted_at: consent.consentAcceptedAt,
+              }
+            : {}),
+        },
+      },
     })
     return error?.message ?? null
   }
