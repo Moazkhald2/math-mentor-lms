@@ -26,7 +26,20 @@ import WeakPoints from './pages/WeakPoints'
 import Bookmarks from './pages/Bookmarks'
 import GrapherPage from './pages/GrapherPage'
 
-const queryClient = new QueryClient()
+// Scalable QueryClient config tuned for 1,000+ concurrent students:
+// - refetchOnWindowFocus disabled prevents 1,000 simultaneous students from hammering DB on tab focus
+// - 5min staleTime caches questions and exams in client memory
+// - 2 retries handles transient network blips automatically
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 15 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 2,
+    },
+  },
+})
 
 function AppLayout({ children }: { children: ReactNode }) {
   return (
