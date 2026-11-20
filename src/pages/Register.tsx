@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
+import { formatAuthEmailError } from './ForgotPassword'
 import { isDisposableEmail, isValidPassword, isValidPhone, isValidEmailFormat, isValidName } from '../lib/validation'
+
+const RESEND_COOLDOWN_SECONDS = 60
 
 export default function Register() {
   const { signUp, user, loading: authLoading } = useAuth()
@@ -23,6 +27,17 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
+  const [resending, setResending] = useState(false)
+  const [resendMessage, setResendMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev <= 1 ? 0 : prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldown])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,9 +55,31 @@ export default function Register() {
     setLoading(true)
     const fullName = `${firstName.trim()} ${lastName.trim()}`
     const err = await signUp(email, password, fullName, grade, cleanPhone)
-    if (err) setError(err)
-    else setSuccess(true)
+    if (err) {
+      setError(formatAuthEmailError(err))
+    } else {
+      setSuccess(true)
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+    }
     setLoading(false)
+  }
+
+  const handleResendConfirmation = async () => {
+    if (cooldown > 0 || resending) return
+    setResending(true)
+    setError(null)
+    setResendMessage(null)
+    const { error: err } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim(),
+    })
+    if (err) {
+      setError(formatAuthEmailError(err.message))
+    } else {
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+      setResendMessage('Confirmation email resent. Please check your inbox and Spam/Junk folder.')
+    }
+    setResending(false)
   }
 
   if (success) {
@@ -52,7 +89,28 @@ export default function Register() {
         <p className="text-text-muted">
           We sent a confirmation link to <strong>{email}</strong>
         </p>
-        <div className="mt-6">
+        <p className="mt-2 text-xs text-text-muted">
+          If you do not see it within a minute, please check your Spam or Promotions folder.
+        </p>
+        {resendMessage && <p className="mt-3 text-xs text-accent-green">{resendMessage}</p>}
+        {error && (
+          <p className="mt-3 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={handleResendConfirmation}
+            disabled={cooldown > 0 || resending}
+            className="rounded-lg border border-border px-5 py-2 text-sm font-semibold text-ink hover:border-brand disabled:opacity-50"
+          >
+            {resending
+              ? 'Sending...'
+              : cooldown > 0
+                ? `Resend confirmation in ${cooldown}s`
+                : 'Resend confirmation email'}
+          </button>
           <a href="/login" className="inline-block rounded-lg bg-brand px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-light">
             Back to Sign In
           </a>
@@ -83,7 +141,7 @@ export default function Register() {
           <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-email">Email *</label>
           <input id="reg-email" name="email" type="email" maxLength={254} value={email} onChange={e => setEmail(e.target.value)}
             className={inputCls} required autoComplete="email" />
-          <p className="mt-1 text-xs text-text-muted">Must be a real email � you'll confirm it by clicking a link.</p>
+          <p className="mt-1 text-xs text-text-muted">Must be a real email &mdash; you&apos;ll confirm it by clicking a link.</p>
         </div>
         <div>
           <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-password">Password *</label>

@@ -11,18 +11,26 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
+    // Never ship source maps to production browsers
+    sourcemap: false,
+    minify: 'oxc',
     chunkSizeWarningLimit: 500,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react-router')) return 'vendor'
-            if (id.includes('react')) return 'vendor'
-            if (id.includes('@tanstack')) return 'query'
-            if (id.includes('@supabase')) return 'supabase'
-            if (id.includes('recharts')) return 'charts'
-            if (id.includes('react-hook-form') || id.includes('zod')) return 'forms'
-          }
+        minify: {
+          compress: {
+            dropConsole: true,
+            dropDebugger: true,
+          },
+        },
+        codeSplitting: {
+          groups: [
+            { name: 'vendor', test: /node_modules[\\/](react|react-dom|react-router)/ },
+            { name: 'query', test: /node_modules[\\/]@tanstack/ },
+            { name: 'supabase', test: /node_modules[\\/]@supabase/ },
+            { name: 'charts', test: /node_modules[\\/]recharts/ },
+            { name: 'forms', test: /node_modules[\\/](react-hook-form|zod)/ },
+          ],
         },
       },
     },

@@ -1,24 +1,55 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+
+const RESEND_COOLDOWN_SECONDS = 60
+
+export function formatAuthEmailError(message: string): string {
+  const lower = message.toLowerCase()
+  if (lower.includes('rate limit') || lower.includes('429') || lower.includes('too many') || lower.includes('security purposes')) {
+    return 'Too many email requests right now. Please wait 60 seconds and check your Spam/Junk folder before requesting another email.'
+  }
+  return message
+}
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev <= 1 ? 0 : prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldown])
+
+  const sendResetEmail = async () => {
+    if (cooldown > 0 || loading) return
     setLoading(true)
     setError(null)
+    setNotice(null)
 
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/reset-password`,
     })
 
-    if (err) setError(err.message)
-    else setSent(true)
+    if (err) {
+      setError(formatAuthEmailError(err.message))
+    } else {
+      setSent(true)
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+      setNotice('Reset link sent. Please check your inbox and Spam/Junk folder.')
+    }
     setLoading(false)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await sendResetEmail()
   }
 
   if (sent) {
@@ -28,9 +59,29 @@ export default function ForgotPassword() {
         <p className="text-text-muted">
           We sent a password reset link to <strong>{email}</strong>
         </p>
-        <a href="/login" className="mt-6 inline-block text-sm text-brand hover:underline">
-          Back to Sign In
-        </a>
+        {notice && <p className="mt-3 text-xs text-text-muted">{notice}</p>}
+        {error && (
+          <p className="mt-3 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={sendResetEmail}
+            disabled={cooldown > 0 || loading}
+            className="rounded-lg border border-border px-5 py-2 text-sm font-semibold text-ink hover:border-brand disabled:opacity-50"
+          >
+            {loading
+              ? 'Sending...'
+              : cooldown > 0
+                ? `Resend link in ${cooldown}s`
+                : 'Resend reset link'}
+          </button>
+          <a href="/login" className="text-sm text-brand hover:underline">
+            Back to Sign In
+          </a>
+        </div>
       </div>
     )
   }
@@ -52,14 +103,18 @@ export default function ForgotPassword() {
           />
         </div>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && (
+          <p className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || cooldown > 0}
           className="w-full rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand-light disabled:opacity-50"
         >
-          {loading ? 'Sending...' : 'Send Reset Link'}
+          {loading ? 'Sending...' : cooldown > 0 ? `Please wait ${cooldown}s` : 'Send Reset Link'}
         </button>
 
         <p className="text-center text-sm text-text-muted">
