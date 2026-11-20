@@ -6,6 +6,8 @@ import { supabase } from '../lib/supabase'
 import { fetchExams } from '../lib/exams'
 import { ALL_GRADES } from '../lib/grades'
 import WeakPointsCard from '../components/WeakPointsCard'
+import OptInRewardsCard from '../components/OptInRewardsCard'
+import { applyGradeThemeToDocument, getGradeTheme } from '../lib/gradeTheme'
 import type { ExamAttempt } from '../types'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -60,7 +62,38 @@ export default function Dashboard() {
     enabled: !!user,
   })
 
+  const effortLogsQ = useQuery({
+    queryKey: ['my-effort-logs', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activity_logs')
+        .select('action, details')
+        .eq('user_id', user!.id)
+        .in('action', ['practice_mistake_recovered', 'practice_answered'])
+        .limit(200)
+      if (error) return []
+      return (data ?? []) as Array<{ action: string; details?: Record<string, unknown> | null }>
+    },
+    enabled: !!user,
+  })
+
+  useEffect(() => {
+    if (profile?.grade) {
+      applyGradeThemeToDocument(profile.grade)
+    }
+  }, [profile?.grade])
+
+  const gradeTheme = getGradeTheme(profile?.grade)
   const completedAttempts = attempts?.filter((a) => a.status === 'completed') ?? []
+  const effortMetrics = {
+    completedAttemptDates: completedAttempts.map((a) => a.completed_at ?? a.started_at),
+    completedPracticeCount: completedAttempts.filter((a) => a.exam?.type === 'practice').length,
+    perfectScoreCount: completedAttempts.filter((a) => (a.score ?? 0) === 100).length,
+    recoveredMistakesCount: (effortLogsQ.data ?? []).filter((l) => l.action === 'practice_mistake_recovered').length,
+    independentAnswersCount: (effortLogsQ.data ?? []).filter(
+      (l) => l.action === 'practice_answered' && l.details?.correct === true && (l.details?.hints_used ?? 0) === 0
+    ).length,
+  }
   const avgScore = completedAttempts.length > 0
     ? Math.round(completedAttempts.reduce((sum, a) => sum + (a.score ?? 0), 0) / completedAttempts.length)
     : 0
@@ -87,12 +120,12 @@ export default function Dashboard() {
     return (
       <div className="rounded-xl border border-border bg-surface p-12 text-center">
         <p className="text-lg text-text-muted">Sign in to see your dashboard</p>
-        <a
-          href="/login"
+        <Link
+          to="/login"
           className="mt-4 inline-block rounded-lg bg-brand px-6 py-2 text-white"
         >
           Sign In
-        </a>
+        </Link>
       </div>
     )
   }
@@ -262,6 +295,26 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {profile?.grade && (
+        <div
+          className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-surface px-5 py-3.5 shadow-2xs"
+          style={{ borderLeftWidth: '4px', borderLeftColor: gradeTheme.accentHex }}
+        >
+          <div className="flex items-center gap-2.5">
+            <span
+              className="rounded-full px-3 py-0.5 text-xs font-bold text-white"
+              style={{ backgroundColor: gradeTheme.accentHex }}
+            >
+              Grade {gradeTheme.grade}
+            </span>
+            <span className="text-xs font-semibold text-ink">{gradeTheme.tierLabel}</span>
+          </div>
+          <span className="font-display text-xs italic text-text-muted">{gradeTheme.motto}</span>
+        </div>
+      )}
+
+      <OptInRewardsCard userId={user.id} metrics={effortMetrics} />
+
       <div className="mb-8 rounded-xl border border-border bg-surface p-6">
         <h2 className="mb-4 text-lg font-bold text-text">My Class</h2>
         <JoinClass />
@@ -296,12 +349,12 @@ export default function Dashboard() {
       {attempts && attempts.length === 0 && (
         <div className="rounded-xl border border-border bg-surface p-8 text-center">
           <p className="text-text-muted">No exams attempted yet</p>
-          <a
-            href="/exams"
+          <Link
+            to="/exams"
             className="mt-3 inline-block text-sm text-brand hover:underline"
           >
             Browse exams →
-          </a>
+          </Link>
         </div>
       )}
 

@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import ThemeToggle from './ThemeToggle'
 import { LEGAL_CONTACT_EMAIL } from '../lib/legal'
+import { applyGradeThemeToDocument } from '../lib/gradeTheme'
 
 // Owner fills these later (contact placeholders)
 const CONTACT_WHATSAPP: string = '' // e.g. '+201000000000'
@@ -35,7 +36,9 @@ export default function Layout({ children }: { children: ReactNode }) {
     checkedGradeUserRef.current = user.id
     supabase.from('profiles').select('grade').eq('id', user.id).single()
       .then(({ data }) => {
-        if (data && !data.grade) {
+        if (data?.grade) {
+          applyGradeThemeToDocument(data.grade)
+        } else if (data && !data.grade) {
           navigate('/complete-profile', { replace: true })
         }
       })
@@ -53,8 +56,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       <header className="border-b border-border shadow-[inset_0_-2px_0_theme(colors.brand)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-6">
-            <button onClick={handleLogo} className="flex cursor-pointer items-center gap-2" aria-label="Go to dashboard">
-              <img src="/logo-main.png" alt="The Math Mentor" className="h-11 w-auto rounded-2xl bg-white p-3 shadow-sm transition-transform duration-150 hover:scale-105" />
+            <button onClick={handleLogo} className="flex cursor-pointer items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Go to dashboard">
+              <img src="/logo-main.png" alt="The Math Mentor" className="h-10 w-auto transition-transform duration-150 hover:scale-[1.02] dark:invert" />
             </button>
             {!loading && user && (
               <div className="hidden gap-6 md:flex">
@@ -166,6 +169,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               </ul>
             </div>
             <div className="flex flex-col items-start justify-end gap-2 md:items-end">
+              <p className="font-display text-sm italic text-brand">The Lesson Counts.</p>
               <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
                 <Link to="/privacy" className="text-text-muted transition-colors hover:text-brand">
                   Privacy Notice · إشعار الخصوصية

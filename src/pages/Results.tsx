@@ -7,6 +7,8 @@ import { useBestScore } from '../hooks/useBestScore'
 import LatexRenderer from '../components/LatexRenderer'
 import BookmarkButton from '../components/BookmarkButton'
 import FeedbackButton from '../components/FeedbackButton'
+import PerfectScoreCelebration from '../components/PerfectScoreCelebration'
+import { isGamificationEnabled } from '../lib/gamification'
 
 function answerDisplay(answer: string, question: Question): string {
   if (!answer) return '(none)'
@@ -64,9 +66,16 @@ export default function Results() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-black text-text">{attempt.exam.title}</h1>
+        <h1 className="font-display text-3xl font-extrabold text-text">{attempt.exam.title}</h1>
         <p className="mt-1 text-text-muted">Results</p>
       </div>
+
+      {attempt.status === 'completed' && (attempt.score ?? 0) === 100 && isGamificationEnabled(user.id) && (
+        <PerfectScoreCelebration
+          title={attempt.exam.title}
+          studentName={user.user_metadata?.full_name}
+        />
+      )}
 
       <div className="mb-8 grid gap-6 md:grid-cols-3">
         <div className="rounded-xl border border-brand/40 bg-surface p-6 text-center">

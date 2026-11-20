@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { ALL_GRADES } from '../lib/grades'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { applyGradeThemeToDocument } from '../lib/gradeTheme'
+import { isGamificationEnabled, setGamificationEnabled } from '../lib/gamification'
 
 export default function Settings() {
   const { user } = useAuth()
@@ -10,8 +12,13 @@ export default function Settings() {
   const [parentPhone, setParentPhone] = useState('')
   const [telegramChatId, setTelegramChatId] = useState('')
   const [password, setPassword] = useState('')
+  const [motivationOptIn, setMotivationOptIn] = useState(() => isGamificationEnabled(user?.id))
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    setMotivationOptIn(isGamificationEnabled(user?.id))
+  }, [user?.id])
 
   useEffect(() => {
     if (!user) return
@@ -37,7 +44,19 @@ export default function Settings() {
       parent_phone: parentPhone,
       telegram_chat_id: telegramChatId,
     }).eq('id', user!.id)
+    if (grade) {
+      applyGradeThemeToDocument(grade)
+      localStorage.setItem('math_mentor_current_grade', String(grade))
+    }
     setMessage('Profile updated')
+  }
+
+  const handleMotivationToggle = () => {
+    if (!user) return
+    const next = !motivationOptIn
+    setGamificationEnabled(user.id, next)
+    setMotivationOptIn(next)
+    setMessage(next ? 'Optional streaks & effort badges turned on for this device.' : 'Optional streaks & effort badges turned off.')
   }
 
   const handlePasswordChange = async (e: React.FormEvent) => {
@@ -87,6 +106,30 @@ export default function Settings() {
 
         <button type="submit" className="rounded-lg bg-brand px-6 py-2 font-semibold text-white hover:bg-brand-light">Save</button>
       </form>
+
+      <section className="mb-8 rounded-xl border border-border bg-surface p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold text-text">Optional Motivation (Streaks & Effort Badges)</h2>
+            <p className="text-xs text-text-muted">
+              Show daily streaks, effort badges, and full-mark celebrations. Stored only on this device — never used for grading or behavioral profiling.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={motivationOptIn}
+            onClick={handleMotivationToggle}
+            className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition ${
+              motivationOptIn
+                ? 'bg-brand text-white'
+                : 'border border-border bg-paper text-text-muted hover:border-brand'
+            }`}
+          >
+            {motivationOptIn ? 'On' : 'Off'}
+          </button>
+        </div>
+      </section>
 
       <form onSubmit={handlePasswordChange} className="rounded-xl border border-border bg-surface p-6">
         <h2 className="mb-4 text-xl font-bold text-text">Change Password</h2>

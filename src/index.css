@@ -7,9 +7,10 @@
    ============================================ */
 @theme {
   --font-display: 'Playfair Display', 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-body: 'Lexend', 'Inter', system-ui, sans-serif;
+  --font-body: 'Lexend', 'Cairo', system-ui, sans-serif;
+  --font-arabic: 'Cairo', 'Lexend', system-ui, sans-serif;
 
-  /* Core brand colors */
+  /* Core brand colors — House v2 canonical */
   --color-brand: #0A9396;
   --color-brand-light: #0A6F72;
   --color-brand-dark: #1A1A2E;
@@ -17,25 +18,33 @@
   --color-ink: #222C31;
   --color-ink-light: #2C3840;
 
-  /* Accents (used heavily in components) */
+  /* Accents & soft editorial tints (SYSTEM_SPEC.md §2.2) */
   --color-accent-green: #84A98C;
   --color-accent-gold: #D4A373;
+  --color-teal-light: #E6F5F5;
+  --color-gold-light: #FAF3E7;
+  --color-gold-dark: #8A5A1E;
+  --color-terra-light: #FDF0ED;
+  --color-terra-dark: #9C3B22;
+  --color-sage-light: #EEF3EF;
+  --color-sage-dark: #3E5F4A;
 
-  /* Status colors */
+  /* Status colors — Terracotta #E76F51 replaces harsh red */
   --color-success: #84A98C;
   --color-warning: #D4A373;
-  --color-danger: #ef4444;
+  --color-danger: #E76F51;
 
-  /* Background tokens - Claude cream + Khan cute */
-  --color-bg: #faf9f5;
+  /* Background tokens - Warm Paper & Surface */
+  --color-bg: #faf9f6;
+  --color-paper: #faf9f6;
   --color-surface: #ffffff;
   --color-tertiary: #f1efe9;
   --color-canvas-soft: #fdfcfa;
 
-  /* Text tokens (warm ink) */
+  /* Text tokens (warm ink — never pure #000000) */
   --color-text: #141413;
   --color-text-secondary: #4a4a48;
-  --color-text-muted: #7a7a78;
+  --color-text-muted: #636E72;
 
   /* Border token - hairline */
   --color-border: #e8e6e1;
@@ -48,6 +57,9 @@
   /* High-contrast CTA pair — guaranteed white-on-color in every context */
   --color-cta: #0A9396;
   --color-cta-hover: #0A6F72;
+
+  /* Active grade accent (dynamically updated by gradeTheme.ts) */
+  --color-grade-active: #0A9396;
 }
 
 /* Base styles using semantic tokens - soft cute */
@@ -130,14 +142,51 @@ html.theme-fading * {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease !important;
 }
 
-/* Animations */
+/* Animations — compositor-only & opt-in for prefers-reduced-motion */
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(1rem); }
+  from { opacity: 0; transform: translateY(0.75rem); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes celebration-reveal {
+  from { opacity: 0; transform: translateY(0.5rem) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .animate-slide-up {
-  animation: slide-up 0.3s ease-out;
+  @media (prefers-reduced-motion: no-preference) {
+    animation: slide-up 0.22s ease-out;
+  }
+}
+
+.animate-celebration {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: celebration-reveal 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* Crisp Arabic typography on RTL legal & bilingual sections */
+[lang="ar"],
+[dir="rtl"] {
+  font-family: var(--font-arabic);
+}
+
+/* Grade-Adaptive Visual Tiers (Step 16 — SYSTEM_SPEC.md §2.4 & §3.2) */
+[data-grade-tier="primary"] {
+  font-size: 16.5px;
+}
+
+[data-grade-tier="primary"] main button,
+[data-grade-tier="primary"] main a {
+  min-height: 44px;
+}
+
+[data-grade-tier="middle"] {
+  font-size: 16px;
+}
+
+[data-grade-tier="high"] {
+  font-size: 15.5px;
 }
 
 /* ============================================================
