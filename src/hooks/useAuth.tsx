@@ -1,5 +1,6 @@
 ﻿import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
+import { claimActiveSession } from '../lib/session'
 import type { User } from '@supabase/supabase-js'
 
 const IDLE_TIMEOUT = 60 * 60 * 1000
@@ -102,6 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (currentUser && event === 'SIGNED_IN') {
         await ensureProfile(currentUser)
         resetAttempts()
+        // Register active device token silently on fresh sign-in (non-blocking)
+        claimActiveSession(false).catch(() => {})
       }
     })
 
@@ -114,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }, 30000)
 
-    setInterval(() => {
+    const cooldownInterval = setInterval(() => {
       setLoginCooldownState(getLoginCooldown())
     }, 1000)
 
@@ -122,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       events.forEach((e) => document.removeEventListener(e, handleActivity))
       subscription.unsubscribe()
       clearInterval(idleInterval)
+      clearInterval(cooldownInterval)
     }
   }, [])
 

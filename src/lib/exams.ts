@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { getOrCreateClientSessionToken } from './session'
 import type {
   Exam,
   ExamQuestion,
@@ -130,6 +131,7 @@ export async function saveAnswer(attemptId: string, questionId: string, answer: 
 
 const NON_RETRYABLE_ERROR_PATTERNS = [
   'attempt_already_submitted',
+  'session_conflict_other_device',
   'unauthorized',
   'rate_limit_exceeded',
   'exam_not_started',
@@ -185,6 +187,7 @@ export async function fetchExamQuestionsSafe(
     const { data, error } = await supabase.rpc('get_exam_questions_safe', {
       p_exam_id: examId,
       p_attempt_id: attemptId,
+      p_session_token: getOrCreateClientSessionToken(),
     })
     if (error) throw error
     return data as SafeExamPayload
@@ -215,6 +218,7 @@ export async function saveAnswersBatch(attemptId: string, answersMap: Record<str
     const { data, error } = await supabase.rpc('save_attempt_answers_draft', {
       p_attempt_id: attemptId,
       p_answers: payload,
+      p_session_token: getOrCreateClientSessionToken(),
     })
     if (error) throw error
     return (data ?? { saved: payload.length }) as { saved: number }
@@ -272,6 +276,7 @@ export async function submitExamSecure(attemptId: string, answersMap: Record<str
     const { data, error } = await supabase.rpc('submit_exam_attempt_secure', {
       p_attempt_id: attemptId,
       p_answers: payload,
+      p_session_token: getOrCreateClientSessionToken(),
     })
     if (error) throw error
     return data as { score: number; total_points: number; earned_points: number; status: string }

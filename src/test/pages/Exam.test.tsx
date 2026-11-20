@@ -36,6 +36,11 @@ const safeQuestionPayload = () => ({
   variants: [],
 })
 
+vi.mock('../../lib/session', () => ({
+  claimActiveSession: vi.fn(async () => ({ status: 'claimed', token: 'tok-test-1234567890' })),
+  signOutOtherDevicesAndClaim: vi.fn(async () => ({ status: 'switched', token: 'tok-test-1234567890' })),
+}))
+
 vi.mock('../../lib/exams', () => ({
   fetchExamQuestionsSafe: vi.fn(async () => safeQuestionPayload()),
   startAttempt: vi.fn(async (..._args: any[]) => ({ id: 'attempt-1', seed: 'seed-1', attempt_number: 1 })),
@@ -121,6 +126,11 @@ describe('Exam Secure Answer-Key Lock & Submission Flow', () => {
   beforeEach(async () => {
     localStorage.clear()
     sessionStorage.clear()
+    const sessionLib = await import('../../lib/session')
+    vi.mocked(sessionLib.claimActiveSession).mockReset()
+    vi.mocked(sessionLib.claimActiveSession).mockResolvedValue({ status: 'claimed', token: 'tok-test-1234567890' })
+    vi.mocked(sessionLib.signOutOtherDevicesAndClaim).mockReset()
+    vi.mocked(sessionLib.signOutOtherDevicesAndClaim).mockResolvedValue({ status: 'switched', token: 'tok-test-1234567890' })
     const examsLib = await import('../../lib/exams')
     vi.mocked(examsLib.fetchExamQuestionsSafe).mockReset()
     vi.mocked(examsLib.fetchExamQuestionsSafe).mockImplementation(async () => safeQuestionPayload())
@@ -303,5 +313,27 @@ describe('Exam Secure Answer-Key Lock & Submission Flow', () => {
     expect(screen.queryByText(/Loading exam/)).toBeInTheDocument()
     expect(screen.queryAllByText(/@test\.com/).length).toBe(0)
     expect(screen.queryByText(/Q1 \/ 1/)).not.toBeInTheDocument()
+  })
+
+  it('shows forgiving Device-Switch Recovery modal on session conflict and resumes exam after explicit switch', async () => {
+    const sessionLib = await import('../../lib/session')
+    const examsLib = await import('../../lib/exams')
+    vi.mocked(sessionLib.claimActiveSession).mockResolvedValueOnce({
+      status: 'conflict',
+      other_device: 'Mobile · Chrome',
+    })
+
+    renderExam()
+
+    expect(await screen.findByText('Active Session on Another Device')).toBeInTheDocument()
+    expect(screen.getByText(/Mobile · Chrome/)).toBeInTheDocument()
+    expect(vi.mocked(examsLib.fetchExamQuestionsSafe)).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: /Sign out other device & continue here/i }))
+
+    await waitFor(() => {
+      expect(vi.mocked(sessionLib.signOutOtherDevicesAndClaim)).toHaveBeenCalledTimes(1)
+      expect(screen.getByText('Submit')).toBeInTheDocument()
+    })
   })
 })

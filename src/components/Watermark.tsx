@@ -1,25 +1,46 @@
-// Print-only watermark: invisible during normal screen use.
-// Appears when the page is printed (Ctrl+P) to discourage unauthorized distribution.
-// Screenshot detection is not reliably possible in browsers; the anti-cheat
-// blur + violation system covers off-focus capture attempts during exams.
-export default function Watermark({ label }: { label: string }) {
+import { useMemo } from 'react'
+
+/**
+ * Dynamic identity watermark (deterrence layer — NOT hard browser DRM).
+ * Renders a subtle diagonal tiled watermark on-screen (low opacity so math
+ * remains crisp) and a stronger watermark on printouts, carrying student
+ * identity + timestamp to discourage casual screenshot/print sharing.
+ */
+export default function Watermark({
+  label,
+  sublabel,
+}: {
+  label: string
+  sublabel?: string
+}) {
+  const timestamp = useMemo(() => {
+    const now = new Date()
+    const hh = String(now.getHours()).padStart(2, '0')
+    const mm = String(now.getMinutes()).padStart(2, '0')
+    return `${now.toISOString().slice(0, 10)} ${hh}:${mm}`
+  }, [])
+
+  const identity = sublabel && sublabel !== label ? `${label} (${sublabel})` : label
+
   return (
     <>
-      {/* Screen: fully hidden. Print: tiled diagonal overlay. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0 hidden select-none print:block print:opacity-[0.06]"
-        style={{ transform: 'rotate(-28deg) scale(1.5)' }}
+        className="pointer-events-none fixed inset-0 z-10 overflow-hidden select-none opacity-[0.035] print:opacity-[0.14]"
+        style={{ transform: 'rotate(-26deg) scale(1.45)' }}
       >
-        <div className="flex h-full w-full flex-wrap content-center justify-center gap-10 overflow-hidden">
+        <div className="flex h-full w-full flex-wrap content-center justify-center gap-12 overflow-hidden">
           {Array.from({ length: 24 }).map((_, i) => (
-            <span key={i} className="whitespace-nowrap text-sm font-bold tracking-widest text-ink">
-              © The Math Mentor · {label} · Unauthorized distribution prohibited
+            <span
+              key={i}
+              className="whitespace-nowrap text-xs font-bold tracking-widest text-ink"
+            >
+              © The Math Mentor · {identity} · {timestamp}
             </span>
           ))}
         </div>
       </div>
-      <style>{`@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }`}</style>
+      <style>{`@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .exam-print-deterrent { display: none !important; } }`}</style>
     </>
   )
 }

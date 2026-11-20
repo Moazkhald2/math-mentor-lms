@@ -11,6 +11,7 @@ import LatexRenderer from '../components/LatexRenderer'
 import Scratchpad from '../components/Scratchpad'
 import CartesianGrapherModal from '../components/CartesianGrapherModal'
 import MathInput from '../components/MathInput'
+import Watermark from '../components/Watermark'
 import { isMathAnswerEqual } from '../lib/mathNormalize'
 import type { Exam, ExamQuestion, Question, ExamAttempt } from '../types'
 
@@ -214,6 +215,10 @@ export default function Practice() {
 
   return (
     <div className="mx-auto max-w-2xl">
+      <Watermark
+        label={user?.user_metadata?.full_name ?? user?.email ?? 'Student'}
+        sublabel={user?.email}
+      />
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-text">{exam.title}</h1>
         <div className="flex items-center gap-3">

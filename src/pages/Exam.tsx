@@ -11,6 +11,7 @@ import {
   cooldownRemainingMs,
   getBestScore,
 } from '../lib/exams'
+import { claimActiveSession, signOutOtherDevicesAndClaim } from '../lib/session'
 import { supabase } from '../lib/supabase'
 import { seededShuffle, shuffleOptionsPreservingIndex } from '../lib/shuffle'
 import { applySafeTemplate } from '../lib/params'
@@ -51,6 +52,8 @@ export default function Exam() {
   const [error, setError] = useState<string | null>(null)
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const [offlineNotice, setOfflineNotice] = useState<string | null>(null)
+  const [sessionConflict, setSessionConflict] = useState<{ otherDevice?: string; lastSeen?: string } | null>(null)
+  const [switchingDevice, setSwitchingDevice] = useState(false)
   const startedRef = useRef(false)
   const submittingRef = useRef(false)
 
@@ -117,7 +120,7 @@ export default function Exam() {
     ? (completedCount >= (exam.max_attempts ?? 3) ? 'no_attempts' : (cd > 0 ? 'cooldown' : null))
     : null
 
-  // Start (or resume) an authorized server-validated attempt BEFORE loading exam questions
+  // Claim active session and start/resume an authorized server-validated attempt BEFORE loading exam questions
   useEffect(() => {
     if (!user || !id || startedRef.current || !exam || attemptsLoading) return
     if (gate) {
@@ -125,20 +128,73 @@ export default function Exam() {
       return
     }
     startedRef.current = true
-    log('exam_started', { exam_id: id })
-    startAttempt(id, user.id).then(a => {
-      setAttemptId(a.id)
-      setAttemptSeed(a.seed ?? null)
-    }).catch(e => setError(e.message))
+    claimActiveSession(false)
+      .then((claimRes) => {
+        if (claimRes?.status === 'conflict') {
+          setSessionConflict({
+            otherDevice: claimRes.other_device ?? 'Another device',
+            lastSeen: claimRes.last_seen,
+          })
+          return null
+        }
+        log('exam_started', { exam_id: id })
+        return startAttempt(id, user.id)
+      })
+      .then((a) => {
+        if (!a) return
+        setAttemptId(a.id)
+        setAttemptSeed(a.seed ?? null)
+      })
+      .catch((e: Error) => {
+        if (String(e?.message ?? '').includes('session_conflict_other_device')) {
+          setSessionConflict({ otherDevice: 'Another device' })
+        } else {
+          setError(e.message)
+        }
+      })
   }, [user, id, exam, gate, attemptsLoading, log])
 
-  // Fetch questions ONLY through the server-safe RPC once an active attempt exists.
+  // Fetch questions ONLY through the server-safe RPC once an active attempt exists and no session conflict.
   // Payload NEVER contains correct_answer, explanation, or common_mistakes.
-  const { data: safePayload, isLoading: questionsLoading, error: questionsError } = useQuery({
+  const {
+    data: safePayload,
+    isLoading: questionsLoading,
+    error: questionsError,
+    refetch: refetchQuestions,
+  } = useQuery({
     queryKey: ['exam-questions-safe', id, attemptId],
     queryFn: () => fetchExamQuestionsSafe(id!, attemptId!),
-    enabled: !!id && !!attemptId,
+    enabled: !!id && !!attemptId && !sessionConflict,
   })
+
+  useEffect(() => {
+    const msg = String((questionsError as Error | null)?.message ?? '')
+    if (msg.includes('session_conflict_other_device')) {
+      setSessionConflict({ otherDevice: 'Another device' })
+    }
+  }, [questionsError])
+
+  const handleSwitchDevice = async () => {
+    if (!user || !id || switchingDevice) return
+    setSwitchingDevice(true)
+    setError(null)
+    try {
+      await signOutOtherDevicesAndClaim()
+      setSessionConflict(null)
+      if (!attemptId) {
+        log('exam_started', { exam_id: id })
+        const a = await startAttempt(id, user.id)
+        setAttemptId(a.id)
+        setAttemptSeed(a.seed ?? null)
+      } else {
+        await refetchQuestions()
+      }
+    } catch (e: any) {
+      setError(e?.message ?? 'Could not switch active session. Please try again.')
+    } finally {
+      setSwitchingDevice(false)
+    }
+  }
 
   const questions = useMemo<RenderExamQuestion[] | undefined>(() => {
     if (!safePayload?.questions) return undefined
@@ -195,7 +251,11 @@ export default function Exam() {
       if (offlineKey) localStorage.removeItem(offlineKey)
     } catch (e: any) {
       try { localStorage.setItem(offlineKey, JSON.stringify(answers)) } catch {}
-      setOfflineNotice(`Save failed (${e?.message ?? 'network'}) - kept safely on device`)
+      if (String(e?.message ?? '').includes('session_conflict_other_device')) {
+        setSessionConflict({ otherDevice: 'Another device' })
+      } else {
+        setOfflineNotice(`Save failed (${e?.message ?? 'network'}) - kept safely on device`)
+      }
     } finally {
       setSaving(false)
     }
@@ -215,6 +275,12 @@ export default function Exam() {
       navigate(`/results/${attemptId}`, { replace: true })
     } catch (e: any) {
       const msg = String(e?.message ?? '')
+      if (msg.includes('session_conflict_other_device')) {
+        setSessionConflict({ otherDevice: 'Another device' })
+        submittingRef.current = false
+        setSubmitting(false)
+        return
+      }
       if (msg.includes('attempt_already_submitted') || msg.includes('23505')) {
         if (offlineKey) localStorage.removeItem(offlineKey)
         navigate(`/results/${attemptId}`, { replace: true })
@@ -266,6 +332,39 @@ export default function Exam() {
     )
   }
 
+  if (sessionConflict) {
+    return (
+      <div className="mx-auto mt-16 max-w-md rounded-2xl border border-warning/40 bg-surface p-8 text-center shadow-lg">
+        <div className="mb-3 text-4xl" aria-hidden="true">📱</div>
+        <h2 className="text-xl font-black text-ink">Active Session on Another Device</h2>
+        <p className="mt-2 text-sm text-text-muted">
+          Your account is currently active on <strong>{sessionConflict.otherDevice || 'another device'}</strong>.
+          To protect exam integrity, only one device can take an exam at a time.
+        </p>
+        <p className="mt-2 text-xs text-text-muted">
+          Your saved answers are safe. Click below to sign out the other device and continue right here.
+        </p>
+        <div className="mt-6 flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={handleSwitchDevice}
+            disabled={switchingDevice}
+            className="w-full rounded-xl bg-brand px-5 py-3 text-sm font-bold text-white hover:bg-brand-light disabled:opacity-50"
+          >
+            {switchingDevice ? 'Switching device...' : 'Sign out other device & continue here'}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/exams')}
+            className="w-full rounded-xl border border-border px-5 py-2.5 text-sm font-medium text-text-muted hover:text-ink"
+          >
+            Back to Exams
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const activeError = error ?? (examError as Error | null)?.message ?? (questionsError as Error | null)?.message ?? null
 
   if (activeError) {
@@ -300,7 +399,10 @@ export default function Exam() {
       onViolation={(type) => log('violation', { type })}
     >
       <div className="mx-auto max-w-3xl px-2 md:px-0">
-        <Watermark label={user?.user_metadata?.full_name ?? user?.email ?? 'Student'} />
+        <Watermark
+          label={user?.user_metadata?.full_name ?? user?.email ?? 'Student'}
+          sublabel={user?.email}
+        />
         {!isOnline && (
           <div className="mb-4 rounded-lg border border-warning bg-warning/10 px-4 py-2 text-sm text-warning">
             Offline - exam paused, answers saved on device. Will sync when back online.
@@ -415,7 +517,7 @@ function QuestionView({
         </div>
       )}
 
-      <div className="mb-6 md:mb-8 text-base md:text-lg font-medium leading-relaxed text-text">
+      <div className="mb-6 md:mb-8 select-none text-base md:text-lg font-medium leading-relaxed text-text">
         <LatexRenderer content={question.question_text} />
       </div>
 
@@ -424,7 +526,7 @@ function QuestionView({
           const val = String(opt.originalIndex)
           return (
             <button key={opt.originalIndex} onClick={() => onAnswer(val)}
-              className={`w-full rounded-lg border px-5 py-3 text-left transition ${
+              className={`w-full select-none rounded-lg border px-5 py-3 text-left transition ${
                 selected === val ? 'border-brand bg-brand/10 text-text' : 'border-border text-text-muted hover:border-brand/50 hover:text-text'
               }`}
             >

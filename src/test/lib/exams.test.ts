@@ -426,6 +426,7 @@ describe('exams lib', () => {
           { question_id: 'q-1', answer: 'A' },
           { question_id: 'q-2', answer: 'B' },
         ],
+        p_session_token: expect.any(String),
       })
       expect(result).toEqual(mockResult)
     })
@@ -445,6 +446,7 @@ describe('exams lib', () => {
       expect(supabase.rpc).toHaveBeenCalledWith('get_exam_questions_safe', {
         p_exam_id: 'exam-1',
         p_attempt_id: 'att-1',
+        p_session_token: expect.any(String),
       })
       expect(res).toEqual(mockSafe)
     })
@@ -467,6 +469,7 @@ describe('exams lib', () => {
           { question_id: 'q-1', answer: '3' },
           { question_id: 'q-2', answer: '7' },
         ],
+        p_session_token: expect.any(String),
       })
       expect(res).toEqual({ saved: 2 })
     })
