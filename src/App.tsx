@@ -27,6 +27,7 @@ import WeakPoints from './pages/WeakPoints'
 import Bookmarks from './pages/Bookmarks'
 import GrapherPage from './pages/GrapherPage'
 import JoinGroup from './pages/JoinGroup'
+import Schedule from './pages/Schedule'
 
 // Scalable QueryClient config tuned for 1,000+ concurrent students:
 // - refetchOnWindowFocus disabled prevents 1,000 simultaneous students from hammering DB on tab focus
@@ -74,6 +75,7 @@ function App() {
               {/* Protected LMS content routes — mandatory sign-in */}
               <Route path="/sheets" element={<ProtectedLayout><Sheets /></ProtectedLayout>} />
               <Route path="/exams" element={<ProtectedLayout><Exams /></ProtectedLayout>} />
+              <Route path="/schedule" element={<ProtectedLayout><Schedule /></ProtectedLayout>} />
               <Route path="/exam/:id" element={<RequireAuth><Exam /></RequireAuth>} />
               <Route path="/practice/:id" element={<RequireAuth><Practice /></RequireAuth>} />
               <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />

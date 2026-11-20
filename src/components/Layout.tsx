@@ -57,6 +57,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <div className="hidden gap-6 md:flex">
                 <Link to="/sheets" className={navLink}>Sheets</Link>
                 <Link to="/exams" className={navLink}>Exams</Link>
+                <Link to="/schedule" className={navLink}>Schedule</Link>
                 <Link to="/dashboard" className={navLink}>Dashboard</Link>
                 <Link to="/grapher" className={navLink}>Grapher</Link>
               </div>
@@ -109,6 +110,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <>
                   <Link to="/sheets" className={navLink} onClick={() => setMenuOpen(false)}>Sheets</Link>
                   <Link to="/exams" className={navLink} onClick={() => setMenuOpen(false)}>Exams</Link>
+                  <Link to="/schedule" className={navLink} onClick={() => setMenuOpen(false)}>Schedule</Link>
                   <Link to="/dashboard" className={navLink} onClick={() => setMenuOpen(false)}>Dashboard</Link>
                   <Link to="/grapher" className={navLink} onClick={() => setMenuOpen(false)}>Grapher</Link>
                   <Link to="/profile" onClick={() => setMenuOpen(false)} className="rounded-lg border border-border bg-surface px-3 py-2 text-sm">
