@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { isValidEmailFormat } from '../lib/validation'
 import { useToast } from '../hooks/useToast'
@@ -80,9 +80,9 @@ export default function Login() {
           </div>
 
           <div className="flex justify-end">
-            <a href="/forgot-password" className="text-sm text-text-muted hover:text-brand">
+            <Link to="/forgot-password" className="text-sm text-text-muted hover:text-brand">
               Forgot password?
-            </a>
+            </Link>
           </div>
 
           {error && <p className="text-sm text-danger">{error}</p>}
@@ -120,9 +120,9 @@ export default function Login() {
 
           <p className="text-center text-base text-text-muted">
             No account?{' '}
-            <a href="/register" className="text-brand hover:underline">
+            <Link to="/register" className="text-brand hover:underline">
               Sign up
-            </a>
+            </Link>
           </p>
         </form>
       </div>

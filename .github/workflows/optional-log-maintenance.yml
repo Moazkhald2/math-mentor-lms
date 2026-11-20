@@ -1,0 +1,36 @@
+# Optional Portable Maintenance Workflow (Free-Tier Safe — No pg_cron Required)
+# Trigger manually from GitHub Actions -> "Optional DB Maintenance", or uncomment
+# the weekly `schedule` block once SUPABASE_URL and SUPABASE_SERVICE_KEY secrets
+# are added under Repository Settings -> Secrets and variables -> Actions.
+name: Optional DB Log Maintenance
+
+on:
+  workflow_dispatch:
+    inputs:
+      retention_days:
+        description: 'Days of activity logs to keep (min 7, default 90)'
+        required: false
+        default: '90'
+  # Uncomment below if you want automatic weekly Sunday 03:00 UTC pruning:
+  # schedule:
+  #   - cron: '0 3 * * 0'
+
+jobs:
+  prune-logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call portable prune_old_activity_logs RPC
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RETENTION_DAYS: ${{ github.event.inputs.retention_days || '90' }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_KEY" ]; then
+            echo "SUPABASE_URL or SUPABASE_SERVICE_KEY secret not set; skipping."
+            exit 0
+          fi
+          curl --fail-with-body -sS -X POST "${SUPABASE_URL}/rest/v1/rpc/prune_old_activity_logs" \
+            -H "apikey: ${SUPABASE_SERVICE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"p_retention_days\": ${RETENTION_DAYS}}"

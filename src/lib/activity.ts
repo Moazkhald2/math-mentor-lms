@@ -1,5 +1,7 @@
 import { supabase } from './supabase'
 
+// Strictly limited to meaningful security & learning milestone events
+// (never log routine UI clicks so Supabase Free 500 MB storage stays lean).
 export type ActivityAction =
   | 'exam_started'
   | 'exam_submitted'
@@ -10,6 +12,14 @@ export type ActivityAction =
   | 'practice_answered'
   | 'tab_switch'
   | 'violation'
+  | 'device_switch'
+
+export interface PruneMaintenanceResult {
+  retention_days: number
+  deleted_activity_logs: number
+  deleted_rate_limits: number
+  ran_at: string
+}
 
 export async function logActivity(
   userId: string,
@@ -24,6 +34,35 @@ export async function logActivity(
     details,
   })
   if (error) console.error('Failed to log activity:', error)
+}
+
+export async function fetchLogRetentionDays(): Promise<number> {
+  const { data, error } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'activity_log_retention_days')
+    .maybeSingle()
+  if (error || !data) return 90
+  const parsed = Number(data.value)
+  return Number.isFinite(parsed) && parsed >= 7 ? parsed : 90
+}
+
+/**
+ * Calls portable server maintenance RPC `prune_old_activity_logs`.
+ * Guaranteed Free-tier cleanup path — does not rely on pg_cron.
+ */
+export async function pruneOldActivityLogs(
+  retentionDays?: number
+): Promise<PruneMaintenanceResult> {
+  const clamped =
+    retentionDays === undefined
+      ? null
+      : Math.min(3650, Math.max(7, Math.floor(retentionDays)))
+  const { data, error } = await supabase.rpc('prune_old_activity_logs', {
+    p_retention_days: clamped,
+  })
+  if (error) throw error
+  return data as PruneMaintenanceResult
 }
 
 export async function fetchActivityLogs(

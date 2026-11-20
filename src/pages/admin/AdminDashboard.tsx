@@ -1,10 +1,37 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import { fetchLogRetentionDays, pruneOldActivityLogs, type PruneMaintenanceResult } from '../../lib/activity'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 const COLORS = ['var(--color-brand)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-danger)']
 
 export default function AdminDashboard() {
+  const [retentionDays, setRetentionDays] = useState<number>(90)
+  const [lastPrune, setLastPrune] = useState<PruneMaintenanceResult | null>(null)
+  const [pruneError, setPruneError] = useState<string | null>(null)
+
+  const { data: savedRetention } = useQuery({
+    queryKey: ['system-retention-days'],
+    queryFn: fetchLogRetentionDays,
+  })
+
+  useEffect(() => {
+    if (savedRetention) setRetentionDays(savedRetention)
+  }, [savedRetention])
+
+  const pruneMutation = useMutation({
+    mutationFn: () => pruneOldActivityLogs(retentionDays),
+    onSuccess: (res) => {
+      setLastPrune(res)
+      setRetentionDays(res.retention_days)
+      setPruneError(null)
+    },
+    onError: (e: Error) => {
+      setPruneError(e.message)
+    },
+  })
+
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
@@ -89,6 +116,50 @@ export default function AdminDashboard() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* Portable Free-Tier Maintenance Panel (No pg_cron required) */}
+      <div className="mt-8 rounded-xl border border-border bg-surface p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-text">Database Maintenance</h2>
+            <p className="mt-1 text-sm text-text-muted">
+              Prune old activity logs and expired rate-limit entries to keep Supabase Free storage well under 500 MB.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-text-muted">
+              <span>Keep last</span>
+              <input
+                type="number"
+                min={7}
+                max={3650}
+                value={retentionDays}
+                onChange={(e) => setRetentionDays(Math.max(7, Number(e.target.value) || 90))}
+                className="w-20 rounded-lg border border-border bg-primary px-2.5 py-1.5 text-sm font-semibold text-ink"
+              />
+              <span>days</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => pruneMutation.mutate()}
+              disabled={pruneMutation.isPending}
+              className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-light disabled:opacity-50"
+            >
+              {pruneMutation.isPending ? 'Running...' : 'Run Maintenance Now'}
+            </button>
+          </div>
+        </div>
+        {lastPrune && (
+          <p className="mt-3 rounded-lg border border-accent-green/30 bg-accent-green/5 px-3 py-2 text-xs text-accent-green">
+            Done: removed {lastPrune.deleted_activity_logs} old activity log(s) and {lastPrune.deleted_rate_limits} expired rate-limit record(s) (retention: {lastPrune.retention_days} days).
+          </p>
+        )}
+        {pruneError && (
+          <p className="mt-3 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
+            {pruneError}
+          </p>
+        )}
       </div>
     </div>
   )

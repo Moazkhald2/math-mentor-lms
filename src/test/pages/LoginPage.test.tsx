@@ -10,6 +10,7 @@ const mockSearchParams = new URLSearchParams()
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
   useSearchParams: () => [mockSearchParams, vi.fn()],
+  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
 }))
 
 // ---- Auth mocks ----

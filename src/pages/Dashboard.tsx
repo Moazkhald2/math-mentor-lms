@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
@@ -174,16 +175,16 @@ export default function Dashboard() {
         <h2 className="mb-1 text-lg font-bold text-text">What to do next</h2>
         <p className="mb-4 text-sm text-text-muted">Your focused path - finish these and earn gems</p>
         <div className="grid gap-3 md:grid-cols-2">
-          <a href="/exams" className="hover-lift rounded-2xl bg-brand p-4 text-white hover:bg-brand-light">
+          <Link to="/exams" className="hover-lift rounded-2xl bg-brand p-4 text-white hover:bg-brand-light">
             <div className="text-2xl">🎯</div>
             <p className="mt-2 font-bold">Take next exam</p>
             <p className="text-sm text-white/80">{completedAttempts.length === 0 ? 'Start your first mission' : `${completedAttempts.length} done, next awaits`}</p>
-          </a>
-          <a href="/practice/1" className="hover-lift rounded-2xl border border-border bg-tertiary p-4 hover:bg-surface">
+          </Link>
+          <Link to="/sheets" className="hover-lift rounded-2xl border border-border bg-tertiary p-4 hover:bg-surface">
             <div className="text-2xl">✨</div>
             <p className="mt-2 font-bold text-text">Practice weak spots</p>
             <p className="text-sm text-text-muted">Feedback after each question</p>
-          </a>
+          </Link>
         </div>
 
         {/* What's Next — ordered published exams not yet attempted */}
@@ -288,7 +289,7 @@ export default function Dashboard() {
           <span className="text-lg font-bold text-text">Recent Attempts ({attempts?.length ?? 0})</span>
         </summary>
         <div className="flex justify-end px-6 pb-1">
-          <a href="/exams" className="text-sm text-brand hover:underline">Browse exams →</a>
+          <Link to="/exams" className="text-sm text-brand hover:underline">Browse exams →</Link>
         </div>
         <div className="px-6 pb-5">
       {attempts && attempts.length === 0 && (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { isValidPassword } from '../lib/validation'
 
@@ -47,9 +47,9 @@ export default function ResetPassword() {
         <p className="text-text-muted">
           This link is invalid or expired. Please request a new one.
         </p>
-        <a href="/forgot-password" className="mt-6 inline-block text-sm text-brand hover:underline">
+        <Link to="/forgot-password" className="mt-6 inline-block text-sm text-brand hover:underline">
           Request new reset link
-        </a>
+        </Link>
       </div>
     )
   }

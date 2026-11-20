@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 const RESEND_COOLDOWN_SECONDS = 60
@@ -78,9 +79,9 @@ export default function ForgotPassword() {
                 ? `Resend link in ${cooldown}s`
                 : 'Resend reset link'}
           </button>
-          <a href="/login" className="text-sm text-brand hover:underline">
+          <Link to="/login" className="text-sm text-brand hover:underline">
             Back to Sign In
-          </a>
+          </Link>
         </div>
       </div>
     )
@@ -119,7 +120,7 @@ export default function ForgotPassword() {
 
         <p className="text-center text-sm text-text-muted">
           Remember your password?{' '}
-          <a href="/login" className="text-brand hover:underline">Sign in</a>
+          <Link to="/login" className="text-brand hover:underline">Sign in</Link>
         </p>
       </form>
     </div>

@@ -1,5 +1,5 @@
-import { useState, useEffect, type ReactNode } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Mail, Send, Phone } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
@@ -15,18 +15,25 @@ export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const checkedGradeUserRef = useRef<string | null>(null)
 
+  // Check once per signed-in user instead of re-querying Supabase on every route switch
   useEffect(() => {
-    if (loading || !user) return
+    if (loading) return
+    if (!user) {
+      checkedGradeUserRef.current = null
+      return
+    }
     const skip = location.pathname === '/complete-profile' || location.pathname.startsWith('/admin')
-    if (skip) return
+    if (skip || checkedGradeUserRef.current === user.id) return
+    checkedGradeUserRef.current = user.id
     supabase.from('profiles').select('grade').eq('id', user.id).single()
       .then(({ data }) => {
         if (data && !data.grade) {
-          window.location.href = '/complete-profile'
+          navigate('/complete-profile', { replace: true })
         }
       })
-  }, [user, loading, location.pathname])
+  }, [user, loading, location.pathname, navigate])
 
   function handleLogo() {
     navigate(user ? '/dashboard' : '/')
@@ -44,10 +51,10 @@ export default function Layout({ children }: { children: ReactNode }) {
               <img src="/logo-main.png" alt="The Math Mentor" className="h-11 w-auto rounded-2xl bg-white p-3 shadow-sm transition-transform duration-150 hover:scale-105" />
             </button>
             <div className="hidden gap-6 md:flex">
-              <a href="/sheets" className={navLink}>Sheets</a>
-              <a href="/exams" className={navLink}>Exams</a>
-              <a href="/dashboard" className={navLink}>Dashboard</a>
-              <a href="/grapher" className={navLink}>Grapher</a>
+              <Link to="/sheets" className={navLink}>Sheets</Link>
+              <Link to="/exams" className={navLink}>Exams</Link>
+              <Link to="/dashboard" className={navLink}>Dashboard</Link>
+              <Link to="/grapher" className={navLink}>Grapher</Link>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -55,13 +62,13 @@ export default function Layout({ children }: { children: ReactNode }) {
             <div className="hidden items-center gap-3 md:flex">
               {loading ? null : user ? (
                 <>
-                  <a href="/profile" className="text-base font-semibold text-text-muted transition-colors duration-150 hover:text-brand">{user.user_metadata.full_name}</a>
+                  <Link to="/profile" className="text-base font-semibold text-text-muted transition-colors duration-150 hover:text-brand">{user.user_metadata.full_name}</Link>
                   <button onClick={signOut} className="btn btn-outline px-5 py-2.5 text-base font-bold">Sign Out</button>
                 </>
               ) : (
                 <>
-                  <a href="/login" className="btn btn-outline px-6 py-3 text-lg font-semibold">Sign In</a>
-                  <a href="/register" className="btn btn-primary hover-lift px-7 py-3 text-lg font-extrabold">Sign Up</a>
+                  <Link to="/login" className="btn btn-outline px-6 py-3 text-lg font-semibold">Sign In</Link>
+                  <Link to="/register" className="btn btn-primary hover-lift px-7 py-3 text-lg font-extrabold">Sign Up</Link>
                 </>
               )}
             </div>
@@ -83,10 +90,10 @@ export default function Layout({ children }: { children: ReactNode }) {
         {menuOpen && (
           <div className="border-t border-border bg-secondary px-4 py-4 md:hidden">
             <div className="flex flex-col gap-3">
-              <a href="/sheets" className={navLink} onClick={() => setMenuOpen(false)}>Sheets</a>
-              <a href="/exams" className={navLink} onClick={() => setMenuOpen(false)}>Exams</a>
-              <a href="/dashboard" className={navLink} onClick={() => setMenuOpen(false)}>Dashboard</a>
-              <a href="/grapher" className={navLink} onClick={() => setMenuOpen(false)}>Grapher</a>
+              <Link to="/sheets" className={navLink} onClick={() => setMenuOpen(false)}>Sheets</Link>
+              <Link to="/exams" className={navLink} onClick={() => setMenuOpen(false)}>Exams</Link>
+              <Link to="/dashboard" className={navLink} onClick={() => setMenuOpen(false)}>Dashboard</Link>
+              <Link to="/grapher" className={navLink} onClick={() => setMenuOpen(false)}>Grapher</Link>
               {loading ? null : user ? (
                 <>
                   <span className="text-sm text-muted">Signed in as {user.user_metadata.full_name}</span>
@@ -94,8 +101,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </>
               ) : (
                 <>
-                  <a href="/login" className="btn btn-outline w-full text-center" onClick={() => setMenuOpen(false)}>Sign In</a>
-                  <a href="/register" className="btn btn-primary w-full text-center font-bold" onClick={() => setMenuOpen(false)}>Sign Up</a>
+                  <Link to="/login" className="btn btn-outline w-full text-center" onClick={() => setMenuOpen(false)}>Sign In</Link>
+                  <Link to="/register" className="btn btn-primary w-full text-center font-bold" onClick={() => setMenuOpen(false)}>Sign Up</Link>
                 </>
               )}
             </div>

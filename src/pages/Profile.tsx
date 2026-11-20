@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
@@ -136,7 +137,7 @@ export default function Profile() {
             {a.status === 'completed' ? (
               <div className="flex items-center gap-3 shrink-0 ml-3">
                 <span className={`text-lg font-bold ${(a.score ?? 0) >= 60 ? 'text-accent-green' : 'text-danger'}`}>{a.score}%</span>
-                <a href={`/results/${a.id}`} className="text-sm text-brand hover:underline">Review</a>
+                <Link to={`/results/${a.id}`} className="text-sm text-brand hover:underline">Review</Link>
               </div>
             ) : (
               <span className="text-sm text-text-muted shrink-0 ml-3">{a.status}</span>
@@ -146,7 +147,7 @@ export default function Profile() {
       </div>
 
       <div className="text-center">
-        <a href="/settings" className="text-sm text-brand hover:underline">Edit Settings →</a>
+        <Link to="/settings" className="text-sm text-brand hover:underline">Edit Settings →</Link>
       </div>
     </div>
   )

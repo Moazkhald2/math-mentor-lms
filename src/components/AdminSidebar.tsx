@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 const links = [
   { href: '/admin', label: 'Dashboard', icon: '📊' },
@@ -29,9 +29,9 @@ export default function AdminSidebar() {
           {links.map((link) => {
             const active = location.pathname === link.href
             return (
-              <a
+              <Link
                 key={link.href}
-                href={link.href}
+                to={link.href}
                 className={`nav-link ${
                   active
                     ? 'bg-brand text-brand-foreground'
@@ -40,16 +40,16 @@ export default function AdminSidebar() {
               >
                 <span>{link.icon}</span>
                 {link.label}
-              </a>
+              </Link>
             )
           })}
           <p className="pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-text-muted/70">Tools</p>
           {toolLinks.map((link) => {
             const active = location.pathname === link.href
             return (
-              <a
+              <Link
                 key={link.href}
-                href={link.href}
+                to={link.href}
                 className={`nav-link ${
                   active
                     ? 'bg-brand text-brand-foreground'
@@ -58,7 +58,7 @@ export default function AdminSidebar() {
               >
                 <span>{link.icon}</span>
                 {link.label}
-              </a>
+              </Link>
             )
           })}
         </div>
@@ -68,9 +68,9 @@ export default function AdminSidebar() {
           {[...links, ...toolLinks].map((link) => {
             const active = location.pathname === link.href
             return (
-              <a
+              <Link
                 key={link.href}
-                href={link.href}
+                to={link.href}
                 className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   active
                     ? 'bg-brand text-brand-foreground'
@@ -79,7 +79,7 @@ export default function AdminSidebar() {
               >
                 <span>{link.icon}</span>
                 {link.label}
-              </a>
+              </Link>
             )
           })}
         </div>
