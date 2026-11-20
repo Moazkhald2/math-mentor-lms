@@ -1,7 +1,16 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { fetchPracticeQuestionsSafe, startPractice, upsertAnswer, finishPractice } from '../lib/practice'
+import {
+  fetchPracticeQuestionsSafe,
+  resumeOrStartPractice,
+  upsertAnswer,
+  finishPractice,
+  savePracticeCheckpoint,
+  loadPracticeCheckpoint,
+  clearPracticeCheckpoint,
+  type SavedPracticeAnswer,
+} from '../lib/practice'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useActivityLogger } from '../hooks/useActivityLogger'
@@ -25,12 +34,18 @@ export default function Practice() {
   const [submitted, setSubmitted] = useState(false)
   const attemptRef = useRef<ExamAttempt | null>(null)
   const [saving, setSaving] = useState(false)
+  const [exiting, setExiting] = useState(false)
   const [initError, setInitError] = useState<string | null>(null)
   const correctCountRef = useRef(0)
   const startedRef = useRef(false)
+  const appliedResumeIndexRef = useRef(false)
   const [questionOverrides, setQuestionOverrides] = useState<Record<string, Question>>({})
   const retryCountsRef = useRef<Record<string, number>>({})
   const scoredQuestionsRef = useRef<Set<string>>(new Set())
+  const [answeredMap, setAnsweredMap] = useState<Record<string, SavedPracticeAnswer>>({})
+  const [resumedInfo, setResumedInfo] = useState<{ answeredCount: number } | null>(null)
+  const [sessionInitialized, setSessionInitialized] = useState(false)
+  const savedCheckpointIndexRef = useRef<number | null>(null)
 
   type ExamWithQuestions = Exam & {
     questions: (ExamQuestion & { question: Question })[]
@@ -71,34 +86,123 @@ export default function Practice() {
     enabled: !!id && !!user,
   })
 
+  const persistCheckpoint = useCallback(
+    (nextIndex: number, nextAnsweredMap: Record<string, SavedPracticeAnswer>, totalQuestions: number) => {
+      if (!user || !id || totalQuestions <= 0) return
+      const attId = attemptRef.current?.id || `local_att_${id}`
+      savePracticeCheckpoint({
+        attemptId: attId,
+        examId: id,
+        userId: user.id,
+        currentIndex: nextIndex,
+        totalQuestions,
+        answeredMap: nextAnsweredMap,
+        updatedAt: new Date().toISOString(),
+      })
+    },
+    [user, id]
+  )
+
   useEffect(() => {
     if (authLoading || !user) return
     if (id && !startedRef.current) {
       startedRef.current = true
       const uid = user.id
-      startPractice(id, uid)
-        .then((attempt) => {
+      const localCp = loadPracticeCheckpoint(uid, id)
+      if (localCp && typeof localCp.currentIndex === 'number') {
+        savedCheckpointIndexRef.current = localCp.currentIndex
+      }
+
+      resumeOrStartPractice(id, uid)
+        .then(({ attempt, answers, resumed }) => {
           attemptRef.current = attempt
-          log('practice_started', { exam_id: id })
+
+          const merged: Record<string, SavedPracticeAnswer> = {
+            ...(localCp?.answeredMap ?? {}),
+          }
+          const serverQids = new Set<string>()
+          for (const row of answers) {
+            serverQids.add(row.question_id)
+            merged[row.question_id] = {
+              answer: row.answer,
+              isCorrect: !!row.is_correct,
+            }
+          }
+
+          // Rehydrate refs from merged answers
+          scoredQuestionsRef.current = new Set(Object.keys(merged))
+          correctCountRef.current = Object.values(merged).filter((a) => a.isCorrect).length
+          setAnsweredMap(merged)
+
+          const mergedCount = Object.keys(merged).length
+          if (resumed || mergedCount > 0 || (localCp && localCp.currentIndex > 0)) {
+            setResumedInfo({ answeredCount: mergedCount })
+            log('practice_resumed', { exam_id: id, attempt_id: attempt.id, answered: mergedCount })
+          } else {
+            log('practice_started', { exam_id: id })
+          }
+
+          // Flush any offline-only local answers to the active server attempt
+          if (!attempt.id.startsWith('local_') && localCp?.answeredMap) {
+            for (const [qid, entry] of Object.entries(localCp.answeredMap)) {
+              if (!serverQids.has(qid)) {
+                upsertAnswer(attempt.id, qid, entry.answer, entry.isCorrect, entry.isCorrect ? 1 : 0).catch(() => {})
+              }
+            }
+          }
+
+          setSessionInitialized(true)
         })
         .catch((e) => {
-          console.warn('Backend startPractice failed, falling back to local practice session:', e)
+          console.warn('Backend resumeOrStartPractice failed, falling back to local practice session:', e)
           if (!id) {
             setInitError('Practice sheet not found.')
             return
           }
-          // Robust session fallback: authenticated student can practice without being kicked out
+          // Robust session fallback: restore local checkpoint if present
           attemptRef.current = {
-            id: `local_att_${Date.now()}`,
+            id: localCp?.attemptId || `local_att_${Date.now()}`,
             exam_id: id,
             user_id: uid,
             started_at: new Date().toISOString(),
             total_points: 0,
             status: 'in_progress',
           }
+          const localAnswers = localCp?.answeredMap ?? {}
+          scoredQuestionsRef.current = new Set(Object.keys(localAnswers))
+          correctCountRef.current = Object.values(localAnswers).filter((a) => a.isCorrect).length
+          setAnsweredMap(localAnswers)
+          if (Object.keys(localAnswers).length > 0 || (localCp && localCp.currentIndex > 0)) {
+            setResumedInfo({ answeredCount: Object.keys(localAnswers).length })
+          }
+          setSessionInitialized(true)
         })
     }
   }, [id, user, authLoading, log])
+
+  // Once both exam questions and session hydration are ready, jump to the right resume index
+  useEffect(() => {
+    if (!sessionInitialized || !exam || exam.questions.length === 0 || appliedResumeIndexRef.current) return
+    appliedResumeIndexRef.current = true
+
+    const eqs = exam.questions
+    let targetIndex = 0
+    if (savedCheckpointIndexRef.current !== null) {
+      targetIndex = Math.max(0, Math.min(savedCheckpointIndexRef.current, eqs.length - 1))
+    } else if (Object.keys(answeredMap).length > 0) {
+      const firstUnanswered = eqs.findIndex((eq) => !answeredMap[eq.question.id])
+      targetIndex = firstUnanswered === -1 ? eqs.length - 1 : firstUnanswered
+    }
+
+    setCurrentIndex(targetIndex)
+    const targetQid = eqs[targetIndex]?.question.id
+    if (targetQid && answeredMap[targetQid]) {
+      setSelectedAnswer(answeredMap[targetQid].answer)
+      setSubmitted(true)
+    }
+
+    persistCheckpoint(targetIndex, answeredMap, eqs.length)
+  }, [sessionInitialized, exam, answeredMap, persistCheckpoint])
 
   if (authLoading) {
     return (
@@ -150,6 +254,8 @@ export default function Practice() {
   if (!current) return <p className="text-text-muted">Loading question...</p>
 
   const activeQuestion = questionOverrides[current.question.id] ?? current.question
+  const answeredCount = Object.keys(answeredMap).length
+  const progressPercent = eqs.length > 0 ? Math.min(100, Math.round((answeredCount / eqs.length) * 100)) : 0
 
   const isRetryable = !!activeQuestion.params && Object.keys(activeQuestion.params).length > 0
 
@@ -176,29 +282,58 @@ export default function Practice() {
       : ans === activeQuestion.correct_answer
 
     const attId = attemptRef.current?.id || `local_att_${Date.now()}`
+    let nextAnsweredMap = answeredMap
     try {
       if (!scoredQuestionsRef.current.has(activeQuestion.id)) {
         scoredQuestionsRef.current.add(activeQuestion.id)
+        nextAnsweredMap = {
+          ...answeredMap,
+          [activeQuestion.id]: { answer: ans, isCorrect: correct },
+        }
+        setAnsweredMap(nextAnsweredMap)
+        if (correct) correctCountRef.current++
+        persistCheckpoint(currentIndex, nextAnsweredMap, eqs.length)
         if (!attId.startsWith('local_')) {
           await upsertAnswer(attId, activeQuestion.id, ans, correct, correct ? 1 : 0)
         }
-        if (correct) correctCountRef.current++
       }
       setSubmitted(true)
       log('practice_answered', { question_id: activeQuestion.id, correct, answer_given: selectedAnswer })
     } catch (e) {
       console.warn('Answer saved locally:', e)
+      persistCheckpoint(currentIndex, nextAnsweredMap, eqs.length)
       setSubmitted(true)
     } finally {
       setSaving(false)
     }
   }
 
+  const handleSaveAndExit = () => {
+    setExiting(true)
+    persistCheckpoint(currentIndex, answeredMap, eqs.length)
+    log('practice_saved_exit', {
+      exam_id: id,
+      attempt_id: attemptRef.current?.id,
+      current_index: currentIndex,
+      answered: answeredCount,
+      total: eqs.length,
+    })
+    navigate('/sheets')
+  }
+
   const handleNext = async () => {
     if (currentIndex < eqs.length - 1) {
-      setCurrentIndex(currentIndex + 1)
-      setSelectedAnswer(null)
-      setSubmitted(false)
+      const nextIdx = currentIndex + 1
+      setCurrentIndex(nextIdx)
+      const nextQid = eqs[nextIdx]?.question.id
+      if (nextQid && answeredMap[nextQid]) {
+        setSelectedAnswer(answeredMap[nextQid].answer)
+        setSubmitted(true)
+      } else {
+        setSelectedAnswer(null)
+        setSubmitted(false)
+      }
+      persistCheckpoint(nextIdx, answeredMap, eqs.length)
     } else {
       const attId = attemptRef.current?.id || `local_att_${Date.now()}`
       const total = eqs.reduce((sum, eq) => sum + (eq.points ?? 1), 0)
@@ -213,6 +348,9 @@ export default function Practice() {
           console.warn('Failed to finish practice on backend:', e)
         }
       }
+      if (user && id) {
+        clearPracticeCheckpoint(user.id, id)
+      }
       navigate(`/results/${attId}`)
     }
   }
@@ -223,9 +361,9 @@ export default function Practice() {
         label={user?.user_metadata?.full_name ?? user?.email ?? 'Student'}
         sublabel={user?.email}
       />
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-text">{exam.title}</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Scratchpad />
           <CartesianGrapherModal
             onInsertAnswer={(summary) => {
@@ -234,9 +372,55 @@ export default function Practice() {
               }
             }}
           />
-          <span className="text-sm text-text-muted">Question {currentIndex + 1} of {eqs.length}</span>
+          <button
+            type="button"
+            onClick={handleSaveAndExit}
+            disabled={exiting || saving}
+            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text hover:border-brand hover:text-brand transition disabled:opacity-50"
+          >
+            💾 Save & Exit
+          </button>
         </div>
       </div>
+
+      {/* Progress Bar */}
+      <div className="mb-4 space-y-1.5">
+        <div className="flex items-center justify-between text-xs text-text-muted">
+          <span>
+            Question <strong className="text-text">{currentIndex + 1}</strong> of {eqs.length}
+          </span>
+          <span className="font-semibold text-brand">
+            {answeredCount} / {eqs.length} answered ({progressPercent}%)
+          </span>
+        </div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-border/60">
+          <div
+            className="h-full rounded-full bg-brand transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+            role="progressbar"
+            aria-valuenow={progressPercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Practice sheet progress"
+          />
+        </div>
+      </div>
+
+      {resumedInfo && (
+        <div className="mb-4 flex items-center justify-between rounded-xl border border-brand/25 bg-brand/5 px-3.5 py-2 text-xs text-ink">
+          <span>
+            ✨ Resumed where you left off ({resumedInfo.answeredCount} / {eqs.length} answered). Your progress saves automatically.
+          </span>
+          <button
+            type="button"
+            onClick={() => setResumedInfo(null)}
+            className="ml-2 font-bold text-brand hover:underline"
+            aria-label="Dismiss resumed notice"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="mb-6 rounded-xl border border-border bg-surface p-6">
         {activeQuestion.image_url && (

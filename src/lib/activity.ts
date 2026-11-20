@@ -7,6 +7,8 @@ export type ActivityAction =
   | 'exam_submitted'
   | 'exam_saved'
   | 'practice_started'
+  | 'practice_resumed'
+  | 'practice_saved_exit'
   | 'practice_submitted'
   | 'question_answered'
   | 'practice_answered'

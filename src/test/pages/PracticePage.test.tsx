@@ -14,9 +14,12 @@ vi.mock('../../lib/supabase', () => ({
 
 vi.mock('../../lib/practice', () => ({
   fetchPracticeQuestionsSafe: vi.fn(),
-  startPractice: vi.fn(),
+  resumeOrStartPractice: vi.fn(),
   upsertAnswer: vi.fn(),
   finishPractice: vi.fn(),
+  savePracticeCheckpoint: vi.fn(),
+  loadPracticeCheckpoint: vi.fn(() => null),
+  clearPracticeCheckpoint: vi.fn(),
 }))
 
 vi.mock('../../hooks/useAuth', () => ({
@@ -39,7 +42,15 @@ vi.mock('../../lib/shuffle', () => ({
 }))
 
 import { supabase } from '../../lib/supabase'
-import { fetchPracticeQuestionsSafe, startPractice, upsertAnswer, finishPractice } from '../../lib/practice'
+import {
+  fetchPracticeQuestionsSafe,
+  resumeOrStartPractice,
+  upsertAnswer,
+  finishPractice,
+  savePracticeCheckpoint,
+  loadPracticeCheckpoint,
+  clearPracticeCheckpoint,
+} from '../../lib/practice'
 
 function renderPractice() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -48,6 +59,8 @@ function renderPractice() {
       <MemoryRouter initialEntries={['/practice/exam-1']}>
         <Routes>
           <Route path="/practice/:id" element={<Practice />} />
+          <Route path="/sheets" element={<div>Sheets Page</div>} />
+          <Route path="/results/:attemptId" element={<div>Results Page</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -70,17 +83,41 @@ function createQueryBuilder(returnData: any[] = []) {
   return chain
 }
 
+const makeQuestion = (id: string, text: string) => ({
+  id: `eq-${id}`,
+  exam_id: 'exam-1',
+  question_id: id,
+  order_index: 1,
+  points: 1,
+  question: {
+    id,
+    type: 'multiple_choice' as const,
+    question_text: text,
+    options: ['3', '4', '5'],
+    correct_answer: '1',
+    explanation: '2+2=4',
+    subject: 'math',
+    topic: 'algebra',
+    difficulty: 1 as const,
+    image_url: '',
+    common_mistakes: [],
+    created_by: '',
+    created_at: '',
+    variant_group_id: null,
+  },
+})
+
 describe('PracticePage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(loadPracticeCheckpoint).mockReturnValue(null)
   })
 
-  it('starts a practice attempt on mount', async () => {
+  it('starts or resumes a practice attempt on mount', async () => {
     const mockAttempt: ExamAttempt = { id: 'att-1', exam_id: 'exam-1', user_id: 'user-1', started_at: new Date().toISOString(), completed_at: null, score: null, total_points: 0, status: 'in_progress' } as any
-    vi.mocked(startPractice).mockResolvedValue(mockAttempt)
+    vi.mocked(resumeOrStartPractice).mockResolvedValue({ attempt: mockAttempt, answers: [], resumed: false })
 
-    const mockQuestions = [{ id: 'eq-1', exam_id: 'exam-1', question_id: 'q-1', order_index: 1, points: 1, question: { id: 'q-1', type: 'multiple_choice' as const, question_text: 'What is 2+2?', options: ['3', '4', '5'], correct_answer: '1', explanation: '2+2=4', subject: 'math', topic: 'algebra', difficulty: 1 as const, image_url: '', common_mistakes: [], created_by: '', created_at: '', variant_group_id: null } }]
-    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue(mockQuestions)
+    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue([makeQuestion('q-1', 'What is 2+2?')])
     const qb = createQueryBuilder([])
     vi.mocked(supabase.from).mockReturnValue(qb)
     qb.single = vi.fn(() => Promise.resolve({ data: { id: 'exam-1', title: 'Practice Algebra', type: 'practice', shuffle_questions: false }, error: null }))
@@ -88,16 +125,15 @@ describe('PracticePage', () => {
     renderPractice()
 
     await waitFor(() => {
-      expect(startPractice).toHaveBeenCalledWith('exam-1', 'user-1')
+      expect(resumeOrStartPractice).toHaveBeenCalledWith('exam-1', 'user-1')
     })
   })
 
-  it('upserts answer when user submits', async () => {
+  it('upserts answer and checkpoints progress when user submits', async () => {
     const mockAttempt: ExamAttempt = { id: 'att-1', exam_id: 'exam-1', user_id: 'user-1', started_at: new Date().toISOString(), completed_at: null, score: null, total_points: 0, status: 'in_progress' } as any
-    vi.mocked(startPractice).mockResolvedValue(mockAttempt)
+    vi.mocked(resumeOrStartPractice).mockResolvedValue({ attempt: mockAttempt, answers: [], resumed: false })
     vi.mocked(upsertAnswer).mockResolvedValue({ id: 'ans-1' } as any)
-    const mockQuestions = [{ id: 'eq-1', exam_id: 'exam-1', question_id: 'q-1', order_index: 1, points: 1, question: { id: 'q-1', type: 'multiple_choice' as const, question_text: 'What is 2+2?', options: ['3', '4', '5'], correct_answer: '1', explanation: '2+2=4', subject: 'math', topic: 'algebra', difficulty: 1 as const, image_url: '', common_mistakes: [], created_by: '', created_at: '', variant_group_id: null } }]
-    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue(mockQuestions)
+    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue([makeQuestion('q-1', 'What is 2+2?')])
 
     const qb = createQueryBuilder([])
     vi.mocked(supabase.from).mockReturnValue(qb)
@@ -111,16 +147,72 @@ describe('PracticePage', () => {
 
     await waitFor(() => {
       expect(upsertAnswer).toHaveBeenCalledWith('att-1', 'q-1', '1', true, expect.any(Number))
+      expect(savePracticeCheckpoint).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attemptId: 'att-1',
+          examId: 'exam-1',
+          userId: 'user-1',
+          totalQuestions: 1,
+          answeredMap: { 'q-1': { answer: '1', isCorrect: true } },
+        })
+      )
     })
   })
 
-  it('finishes practice and navigates to results', async () => {
+  it('saves checkpoint and returns to /sheets when clicking Save & Exit', async () => {
     const mockAttempt: ExamAttempt = { id: 'att-1', exam_id: 'exam-1', user_id: 'user-1', started_at: new Date().toISOString(), completed_at: null, score: null, total_points: 0, status: 'in_progress' } as any
-    vi.mocked(startPractice).mockResolvedValue(mockAttempt)
+    vi.mocked(resumeOrStartPractice).mockResolvedValue({ attempt: mockAttempt, answers: [], resumed: false })
+    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue([
+      makeQuestion('q-1', 'Question One'),
+      makeQuestion('q-2', 'Question Two'),
+    ])
+
+    const qb = createQueryBuilder([])
+    vi.mocked(supabase.from).mockReturnValue(qb)
+    qb.single = vi.fn(() => Promise.resolve({ data: { id: 'exam-1', title: 'Practice Algebra', type: 'practice', shuffle_questions: false }, error: null }))
+
+    renderPractice()
+
+    await waitFor(() => expect(screen.getByText('Question One')).toBeInTheDocument())
+    await userEvent.click(screen.getByRole('button', { name: /Save & Exit/i }))
+
+    await waitFor(() => {
+      expect(savePracticeCheckpoint).toHaveBeenCalled()
+      expect(screen.getByText('Sheets Page')).toBeInTheDocument()
+    })
+  })
+
+  it('resumes directly at the first unanswered question when returning to an in-progress sheet', async () => {
+    const mockAttempt: ExamAttempt = { id: 'att-1', exam_id: 'exam-1', user_id: 'user-1', started_at: new Date().toISOString(), completed_at: null, score: null, total_points: 0, status: 'in_progress' } as any
+    vi.mocked(resumeOrStartPractice).mockResolvedValue({
+      attempt: mockAttempt,
+      answers: [{ question_id: 'q-1', answer: '1', is_correct: true }],
+      resumed: true,
+    })
+    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue([
+      makeQuestion('q-1', 'Question One'),
+      makeQuestion('q-2', 'Question Two'),
+    ])
+
+    const qb = createQueryBuilder([])
+    vi.mocked(supabase.from).mockReturnValue(qb)
+    qb.single = vi.fn(() => Promise.resolve({ data: { id: 'exam-1', title: 'Practice Algebra', type: 'practice', shuffle_questions: false }, error: null }))
+
+    renderPractice()
+
+    await waitFor(() => {
+      expect(screen.getByText('Question Two')).toBeInTheDocument()
+      expect(screen.getByText(/Resumed where you left off/i)).toBeInTheDocument()
+      expect(screen.getByText(/1 \/ 2 answered \(50%\)/i)).toBeInTheDocument()
+    })
+  })
+
+  it('finishes practice, clears checkpoint, and navigates to results', async () => {
+    const mockAttempt: ExamAttempt = { id: 'att-1', exam_id: 'exam-1', user_id: 'user-1', started_at: new Date().toISOString(), completed_at: null, score: null, total_points: 0, status: 'in_progress' } as any
+    vi.mocked(resumeOrStartPractice).mockResolvedValue({ attempt: mockAttempt, answers: [], resumed: false })
     vi.mocked(upsertAnswer).mockResolvedValue({ id: 'ans-1' } as any)
-    vi.mocked(finishPractice).mockResolvedValue({ id: 'att-1', score: 1, total_points: 1, status: 'completed' } as any)
-    const mockQuestions = [{ id: 'eq-1', exam_id: 'exam-1', question_id: 'q-1', order_index: 1, points: 1, question: { id: 'q-1', type: 'multiple_choice' as const, question_text: 'What is 2+2?', options: ['3', '4', '5'], correct_answer: '1', explanation: '2+2=4', subject: 'math', topic: 'algebra', difficulty: 1 as const, image_url: '', common_mistakes: [], created_by: '', created_at: '', variant_group_id: null } }]
-    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue(mockQuestions)
+    vi.mocked(finishPractice).mockResolvedValue({ id: 'att-1', score: 100, total_points: 1, status: 'completed' } as any)
+    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue([makeQuestion('q-1', 'What is 2+2?')])
 
     const qb = createQueryBuilder([])
     vi.mocked(supabase.from).mockReturnValue(qb)
@@ -136,6 +228,7 @@ describe('PracticePage', () => {
 
     await waitFor(() => {
       expect(finishPractice).toHaveBeenCalledWith('att-1', 100, 1)
+      expect(clearPracticeCheckpoint).toHaveBeenCalledWith('user-1', 'exam-1')
     })
   })
 })
