@@ -23,7 +23,7 @@ describe('Layout copyright footer', () => {
 
     const year = new Date().getFullYear()
     const footer = screen.getByRole('contentinfo')
-    expect(footer.textContent).toContain(`© ${year} The Math Mentor — All Rights Reserved.`)
+    expect(footer.textContent).toContain(`© ${year} Moaaz Khaled — The Math Mentor. All Rights Reserved.`)
     expect(footer.textContent).not.toContain('\uFFFD')
   })
 })
