@@ -41,6 +41,18 @@ export function shuffleMultipleChoice(
   }
 }
 
+/**
+ * Shuffles multiple-choice display order deterministically WITHOUT needing correct_answer.
+ * Preserves each option's canonical originalIndex so student answers match server-side keys.
+ */
+export function shuffleOptionsPreservingIndex(
+  options: string[],
+  seed: string
+): Array<{ text: string; originalIndex: number }> {
+  const indexed = options.map((text, originalIndex) => ({ text, originalIndex }))
+  return seededShuffle(indexed, seed + '_opts')
+}
+
 // Numeric jitter: change numbers inside text using date+seed for anti-cheat
 // Only jitters small integers 2-99, delta -2..+2, keeps LaTeX valid
 export function jitterNumbers(text: string, seed: string): string {

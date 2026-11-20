@@ -1,144 +1,102 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-function createQueryBuilder(returnData: any[] = []) {
-  const resolveValue = { data: returnData, error: null }
-  const chain: any = {
-    eq: vi.fn(() => chain),
-    select: vi.fn(() => chain),
-    single: vi.fn(() => Promise.resolve({ data: returnData[0], error: null })),
-    insert: vi.fn(() => chain),
-    upsert: vi.fn(() => chain),
-    update: vi.fn(() => chain),
-    order: vi.fn(() => chain),
-    then: (onFulfilled: any) => Promise.resolve(resolveValue).then(onFulfilled),
-  }
-  return chain
-}
-
-vi.mock('../../lib/supabase', () => {
-  const mockQuery = createQueryBuilder([])
-  return {
-    supabase: {
-      from: vi.fn(() => mockQuery),
-    },
-  }
-})
+vi.mock('../../lib/supabase', () => ({
+  supabase: {
+    rpc: vi.fn(),
+  },
+}))
 
 import { supabase } from '../../lib/supabase'
-import { startPractice, upsertAnswer, finishPractice } from '../../lib/practice'
+import {
+  fetchPracticeQuestionsSafe,
+  startPractice,
+  upsertAnswer,
+  finishPractice,
+} from '../../lib/practice'
 
-describe('practice lib', () => {
+describe('practice lib (safe server RPCs)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  describe('startPractice', () => {
-    it('inserts exam_attempt with exam_id, user_id, started_at, status in_progress', async () => {
-      const qb = createQueryBuilder([{ id: 'att-1', exam_id: 'exam-1', user_id: 'user-1', status: 'in_progress' }])
-      vi.mocked(supabase.from).mockReturnValue(qb)
-      await startPractice('exam-1', 'user-1')
-      expect(supabase.from).toHaveBeenCalledWith('exam_attempts')
-      expect(qb.insert).toHaveBeenCalledWith(expect.objectContaining({
-        exam_id: 'exam-1',
-        user_id: 'user-1',
-        status: 'in_progress',
-        started_at: expect.any(String),
-      }))
-      expect(qb.select).toHaveBeenCalled()
-      expect(qb.single).toHaveBeenCalled()
+  describe('fetchPracticeQuestionsSafe', () => {
+    it('calls get_practice_questions_safe RPC', async () => {
+      const mockRows = [{ id: 'eq-1', question_id: 'q-1', question: { id: 'q-1' } }]
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: mockRows, error: null } as any)
+      const result = await fetchPracticeQuestionsSafe('sheet-1')
+      expect(supabase.rpc).toHaveBeenCalledWith('get_practice_questions_safe', { p_exam_id: 'sheet-1' })
+      expect(result).toEqual(mockRows)
     })
 
-    it('returns the created attempt', async () => {
+    it('throws when RPC rejects live exams', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: null, error: new Error('not_a_practice_sheet') } as any)
+      await expect(fetchPracticeQuestionsSafe('live-exam-1')).rejects.toThrow('not_a_practice_sheet')
+    })
+  })
+
+  describe('startPractice', () => {
+    it('calls start_practice_attempt RPC and returns the created attempt', async () => {
       const mockAttempt = { id: 'att-1', exam_id: 'exam-1', status: 'in_progress' }
-      const qb = createQueryBuilder([mockAttempt])
-      vi.mocked(supabase.from).mockReturnValue(qb)
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: mockAttempt, error: null } as any)
       const result = await startPractice('exam-1', 'user-1')
+      expect(supabase.rpc).toHaveBeenCalledWith('start_practice_attempt', { p_exam_id: 'exam-1' })
       expect(result).toEqual(mockAttempt)
     })
 
     it('throws on error', async () => {
-      const qb = createQueryBuilder([])
-      qb.single = vi.fn(() => Promise.resolve({ data: null, error: new Error('DB error') }))
-      vi.mocked(supabase.from).mockReturnValue(qb)
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: null, error: new Error('DB error') } as any)
       await expect(startPractice('exam-1', 'user-1')).rejects.toThrow('DB error')
     })
   })
 
   describe('upsertAnswer', () => {
-    it('upserts into answers table with attempt_id, question_id, answer, is_correct, points_earned', async () => {
-      const qb = createQueryBuilder([])
-      vi.mocked(supabase.from).mockReturnValue(qb)
-      await upsertAnswer('att-1', 'q-1', 'B', true, 1)
-      expect(supabase.from).toHaveBeenCalledWith('answers')
-      expect(qb.upsert).toHaveBeenCalledWith({
-        attempt_id: 'att-1',
-        question_id: 'q-1',
-        answer: 'B',
-        is_correct: true,
-        points_earned: 1,
+    it('calls upsert_practice_answer RPC with all arguments', async () => {
+      const mockAnswer = { id: 'ans-1', attempt_id: 'att-1', answer: 'B' }
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: mockAnswer, error: null } as any)
+      const result = await upsertAnswer('att-1', 'q-1', 'B', true, 1)
+      expect(supabase.rpc).toHaveBeenCalledWith('upsert_practice_answer', {
+        p_attempt_id: 'att-1',
+        p_question_id: 'q-1',
+        p_answer: 'B',
+        p_is_correct: true,
+        p_points_earned: 1,
       })
-      expect(qb.select).toHaveBeenCalled()
-      expect(qb.single).toHaveBeenCalled()
-    })
-
-    it('defaults isCorrect to false and pointsEarned to 0', async () => {
-      const qb = createQueryBuilder([])
-      vi.mocked(supabase.from).mockReturnValue(qb)
-      await upsertAnswer('att-1', 'q-1', 'A')
-      expect(qb.upsert).toHaveBeenCalledWith({
-        attempt_id: 'att-1',
-        question_id: 'q-1',
-        answer: 'A',
-        is_correct: false,
-        points_earned: 0,
-      })
-    })
-
-    it('returns the upserted answer', async () => {
-      const mockAnswer = { id: 'ans-1', attempt_id: 'att-1', answer: 'A' }
-      const qb = createQueryBuilder([mockAnswer])
-      vi.mocked(supabase.from).mockReturnValue(qb)
-      const result = await upsertAnswer('att-1', 'q-1', 'A')
       expect(result).toEqual(mockAnswer)
     })
 
+    it('defaults isCorrect to false and pointsEarned to 0', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: { id: 'ans-1' }, error: null } as any)
+      await upsertAnswer('att-1', 'q-1', 'A')
+      expect(supabase.rpc).toHaveBeenCalledWith('upsert_practice_answer', {
+        p_attempt_id: 'att-1',
+        p_question_id: 'q-1',
+        p_answer: 'A',
+        p_is_correct: false,
+        p_points_earned: 0,
+      })
+    })
+
     it('throws on error', async () => {
-      const qb = createQueryBuilder([])
-      qb.single = vi.fn(() => Promise.resolve({ data: null, error: new Error('Upsert failed') }))
-      vi.mocked(supabase.from).mockReturnValue(qb)
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: null, error: new Error('Upsert failed') } as any)
       await expect(upsertAnswer('att-1', 'q-1', 'A')).rejects.toThrow('Upsert failed')
     })
   })
 
   describe('finishPractice', () => {
-    it('updates exam_attempts with completed_at, score, total_points, status completed', async () => {
-      const qb = createQueryBuilder([{ id: 'att-1', score: 7, status: 'completed' }])
-      vi.mocked(supabase.from).mockReturnValue(qb)
-      await finishPractice('att-1', 7, 10)
-      expect(supabase.from).toHaveBeenCalledWith('exam_attempts')
-      expect(qb.update).toHaveBeenCalledWith(expect.objectContaining({
-        completed_at: expect.any(String),
-        score: 7,
-        total_points: 10,
-        status: 'completed',
-      }))
-      expect(qb.eq).toHaveBeenCalledWith('id', 'att-1')
-      expect(qb.select).toHaveBeenCalled()
-      expect(qb.single).toHaveBeenCalled()
-    })
-
-    it('returns the updated attempt', async () => {
+    it('calls finish_practice_attempt RPC and returns completed attempt', async () => {
       const mockAttempt = { id: 'att-1', score: 7, status: 'completed' }
-      const qb = createQueryBuilder([mockAttempt])
-      vi.mocked(supabase.from).mockReturnValue(qb)
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: mockAttempt, error: null } as any)
       const result = await finishPractice('att-1', 7, 10)
+      expect(supabase.rpc).toHaveBeenCalledWith('finish_practice_attempt', {
+        p_attempt_id: 'att-1',
+        p_score: 7,
+        p_total_points: 10,
+      })
       expect(result).toEqual(mockAttempt)
     })
 
     it('throws on error', async () => {
-      const qb = createQueryBuilder([])
-      qb.single = vi.fn(() => Promise.resolve({ data: null, error: new Error('Update failed') }))
-      vi.mocked(supabase.from).mockReturnValue(qb)
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: null, error: new Error('Update failed') } as any)
       await expect(finishPractice('att-1', 7, 10)).rejects.toThrow('Update failed')
     })
   })

@@ -13,13 +13,10 @@ vi.mock('../../lib/supabase', () => ({
 }))
 
 vi.mock('../../lib/practice', () => ({
+  fetchPracticeQuestionsSafe: vi.fn(),
   startPractice: vi.fn(),
   upsertAnswer: vi.fn(),
   finishPractice: vi.fn(),
-}))
-
-vi.mock('../../lib/exams', () => ({
-  fetchExamQuestions: vi.fn(),
 }))
 
 vi.mock('../../hooks/useAuth', () => ({
@@ -42,8 +39,7 @@ vi.mock('../../lib/shuffle', () => ({
 }))
 
 import { supabase } from '../../lib/supabase'
-import { startPractice, upsertAnswer, finishPractice } from '../../lib/practice'
-import { fetchExamQuestions } from '../../lib/exams'
+import { fetchPracticeQuestionsSafe, startPractice, upsertAnswer, finishPractice } from '../../lib/practice'
 
 function renderPractice() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -84,7 +80,7 @@ describe('PracticePage', () => {
     vi.mocked(startPractice).mockResolvedValue(mockAttempt)
 
     const mockQuestions = [{ id: 'eq-1', exam_id: 'exam-1', question_id: 'q-1', order_index: 1, points: 1, question: { id: 'q-1', type: 'multiple_choice' as const, question_text: 'What is 2+2?', options: ['3', '4', '5'], correct_answer: '1', explanation: '2+2=4', subject: 'math', topic: 'algebra', difficulty: 1 as const, image_url: '', common_mistakes: [], created_by: '', created_at: '', variant_group_id: null } }]
-    vi.mocked(fetchExamQuestions).mockResolvedValue(mockQuestions)
+    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue(mockQuestions)
     const qb = createQueryBuilder([])
     vi.mocked(supabase.from).mockReturnValue(qb)
     qb.single = vi.fn(() => Promise.resolve({ data: { id: 'exam-1', title: 'Practice Algebra', type: 'practice', shuffle_questions: false }, error: null }))
@@ -101,7 +97,7 @@ describe('PracticePage', () => {
     vi.mocked(startPractice).mockResolvedValue(mockAttempt)
     vi.mocked(upsertAnswer).mockResolvedValue({ id: 'ans-1' } as any)
     const mockQuestions = [{ id: 'eq-1', exam_id: 'exam-1', question_id: 'q-1', order_index: 1, points: 1, question: { id: 'q-1', type: 'multiple_choice' as const, question_text: 'What is 2+2?', options: ['3', '4', '5'], correct_answer: '1', explanation: '2+2=4', subject: 'math', topic: 'algebra', difficulty: 1 as const, image_url: '', common_mistakes: [], created_by: '', created_at: '', variant_group_id: null } }]
-    vi.mocked(fetchExamQuestions).mockResolvedValue(mockQuestions)
+    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue(mockQuestions)
 
     const qb = createQueryBuilder([])
     vi.mocked(supabase.from).mockReturnValue(qb)
@@ -124,7 +120,7 @@ describe('PracticePage', () => {
     vi.mocked(upsertAnswer).mockResolvedValue({ id: 'ans-1' } as any)
     vi.mocked(finishPractice).mockResolvedValue({ id: 'att-1', score: 1, total_points: 1, status: 'completed' } as any)
     const mockQuestions = [{ id: 'eq-1', exam_id: 'exam-1', question_id: 'q-1', order_index: 1, points: 1, question: { id: 'q-1', type: 'multiple_choice' as const, question_text: 'What is 2+2?', options: ['3', '4', '5'], correct_answer: '1', explanation: '2+2=4', subject: 'math', topic: 'algebra', difficulty: 1 as const, image_url: '', common_mistakes: [], created_by: '', created_at: '', variant_group_id: null } }]
-    vi.mocked(fetchExamQuestions).mockResolvedValue(mockQuestions)
+    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue(mockQuestions)
 
     const qb = createQueryBuilder([])
     vi.mocked(supabase.from).mockReturnValue(qb)

@@ -1,5 +1,13 @@
 import { supabase } from './supabase'
-import type { Exam, ExamQuestion, ExamAttempt, Answer, Question } from '../types'
+import type {
+  Exam,
+  ExamQuestion,
+  ExamAttempt,
+  Answer,
+  Question,
+  SafeExamPayload,
+  AttemptReviewPayload,
+} from '../types'
 
 type ExamInput = Omit<Exam, 'id' | 'created_at' | 'created_by'>
 
@@ -120,10 +128,30 @@ export async function saveAnswer(attemptId: string, questionId: string, answer: 
   return data as Answer
 }
 
+const NON_RETRYABLE_ERROR_PATTERNS = [
+  'attempt_already_submitted',
+  'unauthorized',
+  'rate_limit_exceeded',
+  'exam_not_started',
+  'exam_ended',
+  'exam_time_expired',
+  'exam_time_limit_exceeded',
+  'exam_submission_window_closed',
+  'exam_no_attempts_left',
+  'exam_cooldown_active',
+  'exam_grade_mismatch',
+  '23505',
+]
+
+function isNonRetryableError(err: unknown): boolean {
+  const msg = String((err as { message?: string; code?: string })?.message ?? err ?? '').toLowerCase()
+  const code = String((err as { code?: string })?.code ?? '').toLowerCase()
+  return NON_RETRYABLE_ERROR_PATTERNS.some((p) => msg.includes(p) || code.includes(p))
+}
+
 /**
- * Exponential backoff with random jitter to gracefully absorb high concurrency
- * (e.g. 1,000 students submitting or starting exams simultaneously).
- * Runs 1 attempt during automated tests to avoid mock desynchronization.
+ * Exponential backoff with random jitter to gracefully absorb transient load spikes.
+ * Skips retries for deterministic server authorization/timing/uniqueness rejections.
  */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
@@ -136,7 +164,7 @@ export async function retryWithBackoff<T>(
       return await fn()
     } catch (err) {
       attempt++
-      if (attempt >= retries) throw err
+      if (attempt >= retries || isNonRetryableError(err)) throw err
       const jitter = Math.random() * 200
       const delay = baseDelayMs * Math.pow(2, attempt - 1) + jitter
       await new Promise(resolve => setTimeout(resolve, delay))
@@ -144,23 +172,52 @@ export async function retryWithBackoff<T>(
   }
 }
 
+/**
+ * Student live-exam question fetcher.
+ * Calls SECURITY DEFINER RPC get_exam_questions_safe, which requires an active,
+ * owned attempt and NEVER returns correct_answer, explanation, or common_mistakes.
+ */
+export async function fetchExamQuestionsSafe(
+  examId: string,
+  attemptId: string
+): Promise<SafeExamPayload> {
+  return retryWithBackoff(async () => {
+    const { data, error } = await supabase.rpc('get_exam_questions_safe', {
+      p_exam_id: examId,
+      p_attempt_id: attemptId,
+    })
+    if (error) throw error
+    return data as SafeExamPayload
+  })
+}
+
+/**
+ * Authorized post-submission review fetcher.
+ * Only succeeds for the owner after status = 'completed' (or for teachers/admins).
+ */
+export async function fetchAttemptReviewSafe(
+  attemptId: string
+): Promise<AttemptReviewPayload> {
+  const { data, error } = await supabase.rpc('get_attempt_review_safe', {
+    p_attempt_id: attemptId,
+  })
+  if (error) throw error
+  return data as AttemptReviewPayload
+}
+
 export async function saveAnswersBatch(attemptId: string, answersMap: Record<string, string>) {
   return retryWithBackoff(async () => {
-    const entries = Object.entries(answersMap).map(([questionId, answer]) => ({
-      attempt_id: attemptId,
+    const payload = Object.entries(answersMap).map(([questionId, answer]) => ({
       question_id: questionId,
       answer,
-      is_correct: false,
-      points_earned: 0,
     }))
-    if (entries.length === 0) return []
-    const { data, error } = await supabase
-      .from('answers')
-      .upsert(entries, { onConflict: 'attempt_id,question_id' })
-      .select()
-
+    if (payload.length === 0) return { saved: 0 }
+    const { data, error } = await supabase.rpc('save_attempt_answers_draft', {
+      p_attempt_id: attemptId,
+      p_answers: payload,
+    })
     if (error) throw error
-    return (data ?? []) as Answer[]
+    return (data ?? { saved: payload.length }) as { saved: number }
   })
 }
 

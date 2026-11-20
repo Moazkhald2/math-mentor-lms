@@ -21,6 +21,7 @@ vi.mock('../../lib/supabase', () => {
   return {
     supabase: {
       from: vi.fn(() => mockQuery),
+      rpc: vi.fn(() => Promise.resolve({ data: [], error: null })),
     },
   }
 })
@@ -68,12 +69,12 @@ describe('bookmarks lib', () => {
   })
 
   describe('fetchBookmarkedQuestions', () => {
-    it('returns bookmarked questions with join', async () => {
+    it('returns bookmarked questions via get_student_bookmarks RPC', async () => {
       const mockData = [{ created_at: '2024-01-01', question: { id: 'q-1', subject: 'Algebra', topic: 'Equations' } }]
-      const qb = createQueryBuilder(mockData)
-      vi.mocked(supabase.from).mockReturnValue(qb)
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: mockData, error: null } as any)
 
       const result = await fetchBookmarkedQuestions('user-1')
+      expect(supabase.rpc).toHaveBeenCalledWith('get_student_bookmarks')
       expect(result).toEqual(mockData)
     })
   })

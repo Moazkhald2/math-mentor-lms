@@ -38,7 +38,11 @@ import {
   submitAnswer,
   completeAttempt,
   saveAnswer,
+  saveAnswersBatch,
   submitExamSecure,
+  fetchExamQuestionsSafe,
+  fetchAttemptReviewSafe,
+  retryWithBackoff,
   fetchStudentAttempts,
   getBestScore,
   cooldownRemainingMs,
@@ -429,6 +433,48 @@ describe('exams lib', () => {
     it('throws when supabase.rpc returns an error', async () => {
       vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: null, error: new Error('RPC Failed') } as any)
       await expect(submitExamSecure('attempt-1', { 'q-1': 'A' })).rejects.toThrow('RPC Failed')
+    })
+  })
+
+  describe('Step 3 safe RPCs & non-retryable guards', () => {
+    it('fetchExamQuestionsSafe calls get_exam_questions_safe with examId and attemptId', async () => {
+      const mockSafe = { attempt_id: 'att-1', started_at: '2026-01-01T00:00:00Z', server_now: '2026-01-01T00:01:00Z', questions: [], variants: [] }
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: mockSafe, error: null } as any)
+
+      const res = await fetchExamQuestionsSafe('exam-1', 'att-1')
+      expect(supabase.rpc).toHaveBeenCalledWith('get_exam_questions_safe', {
+        p_exam_id: 'exam-1',
+        p_attempt_id: 'att-1',
+      })
+      expect(res).toEqual(mockSafe)
+    })
+
+    it('fetchAttemptReviewSafe calls get_attempt_review_safe with attemptId', async () => {
+      const mockReview = { attempt: { id: 'att-1', status: 'completed' }, answers: [] }
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: mockReview, error: null } as any)
+
+      const res = await fetchAttemptReviewSafe('att-1')
+      expect(supabase.rpc).toHaveBeenCalledWith('get_attempt_review_safe', { p_attempt_id: 'att-1' })
+      expect(res).toEqual(mockReview)
+    })
+
+    it('saveAnswersBatch calls save_attempt_answers_draft RPC', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: { saved: 2 }, error: null } as any)
+      const res = await saveAnswersBatch('att-1', { 'q-1': '3', 'q-2': '7' })
+      expect(supabase.rpc).toHaveBeenCalledWith('save_attempt_answers_draft', {
+        p_attempt_id: 'att-1',
+        p_answers: [
+          { question_id: 'q-1', answer: '3' },
+          { question_id: 'q-2', answer: '7' },
+        ],
+      })
+      expect(res).toEqual({ saved: 2 })
+    })
+
+    it('retryWithBackoff does NOT retry deterministic server rejection errors like attempt_already_submitted', async () => {
+      const fn = vi.fn().mockRejectedValue(new Error('attempt_already_submitted'))
+      await expect(retryWithBackoff(fn, 3, 1)).rejects.toThrow('attempt_already_submitted')
+      expect(fn).toHaveBeenCalledTimes(1)
     })
   })
 })

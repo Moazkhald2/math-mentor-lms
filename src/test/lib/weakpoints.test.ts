@@ -1,124 +1,59 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-function createQueryBuilder(returnData: any[] = []) {
-  const resolveValue = { data: returnData, error: null }
-  const chain: any = {
-    eq: vi.fn(() => chain),
-    in: vi.fn(() => chain),
-    select: vi.fn(() => chain),
-    single: vi.fn(() => Promise.resolve({ data: returnData[0], error: null })),
-    then: (onFulfilled: any) => Promise.resolve(resolveValue).then(onFulfilled),
-  }
-  return chain
-}
-
-vi.mock('../../lib/supabase', () => {
-  const mockQuery = createQueryBuilder([])
-  return {
-    supabase: {
-      from: vi.fn(() => mockQuery),
-    },
-  }
-})
+vi.mock('../../lib/supabase', () => ({
+  supabase: {
+    rpc: vi.fn(),
+  },
+}))
 
 import { supabase } from '../../lib/supabase'
 import { fetchWeakPoints, fetchSubjectSummary } from '../../lib/weakpoints'
 
-describe('weakpoints lib', () => {
+describe('weakpoints lib (safe server RPC)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   describe('fetchWeakPoints', () => {
-    it('returns empty array when no attempts found', async () => {
-      const qb = createQueryBuilder([])
-      vi.mocked(supabase.from).mockReturnValue(qb)
+    it('returns empty array when RPC returns empty', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: [], error: null } as any)
       const result = await fetchWeakPoints('user-1')
+      expect(supabase.rpc).toHaveBeenCalledWith('get_student_weak_points')
       expect(result).toEqual([])
     })
 
-    it('aggregates answers by subject and topic', async () => {
-      const attemptQb = createQueryBuilder([{ id: 'att-1' }])
-      const answerQb = createQueryBuilder([
-        { question_id: 'q-1', is_correct: true },
-        { question_id: 'q-2', is_correct: false },
-      ])
-      const questionQb = createQueryBuilder([
-        { id: 'q-1', subject: 'Algebra', topic: 'Equations' },
-        { id: 'q-2', subject: 'Algebra', topic: 'Equations' },
-      ])
-      vi.mocked(supabase.from)
-        .mockReturnValueOnce(attemptQb)
-        .mockReturnValueOnce(answerQb)
-        .mockReturnValueOnce(questionQb)
+    it('maps numeric columns and sorts by accuracy ascending', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: [
+          { subject: 'Algebra', topic: 'Equations', total: '2', correct: '2', accuracy: '100' },
+          { subject: 'Calculus', topic: 'Limits', total: '2', correct: '0', accuracy: '0' },
+        ],
+        error: null,
+      } as any)
 
       const result = await fetchWeakPoints('user-1')
-      expect(result).toHaveLength(1)
-      expect(result[0]).toEqual({ subject: 'Algebra', topic: 'Equations', total: 2, correct: 1, accuracy: 50 })
+      expect(result).toEqual([
+        { subject: 'Calculus', topic: 'Limits', total: 2, correct: 0, accuracy: 0 },
+        { subject: 'Algebra', topic: 'Equations', total: 2, correct: 2, accuracy: 100 },
+      ])
     })
 
-    it('calculates accuracy correctly', async () => {
-      const attemptQb = createQueryBuilder([{ id: 'att-1' }])
-      const answerQb = createQueryBuilder([
-        { question_id: 'q-1', is_correct: true },
-        { question_id: 'q-2', is_correct: true },
-        { question_id: 'q-3', is_correct: false },
-      ])
-      const questionQb = createQueryBuilder([
-        { id: 'q-1', subject: 'Algebra', topic: 'Equations' },
-        { id: 'q-2', subject: 'Algebra', topic: 'Equations' },
-        { id: 'q-3', subject: 'Calculus', topic: 'Limits' },
-      ])
-      vi.mocked(supabase.from)
-        .mockReturnValueOnce(attemptQb)
-        .mockReturnValueOnce(answerQb)
-        .mockReturnValueOnce(questionQb)
-
-      const result = await fetchWeakPoints('user-1')
-      expect(result).toHaveLength(2)
-      const alg = result.find(r => r.subject === 'Algebra')
-      expect(alg?.accuracy).toBe(100)
-      const calc = result.find(r => r.subject === 'Calculus')
-      expect(calc?.accuracy).toBe(0)
-    })
-
-    it('sorts by accuracy ascending', async () => {
-      const attemptQb = createQueryBuilder([{ id: 'att-1' }])
-      const answerQb = createQueryBuilder([
-        { question_id: 'q-1', is_correct: false },
-        { question_id: 'q-2', is_correct: true },
-      ])
-      const questionQb = createQueryBuilder([
-        { id: 'q-1', subject: 'Calculus', topic: 'Limits' },
-        { id: 'q-2', subject: 'Algebra', topic: 'Equations' },
-      ])
-      vi.mocked(supabase.from)
-        .mockReturnValueOnce(attemptQb)
-        .mockReturnValueOnce(answerQb)
-        .mockReturnValueOnce(questionQb)
-
-      const result = await fetchWeakPoints('user-1')
-      expect(result[0].accuracy).toBeLessThanOrEqual(result[1].accuracy)
+    it('throws when RPC fails', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({ data: null, error: new Error('unauthorized') } as any)
+      await expect(fetchWeakPoints('user-1')).rejects.toThrow('unauthorized')
     })
   })
 
   describe('fetchSubjectSummary', () => {
     it('groups weak points by subject', async () => {
-      const attemptQb = createQueryBuilder([{ id: 'att-1' }])
-      const answerQb = createQueryBuilder([
-        { question_id: 'q-1', is_correct: true },
-        { question_id: 'q-2', is_correct: false },
-        { question_id: 'q-3', is_correct: true },
-      ])
-      const questionQb = createQueryBuilder([
-        { id: 'q-1', subject: 'Algebra', topic: 'Equations' },
-        { id: 'q-2', subject: 'Algebra', topic: 'Expressions' },
-        { id: 'q-3', subject: 'Calculus', topic: 'Limits' },
-      ])
-      vi.mocked(supabase.from)
-        .mockReturnValueOnce(attemptQb)
-        .mockReturnValueOnce(answerQb)
-        .mockReturnValueOnce(questionQb)
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: [
+          { subject: 'Algebra', topic: 'Equations', total: 1, correct: 1, accuracy: 100 },
+          { subject: 'Algebra', topic: 'Expressions', total: 1, correct: 0, accuracy: 0 },
+          { subject: 'Calculus', topic: 'Limits', total: 1, correct: 1, accuracy: 100 },
+        ],
+        error: null,
+      } as any)
 
       const result = await fetchSubjectSummary('user-1')
       expect(result).toHaveLength(2)

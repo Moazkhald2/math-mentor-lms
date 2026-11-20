@@ -8,53 +8,23 @@ export interface WeakPoint {
   accuracy: number
 }
 
-export async function fetchWeakPoints(userId: string): Promise<WeakPoint[]> {
-  const { data: attempts, error: attemptsError } = await supabase
-    .from('exam_attempts')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('status', 'completed')
-
-  if (attemptsError) throw attemptsError
-  if (!attempts?.length) return []
-
-  const attemptIds = attempts.map(a => a.id)
-
-  const { data: answers, error: answersError } = await supabase
-    .from('answers')
-    .select('question_id, is_correct')
-    .in('attempt_id', attemptIds)
-
-  if (answersError) throw answersError
-  if (!answers?.length) return []
-
-  const qIds = [...new Set(answers.map(a => a.question_id))]
-
-  const { data: questions, error: qError } = await supabase
-    .from('questions')
-    .select('id, subject, topic')
-    .in('id', qIds)
-
-  if (qError) throw qError
-
-  const qMap = new Map(questions?.map(q => [q.id, q]) ?? [])
-
-  const acc: Record<string, { total: number; correct: number }> = {}
-
-  for (const a of answers) {
-    const q = qMap.get(a.question_id)
-    if (!q) continue
-    const key = `${q.subject}::${q.topic}`
-    if (!acc[key]) acc[key] = { total: 0, correct: 0 }
-    acc[key].total++
-    if (a.is_correct) acc[key].correct++
-  }
-
-  return Object.entries(acc)
-    .map(([key, val]) => {
-      const [subject, topic] = key.split('::')
-      return { subject, topic, total: val.total, correct: val.correct, accuracy: Math.round((val.correct / val.total) * 100) }
-    })
+export async function fetchWeakPoints(_userId?: string): Promise<WeakPoint[]> {
+  const { data, error } = await supabase.rpc('get_student_weak_points')
+  if (error) throw error
+  return ((data ?? []) as Array<{
+    subject: string
+    topic: string
+    total: number | string
+    correct: number | string
+    accuracy: number | string
+  }>)
+    .map((row) => ({
+      subject: row.subject,
+      topic: row.topic,
+      total: Number(row.total),
+      correct: Number(row.correct),
+      accuracy: Number(row.accuracy),
+    }))
     .sort((a, b) => a.accuracy - b.accuracy)
 }
 
@@ -65,7 +35,7 @@ export interface SubjectSummary {
   accuracy: number
 }
 
-export async function fetchSubjectSummary(userId: string): Promise<SubjectSummary[]> {
+export async function fetchSubjectSummary(userId?: string): Promise<SubjectSummary[]> {
   const points = await fetchWeakPoints(userId)
 
   const acc: Record<string, { total: number; correct: number }> = {}

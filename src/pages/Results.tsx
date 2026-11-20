@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '../lib/supabase'
-import type { ExamAttempt, Answer, Question } from '../types'
+import { fetchAttemptReviewSafe } from '../lib/exams'
+import type { Question } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import { useBestScore } from '../hooks/useBestScore'
 import LatexRenderer from '../components/LatexRenderer'
@@ -24,34 +24,14 @@ export default function Results() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
-  const { data: attempt } = useQuery({
-    queryKey: ['attempt', attemptId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('exam_attempts')
-        .select('*, exam:exams(*)')
-        .eq('id', attemptId)
-        .single()
-
-      if (error) throw error
-      return data as ExamAttempt & { exam: { title: string; passing_score: number; max_attempts: number } }
-    },
-    enabled: !!attemptId,
+  const { data: review, error: reviewError } = useQuery({
+    queryKey: ['attempt-review', attemptId],
+    queryFn: () => fetchAttemptReviewSafe(attemptId!),
+    enabled: !!attemptId && !!user,
   })
 
-  const { data: answers } = useQuery({
-    queryKey: ['attempt-answers', attemptId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('answers')
-        .select('*, question:questions(*)')
-        .eq('attempt_id', attemptId)
-
-      if (error) throw error
-      return data as (Answer & { question: Question })[]
-    },
-    enabled: !!attemptId,
-  })
+  const attempt = review?.attempt
+  const answers = review?.answers
 
   const bestScore = useBestScore(attempt?.exam_id, attempt?.exam?.max_attempts)
   const best = bestScore.data?.best ?? 0
@@ -61,6 +41,15 @@ export default function Results() {
     return (
       <div className="mt-16 text-center">
         <p className="text-text-muted">Sign in to view results</p>
+      </div>
+    )
+  }
+
+  if (reviewError) {
+    return (
+      <div className="mx-auto mt-16 max-w-md text-center">
+        <p className="text-lg text-danger">{(reviewError as Error).message || 'Could not load results'}</p>
+        <button onClick={() => navigate('/dashboard')} className="mt-4 rounded-lg bg-brand px-6 py-2 text-white">Back to Dashboard</button>
       </div>
     )
   }

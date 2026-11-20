@@ -34,15 +34,10 @@ export async function fetchBookmarkedIds(userId: string): Promise<Set<string>> {
   return new Set(data?.map(b => b.question_id) ?? [])
 }
 
-export async function fetchBookmarkedQuestions(userId: string) {
-  const { data, error } = await supabase
-    .from('question_bookmarks')
-    .select('created_at, question:questions(*)')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-
+export async function fetchBookmarkedQuestions(_userId?: string) {
+  const { data, error } = await supabase.rpc('get_student_bookmarks')
   if (error) throw error
-  return data as unknown as { created_at: string; question: import('../types').Question }[]
+  return (data ?? []) as unknown as { created_at: string; question: import('../types').Question }[]
 }
 
 export async function submitFeedback(

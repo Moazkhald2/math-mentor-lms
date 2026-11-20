@@ -169,3 +169,22 @@ export function applyTemplate<T extends TemplateQuestion>(q: T, seed: string): T
   }
   return { ...q, question_text, options, correct_answer }
 }
+
+/**
+ * Live-exam safe template substitution (never touches or expects correct_answer,
+ * and never mutates unparameterized questions so server grading stays exact).
+ */
+export function applySafeTemplate<T extends { question_text: string; options: string[]; params?: Record<string, ParamSpec> | null }>(
+  q: T,
+  seed: string,
+): T {
+  if (!q.params || Object.keys(q.params).length === 0) {
+    return q
+  }
+  const params = resolveParams(q.params, seed)
+  return {
+    ...q,
+    question_text: substitute(q.question_text, params),
+    options: q.options.map((o) => substitute(o, params)),
+  }
+}

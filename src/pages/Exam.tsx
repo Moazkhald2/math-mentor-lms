@@ -2,10 +2,18 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { fetchExamQuestions, fetchVariantPool, startAttempt, completeAttempt, saveAnswersBatch, submitAnswersBatch, submitExamSecure, fetchStudentAttempts, cooldownRemainingMs, getBestScore } from '../lib/exams'
+import {
+  fetchExamQuestionsSafe,
+  startAttempt,
+  saveAnswersBatch,
+  submitExamSecure,
+  fetchStudentAttempts,
+  cooldownRemainingMs,
+  getBestScore,
+} from '../lib/exams'
 import { supabase } from '../lib/supabase'
-import { seededShuffle, shuffleMultipleChoice } from '../lib/shuffle'
-import { applyTemplate } from '../lib/params'
+import { seededShuffle, shuffleOptionsPreservingIndex } from '../lib/shuffle'
+import { applySafeTemplate } from '../lib/params'
 import { resolveVariant } from '../lib/variants'
 import AntiCheatGuard from '../components/AntiCheatGuard'
 import Watermark from '../components/Watermark'
@@ -15,11 +23,16 @@ import LatexRenderer from '../components/LatexRenderer'
 import Scratchpad from '../components/Scratchpad'
 import CartesianGrapherModal from '../components/CartesianGrapherModal'
 import MathInput from '../components/MathInput'
-import { isMathAnswerEqual } from '../lib/mathNormalize'
-import type { Question, Exam, ExamQuestion } from '../types'
+import type { Exam, SafeExamQuestionRow, SafeQuestion } from '../types'
 
-type ShuffledQuestion = ExamQuestion & {
-  question: Question & { options: string[]; correct_answer: string }
+interface ShuffledOption {
+  text: string
+  originalIndex: number
+}
+
+type RenderExamQuestion = Omit<SafeExamQuestionRow, 'question'> & {
+  question: SafeQuestion
+  shuffledOptions: ShuffledOption[]
 }
 
 export default function Exam() {
@@ -39,6 +52,7 @@ export default function Exam() {
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const [offlineNotice, setOfflineNotice] = useState<string | null>(null)
   const startedRef = useRef(false)
+  const submittingRef = useRef(false)
 
   const offlineKey = id ? `mm_answers_${id}_${user?.id ?? 'guest'}` : ''
 
@@ -72,9 +86,7 @@ export default function Exam() {
     try { localStorage.setItem(offlineKey, JSON.stringify(answers)) } catch {}
   }, [answers, offlineKey])
 
-  // auto-sync moved after handleSave definition
-
-  const { data: exam } = useQuery({
+  const { data: exam, error: examError } = useQuery({
     queryKey: ['exam', id, user?.id],
     queryFn: async () => {
       const [examRes, profileRes] = await Promise.all([
@@ -94,23 +106,6 @@ export default function Exam() {
     enabled: !!id,
   })
 
-  const { data: rawQuestions, isLoading } = useQuery({
-    queryKey: ['exam-questions', id],
-    queryFn: () => fetchExamQuestions(id!),
-    enabled: !!id,
-  })
-
-  const { data: variantPool = [] } = useQuery({
-    queryKey: ['exam-variant-pool', id],
-    queryFn: () => {
-      const groupIds = [...new Set((rawQuestions ?? [])
-        .map(eq => eq.question.variant_group_id)
-        .filter((g): g is string => !!g))]
-      return fetchVariantPool(groupIds)
-    },
-    enabled: !!rawQuestions,
-  })
-
   const { data: pastAttempts = [], isPending: attemptsLoading } = useQuery({
     queryKey: ['my-exam-attempts', id],
     queryFn: () => user ? fetchStudentAttempts(id!, user.id) : Promise.resolve([]),
@@ -122,6 +117,7 @@ export default function Exam() {
     ? (completedCount >= (exam.max_attempts ?? 3) ? 'no_attempts' : (cd > 0 ? 'cooldown' : null))
     : null
 
+  // Start (or resume) an authorized server-validated attempt BEFORE loading exam questions
   useEffect(() => {
     if (!user || !id || startedRef.current || !exam || attemptsLoading) return
     if (gate) {
@@ -136,33 +132,47 @@ export default function Exam() {
     }).catch(e => setError(e.message))
   }, [user, id, exam, gate, attemptsLoading, log])
 
-  const questions = useMemo<ShuffledQuestion[] | undefined>(() => {
-    if (!rawQuestions) return undefined
-    const seed = (attemptSeed ?? id) || 'default'
-    const dateSeed = new Date().toISOString().slice(0, 10) // YYYY-MM-DD for time-seeded anti-cheat
-    const fullSeed = seed + '::' + dateSeed
+  // Fetch questions ONLY through the server-safe RPC once an active attempt exists.
+  // Payload NEVER contains correct_answer, explanation, or common_mistakes.
+  const { data: safePayload, isLoading: questionsLoading, error: questionsError } = useQuery({
+    queryKey: ['exam-questions-safe', id, attemptId],
+    queryFn: () => fetchExamQuestionsSafe(id!, attemptId!),
+    enabled: !!id && !!attemptId,
+  })
+
+  const questions = useMemo<RenderExamQuestion[] | undefined>(() => {
+    if (!safePayload?.questions) return undefined
+    const rawQuestions = safePayload.questions
+    const variantPool = safePayload.variants ?? []
+    const seed = (attemptSeed ?? attemptId ?? id) || 'default'
     const baseShuffle = exam?.shuffle_questions
-      ? seededShuffle(rawQuestions, fullSeed + '_questions')
+      ? seededShuffle(rawQuestions, seed + '_questions')
       : [...rawQuestions]
-    const resolved = baseShuffle.map(eq => {
-      const variant = resolveVariant(eq.question, fullSeed, variantPool)
-      const question = { ...variant }
-      if (question.type === 'multiple_choice' && question.options.length > 0) {
-        const { options, correctAnswer } = shuffleMultipleChoice(
-          question.options, question.correct_answer, fullSeed + question.id
-        )
-        question.options = options
-        question.correct_answer = correctAnswer
+
+    return baseShuffle.map(eq => {
+      const variant = resolveVariant(eq.question, seed, variantPool)
+      const templated = applySafeTemplate(variant, seed + variant.id)
+      const shuffledOptions =
+        templated.type === 'multiple_choice' && templated.options.length > 0
+          ? shuffleOptionsPreservingIndex(templated.options, seed + templated.id)
+          : []
+      return {
+        ...eq,
+        question: templated,
+        shuffledOptions,
       }
-      // Param templates (consistent seeded numbers) with legacy jitter fallback
-      const templated = applyTemplate(question as any, fullSeed + question.id)
-      question.question_text = templated.question_text
-      question.options = templated.options
-      if (question.type === 'short_answer') question.correct_answer = templated.correct_answer
-      return { ...eq, question }
     })
-    return resolved
-  }, [rawQuestions, id, attemptSeed, exam?.shuffle_questions, variantPool])
+  }, [safePayload, id, attemptId, attemptSeed, exam?.shuffle_questions])
+
+  const remainingDurationMinutes = useMemo(() => {
+    if (!exam) return 30
+    if (!safePayload?.started_at || !safePayload?.server_now) return exam.time_limit_minutes
+    const elapsedMin = Math.max(
+      0,
+      (new Date(safePayload.server_now).getTime() - new Date(safePayload.started_at).getTime()) / 60000
+    )
+    return Math.max(0.25, exam.time_limit_minutes - elapsedMin)
+  }, [exam, safePayload?.started_at, safePayload?.server_now])
 
   const current = questions?.[currentIndex]
   const total = questions?.length ?? 0
@@ -185,63 +195,40 @@ export default function Exam() {
       if (offlineKey) localStorage.removeItem(offlineKey)
     } catch (e: any) {
       try { localStorage.setItem(offlineKey, JSON.stringify(answers)) } catch {}
-      setError(e.message)
-      setOfflineNotice('Save failed - kept on device')
+      setOfflineNotice(`Save failed (${e?.message ?? 'network'}) - kept safely on device`)
     } finally {
       setSaving(false)
     }
   }, [attemptId, saving, answered, answers, log, offlineKey])
 
+  // Server-authoritative submission ONLY — never grades in browser or writes scores directly
   const handleSubmit = useCallback(async () => {
-    if (!attemptId || !questions || submitting) return
+    if (!attemptId || !questions || submittingRef.current) return
+    submittingRef.current = true
     setSubmitting(true)
     try {
-      let correct = 0
-      let totalPoints = 0
-      let earnedPoints = 0
-      const batchList: Array<{ questionId: string; answer: string; isCorrect: boolean; pointsEarned: number }> = []
-
-      for (const eq of questions) {
-        const points = eq.points ?? 1
-        totalPoints += points
-        const userAns = answers[eq.question_id] ?? ''
-        const isCorrect = eq.question.type === 'short_answer'
-          ? isMathAnswerEqual(userAns, eq.question.correct_answer)
-          : userAns === eq.question.correct_answer
-        if (isCorrect) {
-          correct++
-          earnedPoints += points
-        }
-        batchList.push({
-          questionId: eq.question_id,
-          answer: userAns,
-          isCorrect,
-          pointsEarned: isCorrect ? points : 0
-        })
-      }
-      try {
-        const secureResult = await submitExamSecure(attemptId, answers)
-        log('exam_submitted', { score: secureResult.score, total: questions.length })
-        queryClient.invalidateQueries({ queryKey: ['my-exam-attempts', user?.id] })
-        navigate(`/results/${attemptId}`, { replace: true })
-      } catch {
-        // Fallback to client batch upsert if RPC is not yet enabled on DB
-        await submitAnswersBatch(attemptId, batchList)
-        const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0
-        await completeAttempt(attemptId, score, totalPoints)
-        log('exam_submitted', { score, correct, total: questions.length })
-        queryClient.invalidateQueries({ queryKey: ['my-exam-attempts', user?.id] })
-        navigate(`/results/${attemptId}`, { replace: true })
-      }
+      const secureResult = await submitExamSecure(attemptId, answers)
+      if (offlineKey) localStorage.removeItem(offlineKey)
+      log('exam_submitted', { score: secureResult.score, total: questions.length })
+      queryClient.invalidateQueries({ queryKey: ['my-exam-attempts', user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['my-exam-attempts', id] })
+      navigate(`/results/${attemptId}`, { replace: true })
     } catch (e: any) {
-      setError(e.message)
+      const msg = String(e?.message ?? '')
+      if (msg.includes('attempt_already_submitted') || msg.includes('23505')) {
+        if (offlineKey) localStorage.removeItem(offlineKey)
+        navigate(`/results/${attemptId}`, { replace: true })
+        return
+      }
+      setError(msg || 'Submission failed. Your answers are still saved on this device.')
+      submittingRef.current = false
       setSubmitting(false)
     }
-  }, [attemptId, questions, answers, submitting, navigate, log, queryClient, user?.id])
+  }, [attemptId, questions, answers, navigate, log, queryClient, user?.id, id, offlineKey])
 
   const handleTimeUp = useCallback(() => {
-    if (!submitting) handleSubmit()
-  }, [submitting, handleSubmit])
+    if (!submittingRef.current) handleSubmit()
+  }, [handleSubmit])
 
   useEffect(() => {
     if (!isOnline || !attemptId || Object.keys(answers).length === 0) return
@@ -251,7 +238,7 @@ export default function Exam() {
 
   const handleSubmitClick = () => {
     if (!questions) return
-    const unanswered = questions.filter(q => !(q.question_id in answers)).length
+    const unanswered = questions.filter(q => !(q.question.id in answers)).length
     if (unanswered > 0) {
       setShowConfirm(true)
     } else {
@@ -279,17 +266,19 @@ export default function Exam() {
     )
   }
 
-  if (isLoading || (attemptsLoading && !!user)) {
-    return <p className="mt-16 text-center text-text-muted">Loading exam...</p>
-  }
+  const activeError = error ?? (examError as Error | null)?.message ?? (questionsError as Error | null)?.message ?? null
 
-  if (error) {
+  if (activeError) {
     return (
       <div className="mx-auto mt-16 max-w-md text-center">
-        <p className="text-lg text-danger">{error}</p>
+        <p className="text-lg text-danger">{activeError}</p>
         <button onClick={() => navigate('/exams')} className="mt-4 rounded-lg bg-brand px-6 py-2 text-white">Back to Exams</button>
       </div>
     )
+  }
+
+  if (questionsLoading || (attemptsLoading && !!user) || (!!user && !!exam && !gate && !attemptId)) {
+    return <p className="mt-16 text-center text-text-muted">Loading exam...</p>
   }
 
   if (!exam || !questions || questions.length === 0) {
@@ -305,7 +294,7 @@ export default function Exam() {
     <AntiCheatGuard
       examId={id!}
       maxWarnings={3}
-      durationMinutes={exam.time_limit_minutes}
+      durationMinutes={remainingDurationMinutes}
       onTimeUp={handleTimeUp}
       onDisqualified={handleTimeUp}
       onViolation={(type) => log('violation', { type })}
@@ -337,7 +326,7 @@ export default function Exam() {
           <CartesianGrapherModal
             onInsertAnswer={(summary) => {
               if (current?.question?.type === 'short_answer') {
-                handleAnswer(current.question_id, summary)
+                handleAnswer(current.question.id, summary)
               }
             }}
           />
@@ -360,10 +349,11 @@ export default function Exam() {
         {current && (
           <QuestionView
             question={current.question}
+            shuffledOptions={current.shuffledOptions}
             index={currentIndex}
             total={total}
-            selected={answers[current.question_id]}
-            onAnswer={(a) => handleAnswer(current.question_id, a)}
+            selected={answers[current.question.id]}
+            onAnswer={(a) => handleAnswer(current.question.id, a)}
             onNext={() => setCurrentIndex(i => Math.min(i + 1, total - 1))}
             onPrev={() => setCurrentIndex(i => Math.max(i - 1, 0))}
           />
@@ -374,7 +364,7 @@ export default function Exam() {
             <div className="mx-4 w-full max-w-md rounded-xl border border-border bg-surface p-8 shadow-2xl">
               <h2 className="mb-4 text-2xl font-black text-text">Submit Exam?</h2>
               <p className="mb-2 text-text-muted">
-                You have {questions.filter(q => !(q.question_id in answers)).length} unanswered question(s).
+                You have {questions.filter(q => !(q.question.id in answers)).length} unanswered question(s).
                 Unanswered questions will be marked as incorrect.
               </p>
               <p className="mb-6 text-sm text-text-muted">Are you sure you want to submit?</p>
@@ -401,10 +391,16 @@ export default function Exam() {
 }
 
 function QuestionView({
-  question, index, total, selected, onAnswer, onNext, onPrev,
+  question, shuffledOptions, index, total, selected, onAnswer, onNext, onPrev,
 }: {
-  question: Question; index: number; total: number; selected?: string
-  onAnswer: (answer: string) => void; onNext: () => void; onPrev: () => void
+  question: SafeQuestion
+  shuffledOptions: ShuffledOption[]
+  index: number
+  total: number
+  selected?: string
+  onAnswer: (answer: string) => void
+  onNext: () => void
+  onPrev: () => void
 }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-4 md:p-8">
@@ -424,16 +420,16 @@ function QuestionView({
       </div>
 
       <div className="space-y-3">
-        {question.type === 'multiple_choice' && question.options.map((opt, i) => {
-          const val = String(i)
+        {question.type === 'multiple_choice' && shuffledOptions.map((opt, displayIdx) => {
+          const val = String(opt.originalIndex)
           return (
-            <button key={i} onClick={() => onAnswer(val)}
+            <button key={opt.originalIndex} onClick={() => onAnswer(val)}
               className={`w-full rounded-lg border px-5 py-3 text-left transition ${
                 selected === val ? 'border-brand bg-brand/10 text-text' : 'border-border text-text-muted hover:border-brand/50 hover:text-text'
               }`}
             >
-              <span className="mr-3 font-mono text-sm text-text-muted">{String.fromCharCode(65 + i)}.</span>
-              <LatexRenderer content={opt} />
+              <span className="mr-3 font-mono text-sm text-text-muted">{String.fromCharCode(65 + displayIdx)}.</span>
+              <LatexRenderer content={opt.text} />
             </button>
           )
         })}

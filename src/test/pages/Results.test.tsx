@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Results from '../../pages/Results'
 
-const state = vi.hoisted(() => ({ attempt: null as any, answers: null as any }))
+const state = vi.hoisted(() => ({ attempt: null as any, answers: null as any, error: null as Error | null }))
 const bestScoreState = vi.hoisted(() => ({ data: null as any }))
 
 vi.mock('../../hooks/useAuth', () => ({
@@ -15,22 +15,12 @@ vi.mock('../../hooks/useBestScore', () => ({
   useBestScore: () => ({ data: bestScoreState.data }),
 }))
 
-vi.mock('../../lib/supabase', () => {
-  const chain: any = {
-    select: vi.fn(() => chain),
-    eq: vi.fn(() => chain),
-    order: vi.fn(() => chain),
-    single: vi.fn(() => Promise.resolve({ data: state.attempt, error: null })),
-    then: (onFulfilled: any) =>
-      Promise.resolve({ data: state.answers, error: null }).then(onFulfilled),
-  }
-  return {
-    supabase: {
-      from: vi.fn(() => chain),
-      rpc: vi.fn(() => Promise.resolve({ data: null, error: null })),
-    },
-  }
-})
+vi.mock('../../lib/exams', () => ({
+  fetchAttemptReviewSafe: vi.fn(async () => {
+    if (state.error) throw state.error
+    return { attempt: state.attempt, answers: state.answers }
+  }),
+}))
 
 vi.mock('../../components/LatexRenderer', () => ({
   default: () => <span data-testid="latex" />,
@@ -103,11 +93,12 @@ function renderResults() {
   )
 }
 
-describe('Results best score and attempts left', () => {
+describe('Results authorized post-submission review', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     state.attempt = attempt
     state.answers = answers
+    state.error = null
     bestScoreState.data = null
   })
 
@@ -169,5 +160,11 @@ describe('Results best score and attempts left', () => {
     expect(screen.getByText(/your best score is 70%/)).toBeInTheDocument()
     expect(screen.queryByText(/attempts left/)).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Take another attempt/i })).not.toBeInTheDocument()
+  })
+
+  it('shows server error message when review RPC rejects uncompleted or unauthorized attempts', async () => {
+    state.error = new Error('attempt_not_completed')
+    renderResults()
+    expect(await screen.findByText('attempt_not_completed')).toBeInTheDocument()
   })
 })

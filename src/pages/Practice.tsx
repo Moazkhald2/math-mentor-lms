@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { fetchExamQuestions } from '../lib/exams'
-import { startPractice, upsertAnswer, finishPractice } from '../lib/practice'
+import { fetchPracticeQuestionsSafe, startPractice, upsertAnswer, finishPractice } from '../lib/practice'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useActivityLogger } from '../hooks/useActivityLogger'
@@ -42,7 +41,7 @@ export default function Practice() {
     queryFn: async () => {
       const [examResult, rawQuestions] = await Promise.all([
         supabase.from('exams').select('*').eq('id', id!).single(),
-        fetchExamQuestions(id!),
+        fetchPracticeQuestionsSafe(id!),
       ])
       if (examResult.error) throw examResult.error
       const seed = id || 'practice_default'

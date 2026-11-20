@@ -90,3 +90,37 @@ export interface Answer {
 export interface ExamWithQuestions extends Exam {
   questions: (ExamQuestion & { question: Question })[]
 }
+
+/**
+ * Live-exam safe question shape returned by get_exam_questions_safe RPC.
+ * Never includes correct_answer, explanation, or common_mistakes.
+ */
+export type SafeQuestion = Omit<
+  Question,
+  'correct_answer' | 'explanation' | 'common_mistakes' | 'created_by' | 'created_at'
+>
+
+export interface SafeExamQuestionRow extends ExamQuestion {
+  question: SafeQuestion
+}
+
+export interface SafeExamPayload {
+  attempt_id: string
+  started_at: string
+  server_now: string
+  questions: SafeExamQuestionRow[]
+  variants: SafeQuestion[]
+}
+
+export interface AttemptReviewPayload {
+  attempt: ExamAttempt & {
+    exam: {
+      id?: string
+      title: string
+      passing_score: number
+      max_attempts: number
+      type?: 'exam' | 'practice'
+    }
+  }
+  answers: (Answer & { question: Question })[]
+}
