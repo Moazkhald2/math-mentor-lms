@@ -1,7 +1,10 @@
 {
   "name": "math-mentor-lms",
+  "description": "The Math Mentor LMS — Interactive mathematics exam and adaptive practice platform.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "author": "Moaaz Khaled",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "dev": "vite",

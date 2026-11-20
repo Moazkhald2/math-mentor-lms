@@ -136,7 +136,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               </ul>
             </div>
             <div className="flex items-end">
-              <span>� {new Date().getFullYear()} The Math Mentor � Master Math with Confidence</span>
+              <span>&copy; {new Date().getFullYear()} The Math Mentor &mdash; All Rights Reserved.</span>
             </div>
           </div>
         </div>
