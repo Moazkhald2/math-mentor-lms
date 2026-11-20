@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { matchesStudentFilters, useStudentGradeMap } from '../ui/filters'
+import StudentIdentity from '../StudentIdentity'
 
 interface AttemptRow {
   score: number | null
@@ -12,7 +13,7 @@ interface AttemptRow {
   started_at: string
   user_id: string
   exam_id: string
-  profiles: { full_name: string } | null
+  profiles: { full_name: string; email?: string | null } | null
   exams: { title: string } | null
 }
 
@@ -37,7 +38,7 @@ function useAttempts(userId: string, examIds: string[]) {
       if (!examIds.length) return [] as AttemptRow[]
       const { data } = await supabase
         .from('exam_attempts')
-        .select('score,total_points,status,started_at,user_id,exam_id,profiles(full_name),exams(title)')
+        .select('score,total_points,status,started_at,user_id,exam_id,profiles(full_name,email),exams(title)')
         .in('exam_id', examIds)
         .order('started_at', { ascending: false })
         .limit(100)
@@ -190,7 +191,13 @@ export default function OverviewView({ userId, grade }: { userId: string; grade?
               <TableBody>
                 {recent.map((a, i) => (
                   <TableRow key={`${a.user_id}-${a.exam_id}-${a.started_at}-${i}`}>
-                    <TableCell>{a.profiles?.full_name ?? 'Unknown'}</TableCell>
+                    <TableCell>
+                      <StudentIdentity
+                        name={a.profiles?.full_name}
+                        email={a.profiles?.email}
+                        compact
+                      />
+                    </TableCell>
                     <TableCell>{a.exams?.title ?? '—'}</TableCell>
                     <TableCell>
                       {a.score != null ? `${Math.round(((a.score ?? 0) / (a.total_points || 1)) * 100)}%` : 'in progress'}

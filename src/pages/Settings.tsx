@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { ALL_GRADES } from '../lib/grades'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 
@@ -62,7 +63,7 @@ export default function Settings() {
       <form onSubmit={handleProfileUpdate} className="mb-8 rounded-xl border border-border bg-surface p-6">
         <h2 className="mb-4 text-xl font-bold text-text">Profile</h2>
 
-        <label className="mb-1 block text-sm text-text-muted">Full Name</label>
+        <label className="mb-1 block text-sm text-text-muted">Real Full Name</label>
         <input value={fullName} onChange={e => setFullName(e.target.value)}
           className="mb-4 w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
 
@@ -70,7 +71,7 @@ export default function Settings() {
         <select value={grade} onChange={e => setGrade(e.target.value ? Number(e.target.value) : '')}
           className="mb-4 w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink">
           <option value="">Select grade</option>
-          {Array.from({ length: 10 }, (_, i) => i + 3).map(g => <option key={g} value={g}>Grade {g}</option>)}
+          {ALL_GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
         </select>
 
         <label className="mb-1 block text-sm text-text-muted">Parent Phone <span className="text-text-muted/60">(for progress reports)</span></label>

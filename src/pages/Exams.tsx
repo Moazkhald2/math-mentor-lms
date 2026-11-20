@@ -5,7 +5,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import type { ExamAttempt } from '../types'
 
-const AVAILABLE_GRADES = [6, 7, 8, 9, 10, 11, 12]
+import { ALL_GRADES } from '../lib/grades'
+
+const AVAILABLE_GRADES = ALL_GRADES
 
 export default function Exams() {
   const { user } = useAuth()

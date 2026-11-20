@@ -5,7 +5,9 @@ import { fetchExams } from '../lib/exams'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 
-const AVAILABLE_GRADES = [6, 7, 8, 9, 10, 11, 12]
+import { ALL_GRADES } from '../lib/grades'
+
+const AVAILABLE_GRADES = ALL_GRADES
 
 // Sheets = practice-type exams: self-paced, instant feedback, retry with new numbers.
 export default function Sheets() {

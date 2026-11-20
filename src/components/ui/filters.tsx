@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { fetchClasses } from '../../lib/classes'
+import { ALL_GRADES } from '../../lib/grades'
 
 export interface FilterState {
   grade?: number
@@ -9,7 +10,7 @@ export interface FilterState {
   status?: 'passed' | 'failed'
 }
 
-export const GRADES = [4, 5, 6, 7, 8, 9, 10] as const
+export const GRADES = ALL_GRADES
 
 const selectCls =
   'input min-w-[130px] rounded-lg border border-border bg-surface px-3 py-1.5 text-sm'

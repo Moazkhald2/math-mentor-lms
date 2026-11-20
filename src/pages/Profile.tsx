@@ -69,8 +69,9 @@ export default function Profile() {
             {(profile.full_name || 'U')[0].toUpperCase()}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-text">{profile.full_name || 'User'}</h2>
-            <p className="text-sm text-text-muted">{profile.email || user.email}</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-text-muted">Real Student Name</p>
+            <h2 className="text-xl font-bold text-text">{profile.full_name || 'Name not set'}</h2>
+            <p className="text-sm text-text-muted"><span className="font-medium">Email:</span> {profile.email || user.email}</p>
           </div>
         </div>
 

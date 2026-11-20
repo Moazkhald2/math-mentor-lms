@@ -12,7 +12,7 @@ export default function Home() {
 
       <p className="mb-10 max-w-2xl text-lg leading-relaxed text-text-muted">
         Timed exams, step-by-step solutions, and smart progress tracking.
-        Built for Grades 4–12 · because every student deserves{' '}
+        Built for Grades 1–12 · because every student deserves{' '}
         <span className="font-semibold text-accent-green">compassionate</span>,{' '}
         <span className="font-semibold text-brand">expert guidance</span>.
       </p>

@@ -8,6 +8,7 @@ import StudentsView from '../components/teacher/StudentsView'
 import ExamsView from '../components/teacher/ExamsView'
 import BankView from '../components/teacher/BankView'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { ALL_GRADES } from '../lib/grades'
 
 export default function TeacherDashboard() {
   const { user } = useAuth()
@@ -56,7 +57,7 @@ export default function TeacherDashboard() {
               onChange={(e) => setGradeFilter(e.target.value ? Number(e.target.value) : undefined)}
             >
               <option value="">All grades</option>
-              {[4, 5, 6, 7, 8, 9, 10].map((g) => (
+              {ALL_GRADES.map((g) => (
                 <option key={g} value={g}>Grade {g}</option>
               ))}
             </select>

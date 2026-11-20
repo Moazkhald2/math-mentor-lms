@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { formatAuthEmailError } from './ForgotPassword'
 import { isDisposableEmail, isValidPassword, isValidPhone, isValidEmailFormat, isValidName } from '../lib/validation'
+import { ALL_GRADES } from '../lib/grades'
 
 const RESEND_COOLDOWN_SECONDS = 60
 
@@ -127,16 +128,17 @@ export default function Register() {
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-first">First Name *</label>
+            <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-first">Real First Name *</label>
             <input id="reg-first" name="firstName" type="text" maxLength={40} value={firstName} onChange={e => setFirstName(e.target.value)}
               className={inputCls} required autoComplete="given-name" />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-last">Last Name *</label>
+            <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-last">Real Last Name *</label>
             <input id="reg-last" name="lastName" type="text" maxLength={40} value={lastName} onChange={e => setLastName(e.target.value)}
               className={inputCls} required autoComplete="family-name" />
           </div>
         </div>
+        <p className="-mt-2 text-xs text-text-muted">Use your real full name — it appears beside your email for your teacher and on reports.</p>
         <div>
           <label className="mb-1 block text-sm text-text-muted" htmlFor="reg-email">Email *</label>
           <input id="reg-email" name="email" type="email" maxLength={254} value={email} onChange={e => setEmail(e.target.value)}
@@ -154,8 +156,8 @@ export default function Register() {
         {!confirmGrade ? (
           <div>
             <label className="mb-1 block text-sm text-text-muted">Grade *</label>
-            <div className="grid grid-cols-5 gap-2">
-              {Array.from({ length: 10 }, (_, i) => i + 3).map(g => (
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {ALL_GRADES.map(g => (
                 <button key={g} type="button" onClick={() => { setGrade(g); setConfirmGrade(true) }}
                   className={`rounded-lg border px-3 py-2 text-sm font-bold transition ${
                     grade === g ? 'border-brand bg-brand/10 text-brand' : 'border-border text-text-muted hover:border-brand/50 hover:text-text'

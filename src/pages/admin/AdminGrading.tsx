@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import StudentIdentity from '../../components/StudentIdentity'
 
 export default function AdminGrading() {
   const queryClient = useQueryClient()
@@ -48,7 +49,9 @@ export default function AdminGrading() {
               const student = a.attempt?.student ?? {}
               return (
                 <tr key={a.id} className={`text-text ${alreadyGraded ? 'opacity-60' : ''}`}>
-                  <td className="px-4 py-3">{student.full_name || student.email || '—'}</td>
+                  <td className="px-4 py-3">
+                    <StudentIdentity name={student.full_name} email={student.email} compact />
+                  </td>
                   <td className="max-w-xs truncate px-4 py-3">{a.question?.question_text}</td>
                   <td className="px-4 py-3 font-medium text-brand">{a.answer || '—'}</td>
                   <td className="px-4 py-3 text-accent-green">{a.question?.correct_answer}</td>

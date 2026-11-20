@@ -62,7 +62,17 @@ export default function Layout({ children }: { children: ReactNode }) {
             <div className="hidden items-center gap-3 md:flex">
               {loading ? null : user ? (
                 <>
-                  <Link to="/profile" className="text-base font-semibold text-text-muted transition-colors duration-150 hover:text-brand">{user.user_metadata.full_name}</Link>
+                  <Link
+                    to="/profile"
+                    className="flex flex-col items-end leading-tight text-right transition-colors duration-150 hover:text-brand"
+                  >
+                    <span className="text-sm font-bold text-ink">
+                      {user.user_metadata?.full_name || 'Complete Name'}
+                    </span>
+                    {user.email && (
+                      <span className="text-[11px] text-text-muted">Email: {user.email}</span>
+                    )}
+                  </Link>
                   <button onClick={signOut} className="btn btn-outline px-5 py-2.5 text-base font-bold">Sign Out</button>
                 </>
               ) : (
@@ -96,7 +106,10 @@ export default function Layout({ children }: { children: ReactNode }) {
               <Link to="/grapher" className={navLink} onClick={() => setMenuOpen(false)}>Grapher</Link>
               {loading ? null : user ? (
                 <>
-                  <span className="text-sm text-muted">Signed in as {user.user_metadata.full_name}</span>
+                  <Link to="/profile" onClick={() => setMenuOpen(false)} className="rounded-lg border border-border bg-surface px-3 py-2 text-sm">
+                    <span className="block font-bold text-ink">Name: {user.user_metadata?.full_name || 'Not set'}</span>
+                    {user.email && <span className="block text-xs text-text-muted">Email: {user.email}</span>}
+                  </Link>
                   <button onClick={signOut} className="btn btn-outline">Sign Out</button>
                 </>
               ) : (

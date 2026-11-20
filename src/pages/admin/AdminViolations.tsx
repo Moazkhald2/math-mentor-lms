@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import StudentIdentity from '../../components/StudentIdentity'
 import {
   FilterBar,
   matchesStudentFilters,
@@ -66,7 +67,9 @@ export default function AdminViolations() {
             )}
             {filtered.map((v: any) => (
               <tr key={v.id} className="text-text hover:bg-danger/5">
-                <td className="px-4 py-3">{v.profile?.full_name || v.profile?.email || '—'}</td>
+                <td className="px-4 py-3">
+                  <StudentIdentity name={v.profile?.full_name} email={v.profile?.email} compact />
+                </td>
                 <td className="px-4 py-3">{v.exam?.title || '—'}</td>
                 <td className="px-4 py-3">
                   <span className="rounded bg-danger/10 px-2 py-0.5 text-xs text-danger">

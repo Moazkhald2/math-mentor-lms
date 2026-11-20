@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { GRADES } from '../../components/ui/filters'
+import StudentIdentity from '../../components/StudentIdentity'
 
 export default function AdminUsers() {
   const queryClient = useQueryClient()
@@ -124,11 +125,10 @@ export default function AdminUsers() {
         <table className="w-full text-left text-sm">
           <thead className="bg-surface text-text-muted">
             <tr>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Real Name &amp; Email</th>
               <th className="px-4 py-3">Role</th>
               <th className="px-4 py-3">Grade</th>
-              <th className="px-4 py-3">Class Code</th>
+              <th className="px-4 py-3">Group / Class</th>
               <th className="px-4 py-3">Parent Phone</th>
               <th className="px-4 py-3">Joined</th>
               <th className="px-4 py-3">Actions</th>
@@ -137,8 +137,9 @@ export default function AdminUsers() {
           <tbody className="divide-y divide-border">
             {filtered.map((u) => (
               <tr key={u.id} className="text-text hover:bg-surface/50">
-                <td className="px-4 py-3">{u.email}</td>
-                <td className="px-4 py-3">{u.full_name}</td>
+                <td className="px-4 py-3">
+                  <StudentIdentity name={u.full_name} email={u.email} compact />
+                </td>
                 <td className="px-4 py-3">
                   <select
                     value={u.role}

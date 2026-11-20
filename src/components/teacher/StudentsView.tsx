@@ -2,11 +2,14 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import StudentIdentity from '../StudentIdentity'
 
 interface StudentRow {
   id: string
   full_name: string
+  email?: string | null
   grade: number | null
+  class_code?: string | null
 }
 
 interface AttemptRow {
@@ -28,7 +31,7 @@ export default function StudentsView({ grade }: { grade?: number }) {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('id,full_name,grade')
+        .select('id,full_name,email,grade,class_code')
         .eq('role', 'student')
         .order('full_name')
       return (data ?? []) as StudentRow[]
@@ -68,7 +71,14 @@ export default function StudentsView({ grade }: { grade?: number }) {
 
   const students = (studentsQ.data ?? [])
     .filter((s) => !grade || s.grade === grade)
-    .filter((s) => s.full_name.toLowerCase().includes(search.trim().toLowerCase()))
+    .filter((s) => {
+      const q = search.trim().toLowerCase()
+      if (!q) return true
+      return (
+        (s.full_name ?? '').toLowerCase().includes(q) ||
+        (s.email ?? '').toLowerCase().includes(q)
+      )
+    })
 
   function daysSince(iso: string): string {
     const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
@@ -103,7 +113,7 @@ export default function StudentsView({ grade }: { grade?: number }) {
       <input
         className="input"
         type="search"
-        placeholder="Search students by name..."
+        placeholder="Search students by real name or email..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -128,8 +138,15 @@ export default function StudentsView({ grade }: { grade?: number }) {
                 className="cursor-pointer"
               >
                 <TableCell className="font-medium">
-                  <span className="mr-2 text-brand">{open ? '▾' : '▸'}</span>
-                  {s.full_name}
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 text-brand">{open ? '▾' : '▸'}</span>
+                    <StudentIdentity
+                      name={s.full_name}
+                      email={s.email}
+                      groupName={s.class_code}
+                      compact
+                    />
+                  </div>
                 </TableCell>
                 <TableCell>{s.grade ?? '—'}</TableCell>
                 <TableCell>{st ? `${st.count} attempts` : 'No attempts yet'}</TableCell>

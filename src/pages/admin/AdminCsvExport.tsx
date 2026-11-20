@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { ALL_GRADES } from '../../lib/grades'
 
 function downloadCSV(rows: string[][], filename: string) {
   const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(',')).join('\n')
@@ -37,7 +38,7 @@ export default function AdminCsvExport() {
       if (error) throw error
       if (!data?.length) { alert('No attempts found'); return }
 
-      const rows = [['Student Name', 'Email', 'Grade', 'Exam', 'Type', 'Score', 'Completed At']]
+      const rows = [['Real Student Name', 'Email', 'Grade', 'Exam', 'Type', 'Score', 'Completed At']]
       for (const a of data) {
         rows.push([
           a.profile?.full_name ?? '',
@@ -66,7 +67,7 @@ export default function AdminCsvExport() {
       if (error) throw error
       if (!data?.length) { alert('No students found'); return }
 
-      const rows = [['Name', 'Email', 'Grade', 'Class', 'Parent Phone', 'Telegram Chat ID', 'Joined']]
+      const rows = [['Real Student Name', 'Email', 'Grade', 'Group / Class', 'Parent Phone', 'Telegram Chat ID', 'Joined']]
       for (const s of data) {
         rows.push([
           s.full_name || '',
@@ -111,7 +112,7 @@ export default function AdminCsvExport() {
             <select value={gradeFilter} onChange={e => setGradeFilter(e.target.value ? Number(e.target.value) : '')}
               className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink">
               <option value="">All grades</option>
-              {Array.from({ length: 10 }, (_, i) => i + 3).map(g => <option key={g} value={g}>Grade {g}</option>)}
+              {ALL_GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
             </select>
           </div>
           <div>

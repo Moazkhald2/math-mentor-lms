@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { fetchExams } from '../lib/exams'
+import { ALL_GRADES } from '../lib/grades'
 import WeakPointsCard from '../components/WeakPointsCard'
 import type { ExamAttempt } from '../types'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -123,7 +124,7 @@ export default function Dashboard() {
             <h2 className="mb-2 text-2xl font-black text-text">Welcome!</h2>
             <p className="mb-6 text-text-muted">Select your grade to get started.</p>
             <div className="grid grid-cols-2 gap-3">
-              {Array.from({ length: 10 }, (_, i) => i + 3).map((g) => (
+              {ALL_GRADES.map((g) => (
                 <button
                   key={g}
                   onClick={() => setSelectedGrade(g)}

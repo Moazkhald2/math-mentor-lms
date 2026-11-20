@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import type { Question } from '../../types'
+import StudentIdentity from '../../components/StudentIdentity'
 import {
   FilterBar,
   attemptResult,
@@ -79,9 +80,8 @@ export default function AdminAttempts() {
         {filtered.map((a: any) => (
           <div key={a.id} className="rounded-xl border border-border bg-surface">
             <button onClick={() => setExpanded(expanded === a.id ? null : a.id)} className="flex w-full items-center justify-between p-4 text-left">
-              <div className="flex items-center gap-4">
-                <span className="font-medium text-text">{a.profiles?.full_name || a.profiles?.email}</span>
-                <span className="text-sm text-text-muted">Grade {a.profiles?.grade ?? '-'}</span>
+              <div className="flex flex-wrap items-center gap-4">
+                <StudentIdentity name={a.profiles?.full_name} email={a.profiles?.email} grade={a.profiles?.grade} compact />
                 <span className="text-text-muted">{a.exams?.title}</span>
                 {a.status === 'completed' && <span className="font-bold text-accent-green">{a.score}%</span>}
                 <span className={`rounded px-2 py-0.5 text-xs ${a.status === 'completed' ? 'bg-accent-green/10 text-accent-green' : a.status === 'in_progress' ? 'bg-accent-gold/10 text-accent-gold' : 'bg-danger/10 text-danger'}`}>{a.status}</span>

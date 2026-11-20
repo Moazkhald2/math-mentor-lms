@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchClasses, createClass, deleteClass, fetchClassMembers, addStudentToClass, removeStudentFromClass, fetchAvailableStudents, fetchAvailableTeachers } from '../../lib/classes'
+import { ALL_GRADES } from '../../lib/grades'
+import StudentIdentity from '../../components/StudentIdentity'
 
 export default function AdminClasses() {
   const queryClient = useQueryClient()
@@ -52,7 +54,7 @@ export default function AdminClasses() {
           <div className="flex gap-3">
             <input placeholder="Class name" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
             <select value={newGrade} onChange={e => setNewGrade(Number(e.target.value))} className="rounded-lg border border-border bg-surface px-4 py-2 text-ink">
-              {Array.from({ length: 10 }, (_, i) => i + 3).map(g => <option key={g} value={g}>Grade {g}</option>)}
+              {ALL_GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
             </select>
             <select value={newTeacher} onChange={e => setNewTeacher(e.target.value)} className="rounded-lg border border-border bg-surface px-4 py-2 text-ink">
               <option value="">No teacher</option>
@@ -84,7 +86,11 @@ export default function AdminClasses() {
                 <div className="mb-3 flex gap-2">
                   <select id="add-student-select" className="flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink" defaultValue="">
                     <option value="" disabled>Select student to add...</option>
-                    {students?.filter((s: any) => !members?.find((m: any) => m.student_id === s.id)).map((s: any) => <option key={s.id} value={s.id}>{s.full_name ?? s.email}</option>)}
+                    {students?.filter((s: any) => !members?.find((m: any) => m.student_id === s.id)).map((s: any) => (
+                      <option key={s.id} value={s.id}>
+                        {s.full_name ? `${s.full_name} (Email: ${s.email})` : `Email: ${s.email}`}
+                      </option>
+                    ))}
                   </select>
                   <button onClick={() => {
                     const sel = document.getElementById('add-student-select') as HTMLSelectElement
@@ -94,7 +100,7 @@ export default function AdminClasses() {
                 <div className="space-y-1">
                   {members?.map((m: any) => (
                     <div key={m.id} className="flex items-center justify-between rounded bg-surface px-3 py-2 text-sm">
-                      <span className="text-ink">{m.profiles?.full_name ?? m.profiles?.email}</span>
+                      <StudentIdentity name={m.profiles?.full_name} email={m.profiles?.email} compact />
                       <button onClick={() => removeStudentFromClass(expandedClass!, m.student_id).then(() => refetchMembers())} className="text-xs text-danger hover:underline">Remove</button>
                     </div>
                   ))}

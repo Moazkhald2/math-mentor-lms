@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { ALL_GRADES } from '../lib/grades'
+import { isValidName } from '../lib/validation'
 
 export default function CompleteProfile() {
   const { user } = useAuth()
@@ -27,12 +29,17 @@ export default function CompleteProfile() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    const trimmedName = fullName.trim()
+    if (!isValidName(trimmedName) || trimmedName.split(/\s+/).length < 2) {
+      setError('Please enter your real full name (first and last name).')
+      return
+    }
     if (!grade) { setError('Please select your grade'); return }
     setSaving(true)
-    const { error: authErr } = await supabase.auth.updateUser({ data: { full_name: fullName } })
+    const { error: authErr } = await supabase.auth.updateUser({ data: { full_name: trimmedName } })
     if (authErr) { setError(authErr.message); setSaving(false); return }
     const { error: dbErr } = await supabase.from('profiles').update({
-      full_name: fullName,
+      full_name: trimmedName,
       grade,
       parent_phone: parentPhone,
     }).eq('id', user!.id)
@@ -51,9 +58,10 @@ export default function CompleteProfile() {
 
       <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-surface p-6 space-y-4">
         <div>
-          <label className="mb-1 block text-sm text-text-muted">Full Name</label>
-          <input value={fullName} onChange={e => setFullName(e.target.value)} required
+          <label className="mb-1 block text-sm text-text-muted">Real Full Name <span className="text-danger">*</span></label>
+          <input value={fullName} onChange={e => setFullName(e.target.value)} required placeholder="e.g., Youssef Ahmed"
             className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink" />
+          <p className="mt-1 text-xs text-text-muted">Shown beside your email ({user.email}) for your teacher and reports.</p>
         </div>
 
         <div>
@@ -61,7 +69,7 @@ export default function CompleteProfile() {
           <select value={grade} onChange={e => setGrade(e.target.value ? Number(e.target.value) : '')} required
             className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-ink">
             <option value="">Select your grade</option>
-            {Array.from({ length: 10 }, (_, i) => i + 3).map(g => <option key={g} value={g}>Grade {g}</option>)}
+            {ALL_GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
           </select>
         </div>
 
