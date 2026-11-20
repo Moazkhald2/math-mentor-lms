@@ -41,6 +41,8 @@ export interface Question {
   image_url: string
   common_mistakes: { mistake: string; why: string; correct: string }[]
   variant_group_id: string | null
+  family_id?: string | null
+  hints?: string[] | null
   params?: Record<string, { min: number; max: number }> | null
   created_by: string
   created_at: string

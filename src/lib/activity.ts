@@ -12,6 +12,7 @@ export type ActivityAction =
   | 'practice_submitted'
   | 'question_answered'
   | 'practice_answered'
+  | 'practice_mistake_recovered'
   | 'tab_switch'
   | 'violation'
   | 'device_switch'

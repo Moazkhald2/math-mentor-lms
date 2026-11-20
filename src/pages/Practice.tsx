@@ -22,6 +22,12 @@ import CartesianGrapherModal from '../components/CartesianGrapherModal'
 import MathInput from '../components/MathInput'
 import Watermark from '../components/Watermark'
 import { isMathAnswerEqual } from '../lib/mathNormalize'
+import {
+  buildTieredHints,
+  findSimilarFamilyCandidate,
+  getEncouragingFeedback,
+  type SimilarRetryMode,
+} from '../lib/practiceHints'
 import type { Exam, ExamQuestion, Question, ExamAttempt } from '../types'
 
 export default function Practice() {
@@ -41,11 +47,17 @@ export default function Practice() {
   const appliedResumeIndexRef = useRef(false)
   const [questionOverrides, setQuestionOverrides] = useState<Record<string, Question>>({})
   const retryCountsRef = useRef<Record<string, number>>({})
+  const triedSimilarIdsRef = useRef<Record<string, Set<string>>>({})
   const scoredQuestionsRef = useRef<Set<string>>(new Set())
   const [answeredMap, setAnsweredMap] = useState<Record<string, SavedPracticeAnswer>>({})
   const [resumedInfo, setResumedInfo] = useState<{ answeredCount: number } | null>(null)
   const [sessionInitialized, setSessionInitialized] = useState(false)
   const savedCheckpointIndexRef = useRef<number | null>(null)
+  const [hintLevel, setHintLevel] = useState<0 | 1 | 2 | 3>(0)
+  const [hadMistakeOnCurrent, setHadMistakeOnCurrent] = useState(false)
+  const [isRetryRound, setIsRetryRound] = useState(false)
+  const [retryMode, setRetryMode] = useState<SimilarRetryMode | null>(null)
+  const [recoveredOnCurrent, setRecoveredOnCurrent] = useState(false)
 
   type ExamWithQuestions = Exam & {
     questions: (ExamQuestion & { question: Question })[]
@@ -256,19 +268,38 @@ export default function Practice() {
   const activeQuestion = questionOverrides[current.question.id] ?? current.question
   const answeredCount = Object.keys(answeredMap).length
   const progressPercent = eqs.length > 0 ? Math.min(100, Math.round((answeredCount / eqs.length) * 100)) : 0
+  const tieredHints = buildTieredHints(activeQuestion)
 
-  const isRetryable = !!activeQuestion.params && Object.keys(activeQuestion.params).length > 0
+  const allSheetQuestions = eqs.map((eq) => eq.question)
+  const triedSet = triedSimilarIdsRef.current[current.question.id] ?? new Set<string>()
+  const similarCandidate = findSimilarFamilyCandidate(activeQuestion, allSheetQuestions, triedSet)
 
-  const handleRetry = () => {
+  const handleRetrySimilar = () => {
+    if (!similarCandidate) return
     const qid = current.question.id
-    const base = exam.bases[qid] ?? current.question
-    const n = (retryCountsRef.current[qid] ?? 0) + 1
-    retryCountsRef.current[qid] = n
-    const fresh = applyTemplate(
-      base as unknown as { question_text: string; options: string[]; correct_answer: string; type: string },
-      `${id ?? 'practice_default'}::${qid}::r${n}`,
-    ) as Partial<Question>
-    setQuestionOverrides(prev => ({ ...prev, [qid]: { ...current.question, ...fresh } }))
+    if (!triedSimilarIdsRef.current[qid]) {
+      triedSimilarIdsRef.current[qid] = new Set([qid])
+    }
+    triedSimilarIdsRef.current[qid].add(activeQuestion.id)
+
+    if (similarCandidate.mode === 'params') {
+      const base = exam.bases[qid] ?? current.question
+      const n = (retryCountsRef.current[qid] ?? 0) + 1
+      retryCountsRef.current[qid] = n
+      const fresh = applyTemplate(
+        base as unknown as { question_text: string; options: string[]; correct_answer: string; type: string },
+        `${id ?? 'practice_default'}::${qid}::r${n}`,
+      ) as Partial<Question>
+      setQuestionOverrides(prev => ({ ...prev, [qid]: { ...current.question, ...fresh } }))
+    } else {
+      triedSimilarIdsRef.current[qid].add(similarCandidate.question.id)
+      setQuestionOverrides(prev => ({ ...prev, [qid]: similarCandidate.question }))
+    }
+
+    setRetryMode(similarCandidate.mode)
+    setIsRetryRound(true)
+    setRecoveredOnCurrent(false)
+    setHintLevel(0)
     setSelectedAnswer(null)
     setSubmitted(false)
   }
@@ -284,21 +315,41 @@ export default function Practice() {
     const attId = attemptRef.current?.id || `local_att_${Date.now()}`
     let nextAnsweredMap = answeredMap
     try {
-      if (!scoredQuestionsRef.current.has(activeQuestion.id)) {
-        scoredQuestionsRef.current.add(activeQuestion.id)
+      if (!scoredQuestionsRef.current.has(current.question.id)) {
+        scoredQuestionsRef.current.add(current.question.id)
         nextAnsweredMap = {
           ...answeredMap,
-          [activeQuestion.id]: { answer: ans, isCorrect: correct },
+          [current.question.id]: { answer: ans, isCorrect: correct },
         }
         setAnsweredMap(nextAnsweredMap)
         if (correct) correctCountRef.current++
         persistCheckpoint(currentIndex, nextAnsweredMap, eqs.length)
         if (!attId.startsWith('local_')) {
-          await upsertAnswer(attId, activeQuestion.id, ans, correct, correct ? 1 : 0)
+          await upsertAnswer(attId, current.question.id, ans, correct, correct ? 1 : 0)
         }
       }
+
+      if (!correct) {
+        setHadMistakeOnCurrent(true)
+        setRecoveredOnCurrent(false)
+      } else if (isRetryRound && hadMistakeOnCurrent) {
+        setRecoveredOnCurrent(true)
+        log('practice_mistake_recovered', {
+          original_question_id: current.question.id,
+          retry_question_id: activeQuestion.id,
+          retry_mode: retryMode ?? 'params',
+          hints_used: hintLevel,
+        })
+      }
+
       setSubmitted(true)
-      log('practice_answered', { question_id: activeQuestion.id, correct, answer_given: selectedAnswer })
+      log('practice_answered', {
+        question_id: activeQuestion.id,
+        correct,
+        answer_given: selectedAnswer,
+        hints_used: hintLevel,
+        is_retry: isRetryRound,
+      })
     } catch (e) {
       console.warn('Answer saved locally:', e)
       persistCheckpoint(currentIndex, nextAnsweredMap, eqs.length)
@@ -325,6 +376,11 @@ export default function Practice() {
     if (currentIndex < eqs.length - 1) {
       const nextIdx = currentIndex + 1
       setCurrentIndex(nextIdx)
+      setHintLevel(0)
+      setHadMistakeOnCurrent(false)
+      setIsRetryRound(false)
+      setRetryMode(null)
+      setRecoveredOnCurrent(false)
       const nextQid = eqs[nextIdx]?.question.id
       if (nextQid && answeredMap[nextQid]) {
         setSelectedAnswer(answeredMap[nextQid].answer)
@@ -464,50 +520,119 @@ export default function Practice() {
             disabled={submitted}
           />
         )}
+
+        {/* Progressive Tiered Hints Ladder (Hint 1 -> Hint 2 -> Full Worked Solution) */}
+        {!submitted && (
+          <div className="mt-5 space-y-2.5 border-t border-border/60 pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-text-muted">
+                {hintLevel === 0 ? 'Need a nudge?' : `Hints revealed: ${hintLevel} of 3`}
+              </span>
+              {hintLevel < 3 && (
+                <button
+                  type="button"
+                  onClick={() => setHintLevel((prev) => Math.min(3, prev + 1) as 0 | 1 | 2 | 3)}
+                  className="rounded-lg border border-brand/40 bg-brand/5 px-3 py-1.5 text-xs font-bold text-brand hover:bg-brand/10 transition"
+                >
+                  {hintLevel === 0
+                    ? '💡 Show Hint 1'
+                    : hintLevel === 1
+                      ? '💡 Show Hint 2'
+                      : '📖 Show Full Worked Solution'}
+                </button>
+              )}
+            </div>
+
+            {hintLevel >= 1 && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-text">
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                  Hint 1
+                </p>
+                <div className="mt-1">
+                  <LatexRenderer content={tieredHints.hint1} />
+                </div>
+              </div>
+            )}
+
+            {hintLevel >= 2 && (
+              <div className="rounded-lg border border-brand/30 bg-brand/5 p-3 text-sm text-text">
+                <p className="text-xs font-bold uppercase tracking-wide text-brand">
+                  Hint 2
+                </p>
+                <div className="mt-1">
+                  <LatexRenderer content={tieredHints.hint2} />
+                </div>
+              </div>
+            )}
+
+            {hintLevel >= 3 && (
+              <div className="rounded-lg border border-accent-green/30 bg-accent-green/5 p-3 text-sm text-text">
+                <p className="text-xs font-bold uppercase tracking-wide text-accent-green">
+                  Full Worked Solution
+                </p>
+                <div className="mt-1 leading-relaxed">
+                  <LatexRenderer content={tieredHints.fullSolution} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {submitted && (
-        <div className={`mb-6 rounded-xl border p-4 ${
-          selectedAnswer !== null && (
-            activeQuestion.type === 'short_answer'
-              ? isMathAnswerEqual(selectedAnswer, activeQuestion.correct_answer)
-              : selectedAnswer === activeQuestion.correct_answer
-          ) ? 'border-accent-green bg-accent-green/5' : 'border-danger bg-danger/5'
-        }`}>
-          <p className={`font-bold ${
-            selectedAnswer !== null && (
-              activeQuestion.type === 'short_answer'
-                ? isMathAnswerEqual(selectedAnswer, activeQuestion.correct_answer)
-                : selectedAnswer === activeQuestion.correct_answer
-            ) ? 'text-accent-green' : 'text-danger'
-          }`}>
-            {selectedAnswer !== null && (
-              activeQuestion.type === 'short_answer'
-                ? isMathAnswerEqual(selectedAnswer, activeQuestion.correct_answer)
-                : selectedAnswer === activeQuestion.correct_answer
-            ) ? 'Correct!' : 'Wrong'}
-          </p>
-          {selectedAnswer !== null && !(
-            activeQuestion.type === 'short_answer'
-              ? isMathAnswerEqual(selectedAnswer, activeQuestion.correct_answer)
-              : selectedAnswer === activeQuestion.correct_answer
-          ) && <p className="text-sm text-accent-green mt-1">Correct answer: {activeQuestion.type === 'multiple_choice' ? activeQuestion.options[parseInt(activeQuestion.correct_answer)] || activeQuestion.correct_answer : activeQuestion.correct_answer}</p>}
-          <div className="mt-3 space-y-2 leading-relaxed border-t border-border/60 pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">How to solve</p>
-            <LatexRenderer content={activeQuestion.explanation} />
-          </div>
-        </div>
-      )}
+      {submitted && (() => {
+        const isCorrectAnswer =
+          selectedAnswer !== null &&
+          (activeQuestion.type === 'short_answer'
+            ? isMathAnswerEqual(selectedAnswer, activeQuestion.correct_answer)
+            : selectedAnswer === activeQuestion.correct_answer)
+        const feedback = getEncouragingFeedback({
+          isCorrect: isCorrectAnswer,
+          recoveredFromMistake: recoveredOnCurrent,
+          hintsUsed: hintLevel,
+        })
 
-      <div className="flex justify-between gap-2">
+        return (
+          <div className={`mb-6 rounded-xl border p-4 ${
+            isCorrectAnswer ? 'border-accent-green bg-accent-green/5' : 'border-amber-500/40 bg-amber-500/5'
+          }`}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className={`font-bold ${isCorrectAnswer ? 'text-accent-green' : 'text-amber-700 dark:text-amber-400'}`}>
+                {isCorrectAnswer ? (recoveredOnCurrent ? '🎉 ' : '✨ ') : '💡 '}
+                {feedback.title}
+              </p>
+              {isRetryRound && (
+                <span className="rounded-md bg-brand/10 px-2 py-0.5 text-[11px] font-bold text-brand">
+                  Similar Practice ({retryMode === 'family' ? 'Question Family' : retryMode === 'params' ? 'Fresh Numbers' : 'Same Topic'})
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-text-muted">{feedback.subtitle}</p>
+            {!isCorrectAnswer && (
+              <p className="text-sm font-semibold text-accent-green mt-2">
+                Correct answer:{' '}
+                {activeQuestion.type === 'multiple_choice'
+                  ? activeQuestion.options[parseInt(activeQuestion.correct_answer)] || activeQuestion.correct_answer
+                  : activeQuestion.correct_answer}
+              </p>
+            )}
+            <div className="mt-3 space-y-2 leading-relaxed border-t border-border/60 pt-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Full Worked Solution</p>
+              <LatexRenderer content={tieredHints.fullSolution} />
+            </div>
+          </div>
+        )
+      })()}
+
+      <div className="flex flex-wrap justify-between gap-2">
         {submitted ? (
           <>
-            {isRetryable && (
+            {similarCandidate && (
               <button
-                onClick={handleRetry}
-                className="rounded-lg border border-brand bg-brand/5 px-4 py-2 font-medium text-ink hover:bg-brand/10"
+                type="button"
+                onClick={handleRetrySimilar}
+                className="rounded-lg border border-brand bg-brand/5 px-4 py-2 text-sm font-semibold text-ink hover:bg-brand/10 transition"
               >
-                ↻ Try new numbers (not scored)
+                ↻ Try a Similar Problem
               </button>
             )}
             <button onClick={handleNext} className="ml-auto rounded-lg bg-brand px-6 py-2 font-semibold text-white">

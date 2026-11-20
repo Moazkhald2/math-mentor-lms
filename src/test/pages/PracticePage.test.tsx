@@ -231,4 +231,70 @@ describe('PracticePage', () => {
       expect(clearPracticeCheckpoint).toHaveBeenCalledWith('user-1', 'exam-1')
     })
   })
+
+  it('reveals progressive Hint 1 -> Hint 2 -> Full Worked Solution before submitting', async () => {
+    const mockAttempt: ExamAttempt = { id: 'att-1', exam_id: 'exam-1', user_id: 'user-1', started_at: new Date().toISOString(), completed_at: null, score: null, total_points: 0, status: 'in_progress' } as any
+    vi.mocked(resumeOrStartPractice).mockResolvedValue({ attempt: mockAttempt, answers: [], resumed: false })
+    const qWithHints = makeQuestion('q-1', 'Solve 2x = 8')
+    ;(qWithHints.question as any).hints = ['Divide both sides by 2', '8 divided by 2 gives the answer']
+    qWithHints.question.explanation = 'Divide both sides by 2 to get x = 4.'
+    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue([qWithHints])
+
+    const qb = createQueryBuilder([])
+    vi.mocked(supabase.from).mockReturnValue(qb)
+    qb.single = vi.fn(() => Promise.resolve({ data: { id: 'exam-1', title: 'Practice Algebra', type: 'practice', shuffle_questions: false }, error: null }))
+
+    renderPractice()
+
+    await waitFor(() => expect(screen.getByText('Solve 2x = 8')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByRole('button', { name: /Show Hint 1/i }))
+    expect(screen.getByText('Divide both sides by 2')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /Show Hint 2/i }))
+    expect(screen.getByText('8 divided by 2 gives the answer')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /Show Full Worked Solution/i }))
+    expect(screen.getByText('Divide both sides by 2 to get x = 4.')).toBeInTheDocument()
+  })
+
+  it('shows encouraging feedback on miss and recovers via Question Family similar problem', async () => {
+    const mockAttempt: ExamAttempt = { id: 'att-1', exam_id: 'exam-1', user_id: 'user-1', started_at: new Date().toISOString(), completed_at: null, score: null, total_points: 0, status: 'in_progress' } as any
+    vi.mocked(resumeOrStartPractice).mockResolvedValue({ attempt: mockAttempt, answers: [], resumed: false })
+    vi.mocked(upsertAnswer).mockResolvedValue({ id: 'ans-1' } as any)
+
+    const q1 = makeQuestion('q-1', 'Family Question A')
+    ;(q1.question as any).family_id = 'fam-add-1'
+    const q2 = makeQuestion('q-2', 'Family Question B')
+    ;(q2.question as any).family_id = 'fam-add-1'
+    vi.mocked(fetchPracticeQuestionsSafe).mockResolvedValue([q1, q2])
+
+    const qb = createQueryBuilder([])
+    vi.mocked(supabase.from).mockReturnValue(qb)
+    qb.single = vi.fn(() => Promise.resolve({ data: { id: 'exam-1', title: 'Practice Algebra', type: 'practice', shuffle_questions: false }, error: null }))
+
+    renderPractice()
+
+    await waitFor(() => expect(screen.getByText('Family Question A')).toBeInTheDocument())
+    // Pick wrong answer ('3', index 0)
+    await userEvent.click(screen.getByText('3'))
+    await userEvent.click(screen.getByText('Submit Answer'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Not quite yet/i)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Try a Similar Problem/i })).toBeInTheDocument()
+    })
+
+    // Click Try a Similar Problem -> loads Question Family sibling
+    await userEvent.click(screen.getByRole('button', { name: /Try a Similar Problem/i }))
+    await waitFor(() => expect(screen.getByText('Family Question B')).toBeInTheDocument())
+
+    // Now answer correctly ('4', index 1) -> Mistake Recovered!
+    await userEvent.click(screen.getByText('4'))
+    await userEvent.click(screen.getByText('Submit Answer'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Mistake Recovered!/i)).toBeInTheDocument()
+    })
+  })
 })
